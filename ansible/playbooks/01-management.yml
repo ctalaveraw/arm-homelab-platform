@@ -8,3 +8,28 @@
 
   roles:
     - common
+
+  tasks:
+    - name: Ensure services directory exists
+      ansible.builtin.file:
+        path: /srv/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure services backup directory exists
+      ansible.builtin.file:
+        path: /srv/backups
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure services storage namespace directory exists
+      ansible.builtin.file:
+        path: /srv/storage
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'

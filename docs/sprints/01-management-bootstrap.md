@@ -50,3 +50,24 @@ Fresh-host installation remains untested.
 
 ### Next
 PLAT-002.3: Declarative directory management.
+
+## PLAT-002.3 — Directory Management
+
+Status: Complete
+
+### Implementation
+- Declaratively managed /srv/services.
+- Declaratively managed /srv/backups.
+- Declaratively managed /srv/storage.
+- Enforced runner:runner ownership and 0750 mode.
+- Preserved the SD-backed state mount.
+
+### Verification
+- First execution: ok=10, changed=1, failed=0.
+- One intermediate sudo authentication failure.
+- Final execution: ok=10, changed=0, failed=0.
+- SD ext4 mount independently verified.
+- Directory ownership inspected using stat.
+
+### Next
+PLAT-003: Docker Engine and Compose bootstrap.
