@@ -55,3 +55,15 @@ snapshot rather than rewritten after the change.
 
 The original baseline is retained as a historical
 snapshot rather than rewritten after the change.
+
+## Post-Baseline Storage Change (2026-10-02)
+
+- Replaced original SD card with a 128 GB card.
+- Retained LABEL=storage_sdcard.
+- Retained /srv/storage/state mount point.
+- Verified active mount and usable capacity.
+- findmnt --verify passed.
+- Reboot persistence validation remains pending.
+
+The original baseline is retained as a historical
+snapshot rather than rewritten after the change.
