@@ -17,6 +17,7 @@
           - -A
           - /srv/storage/state/
       changed_when: false
+      check_mode: false
 
     - name: Inspect actual SD filesystem
       ansible.builtin.command:
@@ -32,6 +33,7 @@
           - LABEL
       register: sd_mount
       changed_when: false
+      check_mode: false
       failed_when: false
 
     - name: Assert expected SD filesystem is mounted
@@ -47,3 +49,4 @@
           - /usr/bin/findmnt
           - --verify
       changed_when: false
+      check_mode: false

@@ -25,3 +25,28 @@ Status: Complete
 
 ### Next
 PLAT-002.2: Implement the Ansible common role.
+
+## PLAT-002.2 — Common Role
+
+Status: Complete
+
+### Implementation
+- Created reusable common role.
+- Defined baseline packages in defaults/main.yml.
+- Implemented variable-driven APT task.
+- Added python3-apt as a managed dependency.
+- Integrated role into 01-management.yml.
+- Made preflight inspection check-mode compatible.
+
+### Verification
+- Syntax validation passed.
+- Check-mode execution passed.
+- Two normal executions completed successfully.
+- Both reported ok=7, changed=0, failed=0.
+
+### Limitations
+Packages were already installed on the R5C.
+Fresh-host installation remains untested.
+
+### Next
+PLAT-002.3: Declarative directory management.

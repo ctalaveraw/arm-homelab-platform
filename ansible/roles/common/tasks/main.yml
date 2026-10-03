@@ -1,0 +1,5 @@
+---
+- name: Ensure baseline packages are installed
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present

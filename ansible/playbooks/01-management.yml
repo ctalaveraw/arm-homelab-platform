@@ -1,0 +1,10 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Configure R5C management host
+  hosts: management
+  gather_facts: false
+  become: true
+
+  roles:
+    - common
