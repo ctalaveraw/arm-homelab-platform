@@ -1,0 +1,29 @@
+# Environment and credentials
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/secrets/
+*.pem
+*.key
+*.vault-pass
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Ansible
+*.retry
+
+# Python
+__pycache__/
+.venv/
+
+# Local tooling
+.DS_Store
+*.swp
+*.tmp
