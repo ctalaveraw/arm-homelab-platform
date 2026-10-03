@@ -1,0 +1,49 @@
+---
+- name: Validate R5C management baseline
+  hosts: management
+  gather_facts: true
+  become: false
+
+  tasks:
+    - name: Verify ARM64 architecture
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['architecture'] == 'aarch64'
+
+    - name: Activate SD automount through directory access
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/ls
+          - -A
+          - /srv/storage/state/
+      changed_when: false
+
+    - name: Inspect actual SD filesystem
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/findmnt
+          - --kernel
+          - --mountpoint
+          - /srv/storage/state
+          - --types
+          - ext4
+          - --noheadings
+          - --output
+          - LABEL
+      register: sd_mount
+      changed_when: false
+      failed_when: false
+
+    - name: Assert expected SD filesystem is mounted
+      ansible.builtin.assert:
+        that:
+          - sd_mount.rc == 0
+          - "'storage_sdcard' in (sd_mount.stdout_lines | map('trim') | list)"
+        fail_msg: "Required state filesystem unavailable."
+
+    - name: Verify filesystem table
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/findmnt
+          - --verify
+      changed_when: false
