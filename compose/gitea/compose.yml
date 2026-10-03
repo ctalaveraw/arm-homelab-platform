@@ -1,0 +1,49 @@
+---
+# Gitea project.
+# Application deployment is managed separately from host bootstrap.
+name: gitea
+
+services:
+  server:
+    # Rootful Gitea image. Pin upgrades deliberately; back up state first.
+    image: docker.gitea.com/gitea:1.27.3
+
+    # Docker must not restart Gitea independently of the SD mount check.
+    # A dedicated systemd unit will own startup in PLAT-004.4.
+    restart: "no"
+
+    environment:
+      # Match the Ansible-managed persistent directory (UID/GID 1000).
+      USER_UID: "1000"
+      USER_GID: "1000"
+
+      # Single-node deployment; SQLite state persists under /data.
+      GITEA__database__DB_TYPE: sqlite3
+
+      # Stable service identity, independent of the R5C's interface IP.
+      # The :? syntax rejects missing or empty Compose variables.
+      GITEA__server__DOMAIN: "${GITEA_FQDN:?Set GITEA_FQDN}"
+      GITEA__server__ROOT_URL: "http://${GITEA_FQDN:?Set GITEA_FQDN}:3000/"
+      GITEA__server__SSH_DOMAIN: "${GITEA_FQDN:?Set GITEA_FQDN}"
+
+      # Advertised SSH port; the container itself still listens on 22.
+      GITEA__server__SSH_PORT: "2222"
+
+    ports:
+      # Bind to the chosen LAN interface instead of every host interface.
+      - "${GITEA_BIND_IP:?Set GITEA_BIND_IP}:3000:3000"
+
+      # Keep Git-over-SSH separate from the R5C management SSH port.
+      - "${GITEA_BIND_IP:?Set GITEA_BIND_IP}:2222:22"
+
+    volumes:
+      # Stateful application data belongs on the mounted SD filesystem.
+      # The parent namespace and service directory are Ansible-managed.
+      #
+      # Do not create a missing bind source automatically.
+      # IMPORTANT: this is not a substitute for actual mount verification.
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/gitea"
+        target: /data
+        bind:
+          create_host_path: false

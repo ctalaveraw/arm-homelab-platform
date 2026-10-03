@@ -42,3 +42,14 @@ Applications can reference stable logical paths
 without depending directly on block device names.
 
 Ansible will eventually enforce this arrangement.
+
+## Implementation Note — 2026-10-03
+
+Persistent application data now follows:
+
+/srv/storage/state/services/<service-name>
+
+The service directory is created through Ansible and guarded
+against accidental writes to an unmounted backing directory.
+
+The USB archive is decommissioned as recorded in ADR-0002.

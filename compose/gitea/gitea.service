@@ -1,0 +1,30 @@
+[Unit]
+Description=Gitea - SD-backed Docker Compose service
+Documentation=https://docs.gitea.com/
+
+# Runtime prerequisites.
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+# Request the actual application storage mount before startup.
+RequiresMountsFor=/srv/storage/state/services/gitea
+
+[Service]
+# Compose runs detached; systemd retains application lifecycle ownership.
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/gitea
+
+# Fail closed when SD storage or the Compose bind source is incorrect.
+ExecStartPre=/usr/local/sbin/gitea-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/gitea/.env -f /srv/platform/compose/gitea/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/gitea/.env -f /srv/platform/compose/gitea/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

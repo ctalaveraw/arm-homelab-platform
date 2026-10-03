@@ -14,7 +14,7 @@
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
 - [x] PLAT-003: Ansible-managed Docker host (existing R5C)
-- [ ] PLAT-004: Gitea with persistent storage
+- [x] PLAT-004: Gitea with persistent storage
 - [ ] PLAT-005: Gotify notifications
 - [ ] PLAT-006: Gitea Actions runner
 - [ ] PLAT-007: Container registry
@@ -46,10 +46,12 @@
 
 - [ ] OPS-003: Reproducible interactive Zsh environment
   - Dependencies: zsh, fzf, zoxide, git-delta
-  - Source: /srv/_local/bootstrap_shell.sh
+  - Source: /srv/_local/scripts/bootstrap_shell.sh
   - Arguments: --human --add-root-shell
   - Review root-shell changes before execution.
   - Keep optional; do not block infrastructure bootstrap.
+
+- [ ] OPS-004: Add Gitea HTTP readiness checks and HTTPS before broader access.
 
 ## Parking Lot
 

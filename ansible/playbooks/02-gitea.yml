@@ -1,0 +1,49 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Prepare Gitea persistent storage
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure persistent services namespace exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure Gitea persistent directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/gitea
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    # Install the executable that validates the SD filesystem
+    # and checks Gitea's resolved Compose volume configuration.
+    - name: Install Gitea storage preflight executable
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea/check-storage.py"
+        dest: /usr/local/sbin/gitea-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    # Install the systemd lifecycle definition separately.
+    - name: Install Gitea systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea/gitea.service"
+        dest: /etc/systemd/system/gitea.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
