@@ -26,7 +26,7 @@ Verification:
 - Filesystem capacity verified.
 
 Evidence:
-- Commit 490ad49.
+- Commit 3e8e218.
 - docs/adr/0001-storage-layout.md.
 - docs/architecture/r5c-baseline.md.
 

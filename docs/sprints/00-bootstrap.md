@@ -8,13 +8,13 @@ Status: In Progress
 - Initialized /srv/platform.
 - Established storage semantics.
 - Created ADR-0001.
-- Commit: 490ad49.
+- Commit: 3e8e218.
 
 ### Session 0.2 — System Baseline
 - Validated filesystem mounts.
 - Captured hardware and OS inventory.
 - Created r5c-baseline.md.
-- Commit: bd5d5c5.
+- Commit: 9946c4d.
 
 ### Post-baseline Changes
 - Installed Ansible from Debian repositories.
