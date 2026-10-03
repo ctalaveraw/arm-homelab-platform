@@ -1,0 +1,10 @@
+- name: Ensure Docker baseline packages are installed
+  ansible.builtin.apt:
+    name: "{{ docker_host_packages }}"
+    state: present
+
+- name: Ensure Docker daemon is started and enabled
+  ansible.builtin.systemd_service:
+    name: docker.service
+    state: started
+    enabled: true

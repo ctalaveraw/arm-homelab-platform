@@ -8,6 +8,7 @@
 
   roles:
     - common
+    - docker_host
 
   tasks:
     - name: Ensure services directory exists

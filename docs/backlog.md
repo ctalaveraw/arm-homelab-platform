@@ -44,6 +44,13 @@
 - [ ] OPS-002: Automated recovery exercises
 - [ ] AI-001: AI infrastructure deployment lab
 
+- [ ] OPS-003: Reproducible interactive Zsh environment
+  - Dependencies: zsh, fzf, zoxide, git-delta
+  - Source: /srv/_local/bootstrap_shell.sh
+  - Arguments: --human --add-root-shell
+  - Review root-shell changes before execution.
+  - Keep optional; do not block infrastructure bootstrap.
+
 ## Parking Lot
 
 Ideas go here until formally prioritized.

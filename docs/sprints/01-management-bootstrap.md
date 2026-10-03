@@ -71,3 +71,34 @@ Status: Complete
 
 ### Next
 PLAT-003: Docker Engine and Compose bootstrap.
+
+## PLAT-003 — Docker Host Bootstrap
+
+Status: Complete
+
+### Implementation
+- Created reusable docker_host Ansible role.
+- Installed Docker using Debian Trixie packages.
+- Added docker-cli after runtime verification
+  identified the missing CLI dependency.
+- Installed standalone Docker Compose v2.
+- Managed docker.service declaratively.
+- Retained /var/lib/docker on eMMC.
+
+### Verification
+- Ansible syntax validation passed.
+- Initial Docker installation changed=1.
+- Missing CLI identified through runtime testing.
+- Corrected package baseline and reapplied.
+- Subsequent execution changed=0.
+- Docker Engine and containerd active.
+- Docker service enabled at boot.
+- Docker CLI/server operational.
+
+### Deferred
+- USB HDD remains decommissioned.
+- Application persistence configured separately.
+- Gitea has not yet been deployed.
+
+### Next
+PLAT-004: Deploy Gitea with Docker Compose.
