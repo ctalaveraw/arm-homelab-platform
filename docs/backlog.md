@@ -11,9 +11,9 @@
 
 ## NOW — Delivery Foundation
 
-- [ ] PLAT-001: Private external Git remote
-- [ ] PLAT-002: Ansible inventory and common role
-- [ ] PLAT-003: Reproducible Docker host
+- [x] PLAT-001: Public GitHub bootstrap/recovery remote
+- [x] PLAT-002: Ansible inventory, preflight and common role
+- [x] PLAT-003: Ansible-managed Docker host (existing R5C)
 - [ ] PLAT-004: Gitea with persistent storage
 - [ ] PLAT-005: Gotify notifications
 - [ ] PLAT-006: Gitea Actions runner

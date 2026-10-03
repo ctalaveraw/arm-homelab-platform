@@ -59,6 +59,57 @@ Learning objective:
 Explain LABEL versus UUID versus mount point,
 and the operational effects of nofail/automount.
 
+
+## EVIDENCE-003: Ansible Management Baseline
+
+Date: 2026-10-03
+
+Implementation:
+- Created local R5C inventory.
+- Added architecture and SD storage assertions.
+- Established reusable common role.
+- Declaratively managed package and directory state.
+
+Verification:
+- Preflight passed.
+- Required SD filesystem validated.
+- Directory execution initially changed one resource.
+- Subsequent execution reported changed=0.
+
+Evidence:
+- Commit 03d217c.
+- Commit 48465e0.
+
+Limitations:
+- Full fresh-host reconstruction remains untested.
+
+## EVIDENCE-004: Docker Runtime Bootstrap
+
+Date: 2026-10-03
+
+Implementation:
+- Created docker_host role.
+- Installed docker.io, docker-cli and docker-compose.
+- Declaratively enabled and started docker.service.
+- Retained Docker data root on eMMC.
+
+Verification:
+- First corrected package execution changed=1.
+- Subsequent execution changed=0.
+- Docker client/server verified: 26.1.5.
+- Standalone Compose verified: 2.26.1.
+- Docker and containerd active.
+- Docker enabled at boot.
+- Data root: /var/lib/docker.
+
+Engineering lesson:
+Idempotent configuration does not guarantee that
+the declared dependency list is complete. Runtime
+verification exposed the initially missing Docker CLI.
+
+Evidence:
+- Commit 989c5d8.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

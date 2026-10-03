@@ -8,13 +8,17 @@ upstream Kubernetes cluster.
 
 ## M0 — Bootstrap and Discovery
 
+Status: Complete — bootstrap foundation established.
+
 Exit criteria:
 - Repository initialized.
 - Brownfield baseline captured.
 - Storage decisions documented.
-- External private Git remote verified.
+- External GitHub remote verified.
 
 ## M1 — Management Host as Code
+
+Status: Implemented on existing R5C; fresh-host rebuild untested.
 
 Exit criteria:
 - Ansible inventory exists.

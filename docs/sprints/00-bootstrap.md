@@ -1,6 +1,6 @@
 # Sprint 0 — Brownfield Discovery
 
-Status: In Progress
+Status: Complete — external recovery established.
 
 ## Completed
 
@@ -20,12 +20,12 @@ Status: In Progress
 - Installed Ansible from Debian repositories.
 - ansible [core 2.19.11]
 
-## Remaining
+## Closure
 
-- [ ] Establish private external Git remote.
-- [ ] Verify off-device push.
-- [ ] Review existing bootstrap_shell.sh.
-- [ ] Close Sprint 0.
+- [x] Establish external GitHub remote.
+- [x] Verify off-device push.
+- [x] Close bootstrap/discovery scope.
+- [ ] Review bootstrap_shell.sh (deferred to OPS-003).
 
 ## Sprint Acceptance Criteria
 
@@ -39,7 +39,7 @@ without depending on the NanoPi's future Gitea instance.
 - Retained /srv/storage/state mount point.
 - Verified active mount and usable capacity.
 - findmnt --verify passed.
-- Reboot persistence validation remains pending.
+- SD automount activation observed after subsequent reboot.
 
 The original baseline is retained as a historical
 snapshot rather than rewritten after the change.
