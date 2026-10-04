@@ -19,9 +19,11 @@
 - [x] OPS-005: Uptime Kuma monitoring and recovery drill
 - [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
 - [ ] OPS-007: Shared HTTPS for management services
+- [x] CI-001: Portable ARM64 repository validation (GitHub Actions)
+- [x] GIT-002: GitHub canonical source mirrored into Gitea (one-way pull)
 - [ ] PLAT-006: Gitea Actions runner
 - [ ] PLAT-007: Validate Gitea built-in OCI registry
-- [ ] PLAT-008: CI lint/test/build/scan
+- [ ] PLAT-008: Full application CI lint/test/build/scan (repository validation exists; app build/scan pending)
 - [ ] PLAT-009: Helm deployment pipeline
 - [ ] PLAT-010: Incident and rollback exercise
 

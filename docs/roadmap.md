@@ -29,7 +29,9 @@ Exit criteria:
 ## M2 — Development Infrastructure
 
 Status: Partially implemented. Gitea, Gotify, Uptime Kuma and
-APT-Cacher-NG are operational; CI runner remains pending.
+APT-Cacher-NG are operational. Public GitHub is the canonical recovery
+source and is mirrored into Gitea. Portable ARM64 validation runs on
+GitHub Actions; a Gitea Actions runner remains pending.
 
 Exit criteria:
 - Gitea operational.
@@ -39,6 +41,9 @@ Exit criteria:
 - Critical mount dependencies enforced.
 
 ## M3 — Application Delivery
+
+Status: Repository validation pipeline operational. Application build,
+image publication and Kubernetes deployment remain untested.
 
 Exit criteria:
 - Application builds for ARM64.

@@ -31,3 +31,11 @@ does not provide high availability.
 
 Fresh-host reconstruction and off-device application
 restore remain separate, unverified acceptance criteria.
+
+## Implementation update — 2026-10-04
+
+Gitea now has a native, private pull mirror of this public GitHub repository.
+The mirror displayed the canonical `main` commit `3e58f61` following
+synchronization. GitHub remains the upstream source of truth; no
+bidirectional or dual-push workflow is configured. GitHub-hosted ARM64
+CI works independently of the R5C and Gitea.
