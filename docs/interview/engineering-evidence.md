@@ -136,6 +136,30 @@ Trade-offs:
 - Continuous availability monitoring is not yet configured.
 - Off-device application restore remains untested.
 
+## EVIDENCE-006: Service Monitoring and Recovery
+
+Date: 2026-10-04
+
+Implementation:
+- Deployed persistent Uptime Kuma on ARM64.
+- Established Gitea and Gotify HTTP monitoring.
+- Integrated Gotify incident notifications.
+
+Verification:
+- Positive and negative storage tests passed.
+- Ansible converged with changed=0.
+- Controlled Gitea outage generated a real DOWN alert.
+- Guarded recovery generated a subsequent UP alert.
+- Monitoring targets survived Kuma container recreation.
+
+Trade-offs:
+- Monitoring shares a failure domain with notification delivery.
+- Off-device recovery and full-host outage detection are pending.
+
+Evidence:
+- docs/sprints/04-uptime-kuma.md
+- docs/incidents/2026-10-04-gitea-controlled-outage.md
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

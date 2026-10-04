@@ -1,0 +1,31 @@
+[Unit]
+Description=Uptime Kuma - SD-backed Docker Compose service
+Documentation=https://github.com/louislam/uptime-kuma
+
+# Docker and networking are startup prerequisites.
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+# Request the required SD mount before running the storage guard.
+RequiresMountsFor=/srv/storage/state/services/uptime-kuma
+
+[Service]
+# Compose starts detached; systemd owns deployment lifecycle.
+# This unit does not continuously supervise HTTP application health.
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/uptime-kuma
+
+# Reject unexpected filesystems or Compose bind destinations.
+ExecStartPre=/usr/local/sbin/uptime-kuma-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/uptime-kuma/.env -f /srv/platform/compose/uptime-kuma/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/uptime-kuma/.env -f /srv/platform/compose/uptime-kuma/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+---
+name: uptime-kuma
+
+services:
+  server:
+    # Pin upgrades deliberately; persistent monitoring history
+    # and application configuration are stored outside the image.
+    image: louislam/uptime-kuma:2.5.5
+
+    # systemd will own startup after verifying the SD mount.
+    # Do not let Docker independently bypass that prerequisite.
+    restart: "no"
+
+    ports:
+      # Restrict initial access to the intended management LAN IP.
+      - "${UPTIME_KUMA_BIND_IP:?Set UPTIME_KUMA_BIND_IP}:3001:3001"
+
+    volumes:
+      # Local ext4-backed application state (including SQLite).
+      # The parent directory is created through Ansible.
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/uptime-kuma"
+        target: /app/data
+        bind:
+          create_host_path: false

@@ -89,6 +89,7 @@ flowchart TB
 
 - Gitea 1.27.3 deployed through guarded systemd/Compose startup.
 - Gotify 3.1.1 operational.
+- Uptime Kuma 2.5.5 operational with Gotify alerting.
 
 - R5C: Ansible-managed Armbian management host.
 - Docker Engine and standalone Compose v2 installed.

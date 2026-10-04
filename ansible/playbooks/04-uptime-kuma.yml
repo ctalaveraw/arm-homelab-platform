@@ -1,0 +1,46 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Prepare Uptime Kuma persistent storage
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure persistent services namespace exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure Uptime Kuma persistent directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/uptime-kuma
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Install Uptime Kuma storage preflight executable
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/uptime-kuma/check-storage.py"
+        dest: /usr/local/sbin/uptime-kuma-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install Uptime Kuma systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/uptime-kuma/uptime-kuma.service"
+        dest: /etc/systemd/system/uptime-kuma.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
