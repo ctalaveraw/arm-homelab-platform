@@ -110,6 +110,32 @@ verification exposed the initially missing Docker CLI.
 Evidence:
 - Commit 989c5d8.
 
+## EVIDENCE-005: Gotify Notification Service
+
+Date: 2026-10-04
+
+Problem:
+The management platform lacked an operational
+notification destination for future CI/CD and incidents.
+
+Implementation:
+- Deployed Gotify 3.1.1 on ARM64.
+- Reused Ansible, Compose and guarded systemd lifecycle.
+- Persisted application state on validated SD storage.
+- Integrated a DNS-based service identity.
+
+Verification:
+- Positive and negative storage tests passed.
+- First authenticated API notification returned HTTP 200.
+- Browser receipt independently confirmed.
+- Application and message survived container recreation.
+- Service active and enabled after recreation.
+
+Trade-offs:
+- LAN HTTP is temporary.
+- Continuous availability monitoring is not yet configured.
+- Off-device application restore remains untested.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

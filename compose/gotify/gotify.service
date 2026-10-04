@@ -1,0 +1,30 @@
+[Unit]
+Description=Gotify - SD-backed Docker Compose service
+Documentation=https://gotify.net/
+
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+# Storage is mandatory even though the base OS can boot without it.
+RequiresMountsFor=/srv/storage/state/services/gotify
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/gotify
+
+# Reject incorrect storage before Compose is permitted to start.
+ExecStartPre=/usr/local/sbin/gotify-check-storage
+
+# Docker must not independently restart this stateful application.
+# See restart: "no" in compose.yml.
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/gotify/.env -f /srv/platform/compose/gotify/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/gotify/.env -f /srv/platform/compose/gotify/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

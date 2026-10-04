@@ -52,13 +52,16 @@ flowchart TB
     subgraph MGMT["Out-of-Cluster Management Plane"]
         R5C["NanoPi R5C<br/>Armbian / Ansible / Docker"]
         GITEA["Gitea<br/>Operational"]
-        FUTURE["Gotify / CI runner<br/>Planned"]
+        GOTIFY["Gotify<br/>Operational"]
+        FUTURE["CI runner<br/>Planned"]
         SD["SD persistent state<br/>/srv/storage/state"]
 
         R5C --- SD
         R5C --> GITEA
+        R5C --> GOTIFY
         R5C -.-> FUTURE
         GITEA -->|"Persistent data"| SD
+        GOTIFY -->|"Persistent data"| SD
         FUTURE -.->|"Persistent data"| SD
     end
 
@@ -85,6 +88,7 @@ flowchart TB
 ### Current implementation
 
 - Gitea 1.27.3 deployed through guarded systemd/Compose startup.
+- Gotify 3.1.1 operational.
 
 - R5C: Ansible-managed Armbian management host.
 - Docker Engine and standalone Compose v2 installed.
@@ -94,8 +98,7 @@ flowchart TB
 
 ### Planned integrations
 
-- Gotify notifications.
-- Gitea Actions runner and container registry.
+- Gitea Actions runner and OCI registry validation.
 - CI/CD deployment into Kubernetes using Helm.
 - Flux-based GitOps reconciliation.
 - Automated fourth-Pi reconstruction.

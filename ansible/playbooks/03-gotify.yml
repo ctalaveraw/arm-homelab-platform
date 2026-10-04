@@ -1,0 +1,48 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Prepare Gotify persistent storage
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure persistent services namespace exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure Gotify persistent directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/gotify
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    # Install the application-specific mount and binding guard.
+    - name: Install Gotify storage preflight executable
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gotify/check-storage.py"
+        dest: /usr/local/sbin/gotify-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    # systemd owns Gotify's startup and shutdown lifecycle.
+    - name: Install Gotify systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gotify/gotify.service"
+        dest: /etc/systemd/system/gotify.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

@@ -1,0 +1,33 @@
+---
+name: gotify
+
+services:
+  server:
+    # Pin the image; upgrades should be intentional and tested.
+    image: gotify/server:3.1.1
+
+    # systemd owns startup after validating persistent storage.
+    restart: "no"
+
+    environment:
+      # Applied only when the initial database is created.
+      # Changing this variable later does not rotate the password.
+      GOTIFY_DEFAULTUSER_NAME: admin
+      GOTIFY_DEFAULTUSER_PASS: "${GOTIFY_ADMIN_INITIAL_PASSWORD:?Set initial admin password}"
+
+      # Only explicitly authorized users should have accounts.
+      GOTIFY_REGISTRATION: "false"
+
+    ports:
+      # Bind to the management host's intended LAN interface.
+      - "${GOTIFY_BIND_IP:?Set GOTIFY_BIND_IP}:8080:80"
+
+    volumes:
+      # Gotify stores its SQLite database and application assets here.
+      # Ansible creates the backing directory; the startup guard
+      # will independently verify that the SD is actually mounted.
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/gotify"
+        target: /app/data
+        bind:
+          create_host_path: false

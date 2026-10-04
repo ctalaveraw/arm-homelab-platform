@@ -15,9 +15,9 @@
 - [x] PLAT-002: Ansible inventory, preflight and common role
 - [x] PLAT-003: Ansible-managed Docker host (existing R5C)
 - [x] PLAT-004: Gitea with persistent storage
-- [ ] PLAT-005: Gotify notifications
+- [x] PLAT-005: Gotify notifications
 - [ ] PLAT-006: Gitea Actions runner
-- [ ] PLAT-007: Container registry
+- [ ] PLAT-007: Validate Gitea built-in OCI registry
 - [ ] PLAT-008: CI lint/test/build/scan
 - [ ] PLAT-009: Helm deployment pipeline
 - [ ] PLAT-010: Incident and rollback exercise
@@ -52,6 +52,8 @@
   - Keep optional; do not block infrastructure bootstrap.
 
 - [ ] OPS-004: Add Gitea HTTP readiness checks and HTTPS before broader access.
+
+- [ ] OPS-005: Evaluate Uptime Kuma with Gotify alerting.
 
 ## Parking Lot
 
