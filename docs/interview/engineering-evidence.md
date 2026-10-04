@@ -3,8 +3,6 @@
 Purpose: Record verifiable engineering work and
 preserve the reasoning behind implementation.
 
-Do not claim planned work as completed work.
-
 ## EVIDENCE-001: Management Storage Baseline
 
 Date: 2026-10-01
@@ -51,9 +49,13 @@ Observed:
 - fstab uses LABEL=storage_sdcard.
 - findmnt --verify passed.
 
-Outstanding:
+Outstanding at time of measurement:
 - [ ] Validate persistence after reboot.
 - [ ] Enforce service mount dependencies.
+
+Update (2026-10-04): per-service SD storage guards were
+implemented and tested. Full-host reboot verification
+remains a separate outstanding test.
 
 Learning objective:
 Explain LABEL versus UUID versus mount point,
@@ -133,7 +135,8 @@ Verification:
 
 Trade-offs:
 - LAN HTTP is temporary.
-- Continuous availability monitoring is not yet configured.
+- Gotify is now monitored through Uptime Kuma, although both
+  services share the same management-host failure domain.
 - Off-device application restore remains untested.
 
 ## EVIDENCE-006: Service Monitoring and Recovery
@@ -159,6 +162,37 @@ Trade-offs:
 Evidence:
 - docs/sprints/04-uptime-kuma.md
 - docs/incidents/2026-10-04-gitea-controlled-outage.md
+
+## EVIDENCE-007: Shared APT Package Cache
+
+Date: 2026-10-04
+
+Implementation:
+- Deployed ARM64 APT-Cacher-NG.
+- Reused Ansible, Compose and guarded systemd lifecycle.
+- Persisted cache data on SD-backed ext4.
+- Declaratively enabled and started the service.
+- Added HTTP monitoring through Uptime Kuma.
+
+Verification:
+- Ansible converged with changed=0.
+- Storage guard rejected an incorrect binding.
+- First package request: 199.713 ms.
+- Identical subsequent request: 15.229 ms.
+- SHA-256 checksums matched.
+- Server logs demonstrated package-cache reuse.
+- Cache survived container recreation.
+- Post-restart retrieval completed in 15.813 ms.
+
+Limitations:
+- Single-package comparison; not a full CI benchmark.
+- Network source ACL verification remains pending.
+- A hard capacity quota has not been established.
+- Full-host reboot and expiry execution remain untested.
+
+Evidence:
+- docs/benchmarks/2026-10-04-apt-cacher-ng.md
+- docs/sprints/05-apt-cacher-ng.md
 
 ## Evidence Template
 

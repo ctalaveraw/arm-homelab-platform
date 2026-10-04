@@ -1,0 +1,24 @@
+---
+name: apt-cacher-ng
+
+services:
+  server:
+    image: mbentley/apt-cacher-ng:trixie
+
+    # Preserve the guarded systemd lifecycle.
+    restart: "no"
+
+    environment:
+      PUID: "${ACNG_PUID:?Set ACNG_PUID}"
+      PGID: "${ACNG_PGID:?Set ACNG_PGID}"
+      TZ: America/New_York
+
+    ports:
+      - "${ACNG_BIND_IP:?Set ACNG_BIND_IP}:3142:3142"
+
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/apt-cacher-ng"
+        target: /var/cache/apt-cacher-ng
+        bind:
+          create_host_path: false

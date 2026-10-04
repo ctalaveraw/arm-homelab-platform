@@ -1,7 +1,7 @@
 # OPS-005 — Uptime Kuma Deployment
 
 Date: 2026-10-04
-Status: Complete, subject to final browser persistence checks.
+Status: Operational; incident drill and monitor persistence verified.
 
 ## Implementation
 
@@ -27,6 +27,8 @@ Status: Complete, subject to final browser persistence checks.
 - Stopping Kuma removed its running Compose container.
 - Guarded startup successfully recreated the container.
 - Both monitoring targets persisted after recreation.
+- Post-restart persistence of notification settings and
+  historical incident records was not separately evidenced.
 - Application state uses /srv/storage/state/services/uptime-kuma.
 
 ## Observations

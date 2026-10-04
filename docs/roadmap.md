@@ -28,6 +28,9 @@ Exit criteria:
 
 ## M2 — Development Infrastructure
 
+Status: Partially implemented. Gitea, Gotify, Uptime Kuma and
+APT-Cacher-NG are operational; CI runner remains pending.
+
 Exit criteria:
 - Gitea operational.
 - Gotify operational.
@@ -46,6 +49,10 @@ Exit criteria:
 - Endpoint and rollout verified.
 
 ## M4 — Operational Evidence
+
+Status: Pending. INC-001 demonstrated a controlled service
+outage and recovery; pipeline deployment rollback has not
+yet been demonstrated.
 
 Exit criteria:
 - A controlled deployment failure is introduced.
@@ -76,5 +83,3 @@ Each working session:
 6. Commit.
 7. Complete a short knowledge gate.
 
-A milestone is completed through evidence,
-not simply because the software was installed.

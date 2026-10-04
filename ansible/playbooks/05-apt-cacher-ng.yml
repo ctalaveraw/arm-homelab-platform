@@ -1,0 +1,71 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Prepare APT Cacher NG persistent storage
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure persistent services namespace exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure APT Cacher NG persistent directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/apt-cacher-ng
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Install APT-Cacher-NG storage preflight
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/apt-cacher-ng/check-storage.py"
+        dest: /usr/local/sbin/apt-cacher-ng-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install APT-Cacher-NG systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/apt-cacher-ng/apt-cacher-ng.service"
+        dest: /etc/systemd/system/apt-cacher-ng.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    # Ensure any newly installed unit is loaded before starting it.
+    - name: Apply pending systemd unit changes
+      ansible.builtin.meta: flush_handlers
+
+    # Validate required host-specific configuration without printing
+    # the rendered configuration or its environment variables.
+    - name: Validate APT-Cacher-NG Compose configuration
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/docker-compose
+          - --env-file
+          - /srv/platform/compose/apt-cacher-ng/.env
+          - -f
+          - /srv/platform/compose/apt-cacher-ng/compose.yml
+          - config
+          - --quiet
+      changed_when: false
+
+    # Declaratively enable startup and establish service state.
+    - name: Enable and start APT-Cacher-NG
+      ansible.builtin.systemd_service:
+        name: apt-cacher-ng.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

@@ -17,6 +17,8 @@
 - [x] PLAT-004: Gitea with persistent storage
 - [x] PLAT-005: Gotify notifications
 - [x] OPS-005: Uptime Kuma monitoring and recovery drill
+- [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
+- [ ] OPS-007: Shared HTTPS for management services
 - [ ] PLAT-006: Gitea Actions runner
 - [ ] PLAT-007: Validate Gitea built-in OCI registry
 - [ ] PLAT-008: CI lint/test/build/scan
@@ -56,7 +58,5 @@
 
 ## Parking Lot
 
-Ideas go here until formally prioritized.
+Ideas will go here until formally prioritized.
 
-Do not expand the active sprint merely because
-a new technology looks interesting.

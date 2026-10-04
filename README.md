@@ -53,15 +53,25 @@ flowchart TB
         R5C["NanoPi R5C<br/>Armbian / Ansible / Docker"]
         GITEA["Gitea<br/>Operational"]
         GOTIFY["Gotify<br/>Operational"]
+        KUMA["Uptime Kuma<br/>Operational"]
+        ACNG["APT-Cacher-NG<br/>Operational"]
         FUTURE["CI runner<br/>Planned"]
         SD["SD persistent state<br/>/srv/storage/state"]
 
         R5C --- SD
         R5C --> GITEA
         R5C --> GOTIFY
+        R5C --> KUMA
+        R5C --> ACNG
         R5C -.-> FUTURE
         GITEA -->|"Persistent data"| SD
         GOTIFY -->|"Persistent data"| SD
+        KUMA -->|"Persistent data"| SD
+        ACNG -->|"Cache data"| SD
+        KUMA -->|"HTTP monitoring"| GITEA
+        KUMA -->|"HTTP monitoring"| GOTIFY
+        KUMA -->|"HTTP monitoring"| ACNG
+        KUMA -->|"Notifications"| GOTIFY
         FUTURE -.->|"Persistent data"| SD
     end
 
@@ -90,6 +100,8 @@ flowchart TB
 - Gitea 1.27.3 deployed through guarded systemd/Compose startup.
 - Gotify 3.1.1 operational.
 - Uptime Kuma 2.5.5 operational with Gotify alerting.
+- APT-Cacher-NG operational with validated cache reuse and
+  persistence across container recreation.
 
 - R5C: Ansible-managed Armbian management host.
 - Docker Engine and standalone Compose v2 installed.
@@ -108,10 +120,10 @@ flowchart TB
 
 - USB archive storage is decommissioned pending hardware review.
 - Docker's data root remains on eMMC.
-- Persistent application state will use explicitly guarded storage.
+- Persistent application state uses guarded SD-backed storage.
 - Bootstrap must not depend exclusively on self-hosted Gitea.
 
-## Running the Current Automation
+## Running the Management Baseline
 
 From the repository root:
 
@@ -129,10 +141,19 @@ python3-apt, sudo access and the required SD filesystem.
 The current implementation has been validated against
 the existing R5C. Fresh-host reconstruction remains untested.
 
+Service provisioning is implemented in playbooks 02 through 05.
+Playbooks 02-04 install service units but do not yet declaratively
+activate them; existing running services were manually enabled.
+Playbook 05 declaratively enables and starts APT-Cacher-NG.
+Local populated .env files are required and deliberately excluded
+from the public repository.
+
 ## Project Documentation
 
 - [Roadmap](docs/roadmap.md)
 - [Engineering Backlog](docs/backlog.md)
 - [Engineering Evidence](docs/interview/engineering-evidence.md)
+- [APT Cache Benchmark](docs/benchmarks/2026-10-04-apt-cacher-ng.md)
+- [Controlled Incident](docs/incidents/2026-10-04-gitea-controlled-outage.md)
 - [Architecture Decisions](docs/adr/)
 - [Sprint Journal](docs/sprints/01-management-bootstrap.md)

@@ -36,3 +36,13 @@ Those guards must be implemented during service deployment.
 - Investigate USB HDD, connection and power out of band.
 - Establish functional off-device application backups.
 - Test storage failure behavior before Gitea deployment.
+
+## Implementation Update — 2026-10-04
+
+The Gitea, Gotify, Uptime Kuma and APT-Cacher-NG deployments now use application-specific startup guards.
+
+Positive mount-validation tests and negative Compose-binding tests passed. Container recreation and persisted application/cache state were independently verified.
+
+Physical SD removal during active application writes has not been tested. This remains outside the completed startup-safety acceptance criteria.
+
+The USB archive remains decommissioned and is not a backup destination.

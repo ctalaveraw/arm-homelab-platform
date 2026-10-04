@@ -1,0 +1,25 @@
+[Unit]
+Description=APT-Cacher-NG - SD-backed Docker Compose service
+Documentation=https://github.com/mbentley/docker-apt-cacher-ng
+
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/apt-cacher-ng
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/apt-cacher-ng
+
+ExecStartPre=/usr/local/sbin/apt-cacher-ng-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/apt-cacher-ng/.env -f /srv/platform/compose/apt-cacher-ng/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/apt-cacher-ng/.env -f /srv/platform/compose/apt-cacher-ng/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target
