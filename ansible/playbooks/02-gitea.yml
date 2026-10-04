@@ -43,6 +43,32 @@
         mode: '0644'
       notify: Reload systemd
 
+
+    # Apply the newly installed unit before activation.
+    - name: Apply pending Gitea unit changes
+      ansible.builtin.meta: flush_handlers
+
+    # Fail before activation if host-specific configuration is invalid.
+    - name: Validate Gitea Compose configuration
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/docker-compose
+          - --env-file
+          - /srv/platform/compose/gitea/.env
+          - -f
+          - /srv/platform/compose/gitea/compose.yml
+          - config
+          - --quiet
+      changed_when: false
+      no_log: true
+
+    # Ansible owns both current state and boot enablement.
+    - name: Enable and start Gitea
+      ansible.builtin.systemd_service:
+        name: gitea.service
+        enabled: true
+        state: started
+
   handlers:
     - name: Reload systemd
       ansible.builtin.systemd_service:
