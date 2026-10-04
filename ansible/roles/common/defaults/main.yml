@@ -10,3 +10,4 @@ common_packages:
   - zoxide
   - git-delta
   - rsync
+  - shellcheck
