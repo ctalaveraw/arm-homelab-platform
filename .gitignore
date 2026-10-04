@@ -30,3 +30,6 @@ __pycache__/
 
 # Local Git recovery archives
 *.bundle
+
+# Local CI dependencies
+.ci-venv/
