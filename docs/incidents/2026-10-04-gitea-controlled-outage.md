@@ -40,3 +40,18 @@ This is not a measured MTTR or exact alerting latency.
 The exercise demonstrates service-level monitoring.
 Kuma and Gotify currently share the management host,
 so complete R5C failure is not independently monitored.
+
+## Visual evidence
+
+### Failure injection
+
+![Gitea connection refused](../evidence/ops-005/01-gitea-unreachable.png)
+
+### Incident notification
+
+![Gotify received Gitea DOWN alert](../evidence/ops-005/02-gotify-down-alert.png)
+
+### Recovery notification
+
+![Gotify received Gitea recovery alert](../evidence/ops-005/03-gotify-recovery-alert.png)
+
