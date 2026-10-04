@@ -1,4 +1,8 @@
-# Homelab Platform
+# ARM Homelab Platform
+
+[![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
+
+**Status (2026-10-04):** Four management services operational; portable ARM64 GitHub CI passing; native GitHub-to-Gitea pull mirror verified. Kubernetes deployment via CI is not yet implemented.
 
 Reproducible infrastructure and platform engineering
 laboratory.
@@ -47,7 +51,9 @@ Dashed connections represent planned integration.
 flowchart TB
 
     DEV["Developer / Git changes"]
-    GH["Public GitHub<br/>IaC, documentation and off-device history"]
+    GH["Public GitHub<br/>Canonical source and recovery"]
+    GHCI["GitHub Actions<br/>ARM64 validation: operational"]
+    CHECKS["scripts/ci/bootstrap.sh<br/>scripts/ci/validate.sh"]
 
     subgraph MGMT["Out-of-Cluster Management Plane"]
         R5C["NanoPi R5C<br/>Armbian / Ansible / Docker"]
@@ -88,6 +94,10 @@ flowchart TB
 
     DEV --> GH
     R5C -->|"Git push"| GH
+    GH -->|"Native pull mirror; HEAD verified"| GITEA
+    GH -->|"Push / PR"| GHCI
+    GHCI --> CHECKS
+    FUTURE -.->|"Reuse same entrypoint"| CHECKS
     GH -.->|"Recovery / bootstrap"| R5C
 
     FUTURE -.->|"CI/CD delivery"| COMPUTE
@@ -107,7 +117,21 @@ flowchart TB
 - Docker Engine and standalone Compose v2 installed.
 - Required SD storage validated through Ansible preflight.
 - Existing upstream kubeadm Kubernetes cluster operational.
-- External GitHub repository established.
+- Public GitHub repository established as canonical recovery source.
+- Gitea native **pull mirror** synchronized from public GitHub; observed matching `main` at `3e58f61`.
+- GitHub-hosted ARM64 validation passing (first three runs, 2026-10-04); checks run through repository-owned CI scripts.
+
+### Continuous integration
+
+GitHub Actions is deliberately a thin adapter to [`scripts/ci/bootstrap.sh`](scripts/ci/bootstrap.sh) and [`scripts/ci/validate.sh`](scripts/ci/validate.sh). The validation entrypoint also runs directly on the R5C:
+
+```bash
+bash scripts/ci/validate.sh
+```
+
+On a fresh CI development machine, run `bash scripts/ci/bootstrap.sh` first (Python virtual environment; hosted CI also installs ShellCheck). Tests include Ansible syntax, Python/YAML parsing, Compose rendering with synthetic values, ShellCheck, and three static Compose safety-contract tests. These checks **do not** replace mount-guard integration tests, a host reboot test, or CI deployment testing. See the [CI runbook](docs/ci.md).
+
+The local Gitea copy is a **pull mirror**, not the push destination or disaster-recovery source. A Gitea Actions runner has not yet been registered.
 
 ### Planned integrations
 
@@ -122,6 +146,8 @@ flowchart TB
 - Docker's data root remains on eMMC.
 - Persistent application state uses guarded SD-backed storage.
 - Bootstrap must not depend exclusively on self-hosted Gitea.
+- Local services currently use LAN HTTP; trusted HTTPS and TCP/3142 source ACL verification remain pending.
+- Neither fresh-host reconstruction nor off-device application restore has been completed.
 
 ## Running the Management Baseline
 
@@ -153,6 +179,8 @@ from the public repository.
 - [Roadmap](docs/roadmap.md)
 - [Engineering Backlog](docs/backlog.md)
 - [Engineering Evidence](docs/interview/engineering-evidence.md)
+- [Portable CI and mirroring runbook](docs/ci.md)
+- [CI foundation sprint](docs/sprints/06-ci-foundation.md)
 - [APT Cache Benchmark](docs/benchmarks/2026-10-04-apt-cacher-ng.md)
 - [Controlled Incident](docs/incidents/2026-10-04-gitea-controlled-outage.md)
 - [Architecture Decisions](docs/adr/)

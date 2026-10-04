@@ -194,6 +194,52 @@ Evidence:
 - docs/benchmarks/2026-10-04-apt-cacher-ng.md
 - docs/sprints/05-apt-cacher-ng.md
 
+## EVIDENCE-008: Portable ARM64 Repository CI
+
+Date: 2026-10-04
+
+Implementation:
+- Kept GitHub Actions YAML thin: checkout, dependency bootstrap and one
+  repository-owned validation entrypoint.
+- Added scripts/ci/bootstrap.sh and scripts/ci/validate.sh.
+- Added three Python unittest checks enforcing Compose storage, restart
+  policy, and explicit binding contracts.
+- Validation runs on GitHub's ARM64 hosted runner and locally.
+
+Verification:
+- Three successive GitHub Actions runs completed successfully.
+- Run #3 reported aarch64, passed the three contract tests and completed
+  full repository validation.
+- The hosted run also performed ShellCheck.
+
+Evidence:
+- Commit a5d3222: portable validation entrypoints.
+- Commit 3e58f61: Compose safety-contract tests.
+- https://github.com/ctalaveraw/arm-homelab-platform/actions/runs/37186219090
+- docs/sprints/06-ci-foundation.md
+
+Limits:
+- Static validation, not application integration or deployment testing.
+- It does not reproduce the physical SD mount on a hosted runner.
+
+## EVIDENCE-009: Canonical GitHub and Private Gitea Pull Mirror
+
+Date: 2026-10-04
+
+Implementation:
+- Retained GitHub as off-device canonical and recovery repository.
+- Created the Gitea repository using its native pull-mirror import.
+
+Verification:
+- Gitea showed the repository as a GitHub mirror with recent sync.
+- Gitea's displayed main HEAD and GitHub ls-remote both matched
+  3e58f61e8855b41623490c560f90f774b72ca3f0.
+
+Limits:
+- This verifies one observed synchronization, not a recurring sync SLA.
+- GitHub Actions history/secrets are not replicated by a Git mirror.
+- A Gitea Actions runner is not yet installed.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

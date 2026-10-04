@@ -1,4 +1,4 @@
-# Sprint 2 — Gotify Deployment
+# Sprint 3 — Gotify Deployment
 
 Date: 2026-10-04
 Status: PLAT-005 complete.
