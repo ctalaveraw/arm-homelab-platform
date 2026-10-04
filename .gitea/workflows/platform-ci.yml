@@ -1,0 +1,65 @@
+---
+name: ARM Platform CI - Gitea
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: r5c-arm64-validation
+    timeout-minutes: 15
+
+    env:
+      CI: "true"
+
+    steps:
+      - name: Verify ARM64 runner environment
+        run: |
+          set -eu
+
+          echo "=== NATIVE GITEA RUNNER ==="
+          uname -m
+          id
+
+          test "$(uname -m)" = "aarch64"
+          test "$(id -u)" = "10001"
+
+          command -v bash
+          command -v git
+          command -v python3
+          command -v shellcheck
+
+          docker compose version
+
+          # This validation worker must not receive the host daemon.
+          test ! -S /var/run/docker.sock
+
+          echo "PASS: Native ARM64 runner smoke test"
+
+      - name: Checkout mirrored repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify repository checkout
+        run: |
+          set -eu
+
+          git rev-parse --show-toplevel
+          git log -1 --format='%h %s'
+
+          test -f scripts/ci/bootstrap.sh
+          test -f scripts/ci/validate.sh
+
+          echo "PASS: Mirrored repository checkout"
+
+      - name: Bootstrap CI dependencies
+        run: bash scripts/ci/bootstrap.sh
+
+      - name: Validate platform repository
+        run: bash scripts/ci/validate.sh

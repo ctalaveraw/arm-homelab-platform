@@ -1,0 +1,33 @@
+---
+name: gitea-runner
+
+services:
+  runner:
+    image: localhost/platform-gitea-runner:dev
+    pull_policy: never
+    restart: "no"
+
+    user: "10001:10001"
+    working_dir: /data
+    command: ["daemon"]
+
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    pids_limit: 256
+
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/gitea-runner"
+        target: /data
+        bind:
+          create_host_path: false
+
+    networks:
+      - gitea_internal
+
+networks:
+  gitea_internal:
+    external: true
+    name: gitea_default

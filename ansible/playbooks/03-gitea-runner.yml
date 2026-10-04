@@ -1,0 +1,63 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Prepare Gitea Actions runner state
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure runner state directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/gitea-runner
+        state: directory
+        owner: '10001'
+        group: '10001'
+        mode: '0700'
+
+    - name: Verify locally built runner image exists
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/docker
+          - image
+          - inspect
+          - localhost/platform-gitea-runner:dev
+      changed_when: false
+      no_log: true
+
+    - name: Install runner storage guard
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea-runner/check-storage.py"
+        dest: /usr/local/sbin/gitea-runner-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install runner systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea-runner/gitea-runner.service"
+        dest: /etc/systemd/system/gitea-runner.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Apply pending runner unit changes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Validate registered runner storage and Compose
+      ansible.builtin.command:
+        argv:
+          - /usr/local/sbin/gitea-runner-check-storage
+      changed_when: false
+
+    - name: Enable and start Gitea runner
+      ansible.builtin.systemd_service:
+        name: gitea-runner.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

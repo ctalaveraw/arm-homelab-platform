@@ -1,0 +1,26 @@
+[Unit]
+Description=Gitea Actions Runner - SD-backed ARM64 validation worker
+
+Requires=docker.service gitea.service
+Wants=network-online.target
+After=docker.service gitea.service network-online.target
+
+RequiresMountsFor=/srv/storage/state/services/gitea-runner
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/gitea-runner
+
+ExecStartPre=/usr/local/sbin/gitea-runner-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/gitea-runner/.env -f /srv/platform/compose/gitea-runner/compose.yml up -d
+
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/gitea-runner/.env -f /srv/platform/compose/gitea-runner/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

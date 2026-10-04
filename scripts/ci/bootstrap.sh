@@ -10,7 +10,7 @@ if [[ ! -x .ci-venv/bin/ansible-playbook ]]; then
 
     .ci-venv/bin/python -m pip install \
         --disable-pip-version-check \
-        'ansible-core==2.19.11' \
+        'ansible-core==2.21.4' \
         'PyYAML>=6,<7'
 fi
 
