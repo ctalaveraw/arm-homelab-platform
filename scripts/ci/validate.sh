@@ -57,6 +57,14 @@ for path in tracked:
 PY
 
 echo
+echo "=== COMPOSE SAFETY CONTRACT TESTS ==="
+
+"$PYTHON" -m unittest discover \
+    -s scripts/ci/tests \
+    -p 'test_*.py' \
+    -v
+
+echo
 echo "=== ANSIBLE PLAYBOOK SYNTAX ==="
 
 while IFS= read -r -d '' playbook; do
