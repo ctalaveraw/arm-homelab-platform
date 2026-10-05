@@ -10,7 +10,7 @@
 - Historical sprint/incident records remain historical.
 - Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
-## NOW — Application delivery foundation
+## NOW — Dual OCI distribution
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
@@ -24,22 +24,32 @@
 - [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
 - [ ] OPS-007: Shared HTTPS for management services
 
-- [ ] PLAT-007: First application delivery pipeline
+- [x] PLAT-007: First application delivery pipeline
   - [x] ARM64 Hello World application source
   - [x] non-root local runtime acceptance
   - [x] GitHub-hosted ARM64 build + HTTP acceptance
   - [x] Buildx Dockerfile quality check before build job
-  - [ ] refactor to build once and test an explicit image reference
-  - [ ] vulnerability scan of the tested image
-  - [ ] publish immutable image to GHCR and record digest
+  - [x] build once and test an explicit image reference
+  - [x] Trivy vulnerability + secret scan of the tested image
+  - [x] CRITICAL findings block promotion; lower severities remain visible
+  - [x] transfer the tested/scanned image across an isolated job boundary
+  - [x] verify transfer archive SHA-256
+  - [x] verify Docker image ID before and after transfer
+  - [x] isolate `packages: write` to the publisher job
+  - [x] publish the verified image to GHCR
+  - [x] capture immutable registry digest
+  - [x] protect GitHub `main` and require CI-backed PR flow
+  - [x] strengthen repository validation with Ruff, yamllint and actionlint
 
 - [ ] PLAT-008: Dual OCI distribution
+  - [ ] prove independent pull of the GHCR artifact by digest
   - [ ] validate Gitea built-in OCI registry
-  - [ ] replicate the verified OCI artifact from canonical publication into Gitea
-  - [ ] prove independent retrieval from both registries
+  - [ ] replicate the verified OCI artifact from GHCR into Gitea without rebuilding
+  - [ ] prove independent retrieval from both registries by immutable identity
 
 - [ ] PLAT-009: Kubernetes delivery pipeline
-  - [ ] deploy CI-produced image into the existing kubeadm cluster
+  - [ ] deploy CI-produced image into the existing kubeadm cluster by digest
+  - [ ] verify running pod image identity against the published digest
   - [ ] verify rollout and endpoint
   - [ ] introduce Helm only after the raw delivery path is understood
 
@@ -76,3 +86,8 @@
 ## Parking lot
 
 Ideas belong here until they have a dependency, acceptance criterion, and place in the roadmap.
+
+Cheap cleanup currently parked:
+
+- upgrade `actions/download-artifact@v4` when convenient to remove the remaining non-blocking Node.js runtime deprecation warning;
+- evaluate image signing/attestation only after digest-based retrieval and dual-registry distribution are working.

@@ -1,15 +1,23 @@
-# CI, repository mirroring, and application acceptance
+# CI, repository mirroring, and OCI publication
 
-**Status (2026-10-04):** Dual ARM64 repository validation is operational. GitHub Actions also builds and runtime-tests the first application. Image scanning, publication, and Kubernetes delivery remain pending.
+**Status (2026-10-05):** Dual ARM64 repository validation is operational. GitHub Actions now builds one ARM64 application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a narrowly scoped publisher job. Gitea OCI replication and Kubernetes delivery remain pending.
 
 ## Source ownership
 
-- **GitHub:** public canonical source, hosted CI, and off-device recovery copy.
+- **GitHub:** public canonical source, hosted CI, protected `main`, and off-device recovery copy.
 - **Gitea:** private native one-way pull mirror of GitHub.
 - The management plane must remain reconstructable without depending on Gitea.
 - Git mirroring synchronizes Git refs/history; it does not copy GitHub Actions run history, repository secrets, or OCI artifacts.
 
 A forced Gitea mirror synchronization was observed to emit a `push` event on `main`, triggering the native Gitea Actions workflow.
+
+The R5C working copy also keeps Gitea as a **fetch-only** remote. `scripts/ops/check-source-parity.sh` fetches GitHub and Gitea and compares:
+
+- controller-local `main`;
+- canonical GitHub `main`;
+- mirrored Gitea `main`.
+
+The script does not treat Gitea as a second push target.
 
 ## Portable repository validation
 
@@ -20,14 +28,27 @@ bash scripts/ci/bootstrap.sh
 bash scripts/ci/validate.sh
 ```
 
-`bootstrap.sh` creates the ignored `.ci-venv/`, installs pinned Ansible Core 2.21.4 plus PyYAML, and ensures hosted CI has ShellCheck.
+`bootstrap.sh` creates or reuses the ignored `.ci-venv/` and converges pinned validation dependencies on every run rather than assuming an existing venv is current.
+
+Current pinned Python-side tooling includes:
+
+- `ansible-core==2.21.4`;
+- `PyYAML>=6,<7`;
+- Ruff;
+- yamllint;
+- actionlint-py.
+
+Hosted CI also ensures ShellCheck is available.
 
 `validate.sh` currently checks:
 
 - Bash syntax;
 - ShellCheck;
 - Python storage-guard syntax;
+- Ruff across tracked Python;
 - YAML parsing;
+- yamllint using `.yamllint.yml`;
+- actionlint for GitHub Actions workflows;
 - four Compose safety-contract unit tests;
 - Ansible syntax for playbooks `00` through `06`;
 - rendered configuration for five Compose projects using synthetic, non-secret values.
@@ -54,8 +75,6 @@ Runs on GitHub-hosted `ubuntu-24.04-arm` and performs:
 3. portable repository validation;
 4. Buildx `--check` against `apps/platform-hello/Dockerfile`.
 
-The checkout action was upgraded from v4 to v5 to remove the GitHub-hosted Node.js 20 deprecation warning.
-
 ### build-hello
 
 `build-hello` declares:
@@ -64,26 +83,117 @@ The checkout action was upgraded from v4 to v5 to remove the GitHub-hosted Node.
 needs: validate
 ```
 
-Therefore the application build does not run if repository/Dockerfile validation fails.
+and retains:
 
-It checks out a fresh copy of committed source and executes:
-
-```bash
-bash scripts/ci/test-hello.sh
+```yaml
+permissions:
+  contents: read
 ```
 
-The script:
+The job creates one commit-associated image reference:
 
-- builds a Linux ARM64 image;
-- confirms image architecture;
-- verifies runtime UID 10001;
-- starts a temporary container;
-- polls HTTP readiness;
-- verifies expected page content;
-- captures logs on failure;
-- cleans up the temporary container.
+```text
+platform-hello:<github.sha>
+```
 
-Current limitation: `test-hello.sh` still performs the image build itself. Before scan/publication, the pipeline will be refactored to build one explicit image once, then test, scan, and publish that same artifact.
+The repository-owned stages are:
+
+```bash
+bash scripts/ci/build-hello.sh "$IMAGE_REF"
+bash scripts/ci/test-hello.sh "$IMAGE_REF"
+bash scripts/ci/scan-hello.sh "$IMAGE_REF"
+```
+
+The test stage verifies:
+
+- `linux/arm64`;
+- runtime UID 10001;
+- HTTP readiness;
+- expected application content.
+
+The scan stage performs:
+
+- vulnerability scanning;
+- secret scanning;
+- visibility for UNKNOWN/LOW/MEDIUM/HIGH/CRITICAL findings;
+- promotion failure on CRITICAL findings.
+
+The same image is not rebuilt between build, test and scan.
+
+### Image export and job handoff
+
+Only trusted `push` events on `main` export the tested/scanned image.
+
+`scripts/ci/export-image.sh` records:
+
+- the Docker image ID;
+- a `docker save` archive;
+- SHA-256 for the archive.
+
+The archive is uploaded as a short-retention GitHub Actions artifact.
+
+An early post-merge run exposed that hidden `.ci-artifacts/` paths are excluded by default by `actions/upload-artifact`. The transfer directory was changed to visible `ci-artifacts/`; the fix was verified in the next post-merge run.
+
+### publish-hello
+
+The separate publisher job depends on `build-hello` and runs only on trusted pushes to `main`.
+
+Its permissions are intentionally narrower than a monolithic build/publish job:
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+```
+
+The publisher:
+
+1. checks out only the repository scripts it needs;
+2. downloads the exported image;
+3. verifies the archive checksum;
+4. loads the image;
+5. verifies the loaded Docker image ID equals the ID recorded before transfer;
+6. authenticates to GHCR with the automatically supplied `GITHUB_TOKEN`;
+7. calls `scripts/ci/publish-image.sh`;
+8. logs out of GHCR.
+
+No PAT or manually injected registry password is required for the current GitHub-to-GHCR path.
+
+## First verified GHCR publication
+
+GitHub Actions run #27 successfully completed all three jobs:
+
+```text
+validate
+  -> build/test/scan/export/upload
+  -> download/verify/authenticate/publish/logout
+```
+
+Source commit:
+
+```text
+1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+Docker image ID before and after transfer:
+
+```text
+sha256:6778f34a5be85bfd970f9124f53efb761d12317feb15c0a4f5c2b29117a0416b
+```
+
+Published tag:
+
+```text
+ghcr.io/ctalaveraw/platform-hello:1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+GHCR registry digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+The commit-derived tag is traceable but movable. The registry digest is the immutable identity intended for retrieval and deployment.
 
 ## Gitea Actions
 
@@ -101,7 +211,7 @@ Runner:
 - no host Docker socket;
 - no deployment or registry credentials.
 
-The runner currently performs repository validation only. It intentionally does not build/publish application images because the trusted validation worker has not been granted a production Docker socket or registry credentials.
+The runner intentionally performs repository validation only.
 
 Gitea remains on `actions/checkout@v4` until newer action-runtime compatibility is explicitly tested.
 
@@ -112,35 +222,44 @@ CI depends on process exit status, not log wording.
 - exit status `0`: success;
 - nonzero exit status: failure;
 - stdout/stderr provide operator diagnostics but do not independently control job state;
-- `needs: validate` prevents downstream image work when validation fails.
+- `needs: validate` prevents downstream image work when validation fails;
+- CRITICAL Trivy findings stop promotion;
+- missing/altered transfer artifacts stop publication;
+- a Docker image-ID mismatch stops publication.
 
 A stale local Docker image must never be accepted as proof of a current successful build.
 
-## Planned artifact contract
+## Artifact contract
 
-The publication path will enforce:
+Implemented:
 
 ```text
 build image A
   -> test image A
   -> scan image A
+  -> export image A
+  -> verify transferred image A
   -> publish image A
-  -> record digest of image A
-  -> replicate image A
-  -> deploy image A by immutable identity
+  -> record registry digest
+```
+
+Next:
+
+```text
+registry digest
+  -> prove independent pull
+  -> replicate same artifact into Gitea OCI
+  -> prove both distributions
+  -> deploy by digest
 ```
 
 An independent rebuild after testing is intentionally avoided.
 
-## Mirror operations
+## Known CI cleanup
 
-Canonical GitHub main:
+`actions/upload-artifact` was upgraded to v5 during the artifact-path fix.
 
-```bash
-git ls-remote https://github.com/ctalaveraw/arm-homelab-platform.git refs/heads/main
-```
-
-Compare the full SHA to the mirrored Gitea `main` reference and its synchronization timestamp. Use **Synchronize Now** when immediate pull synchronization is required.
+`actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning on GitHub-hosted runners. This is tracked as cheap cleanup and does not invalidate run #27.
 
 ## Evidence
 
@@ -149,3 +268,4 @@ Compare the full SHA to the mirrored Gitea `main` reference and its synchronizat
 - [Application delivery sprint](sprints/08-application-delivery-foundation.md)
 - [Engineering evidence ledger](interview/engineering-evidence.md)
 - [PLAT-006 screenshots](evidence/plat-006/)
+- GitHub Actions run #27: `37284420724`

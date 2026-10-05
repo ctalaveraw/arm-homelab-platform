@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-04):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI validates the repository and builds/tests the first application image; a private Gitea pull mirror independently runs the same repository validation on a physical NanoPi R5C. Image scanning, OCI publication, registry replication, and Kubernetes delivery are the next gates.
+**Status (2026-10-05):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI now validates the repository, builds one application image, runtime-tests that exact image, scans it with Trivy, transfers it across an isolated job boundary with integrity checks, and publishes the verified artifact to GHCR from a least-privileged publisher job. Gitea remains a private one-way source mirror with independent ARM64 validation on the NanoPi R5C. Local Gitea OCI replication and Kubernetes delivery are the next gates.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -12,11 +12,16 @@ Solid arrows are implemented. Dashed arrows are planned.
 
 ```mermaid
 flowchart LR
-    DEV["Developer"]
+    DEV["Developer / operator"]
     GH["GitHub<br/>canonical source"]
     GHCI["GitHub Actions<br/>hosted ARM64"]
-    VALIDATE["Repository validation<br/>bootstrap.sh + validate.sh"]
-    APPTEST["platform-hello<br/>build + HTTP acceptance"]
+    VALIDATE["Repository validation<br/>ShellCheck + Ruff + yamllint + actionlint<br/>Ansible + Compose contracts"]
+    BUILD["platform-hello<br/>build once"]
+    TEST["Runtime acceptance<br/>ARM64 + UID 10001 + HTTP"]
+    SCAN["Trivy<br/>vuln + secret scan"]
+    XFER["Verified job handoff<br/>archive checksum + image ID"]
+    PUB["Publisher job<br/>packages: write only"]
+    GHCR["GHCR<br/>canonical OCI distribution"]
 
     subgraph MGMT["Out-of-cluster management plane — NanoPi R5C"]
         GITEA["Gitea 1.27.3<br/>private pull mirror"]
@@ -41,20 +46,23 @@ flowchart LR
         WK["2 workers"]
     end
 
-    GHCR["GHCR<br/>planned canonical OCI distribution"]
     GREG["Gitea OCI registry<br/>planned local distribution"]
     BACKUP["Restic off-device backup<br/>planned"]
 
     DEV --> GH
     GH -->|"push / PR"| GHCI
     GHCI --> VALIDATE
-    VALIDATE --> APPTEST
+    VALIDATE --> BUILD
+    BUILD --> TEST
+    TEST --> SCAN
+    SCAN --> XFER
+    XFER --> PUB
+    PUB --> GHCR
 
     GH -->|"native pull mirror"| GITEA
     GITEA -->|"push event after sync"| RUNNER
     RUNNER --> VALIDATE
 
-    APPTEST -.->|"scan + publish"| GHCR
     GHCR -.->|"verified artifact replication"| GREG
     GHCR -.-> COMPUTE
     GREG -.-> COMPUTE
@@ -82,43 +90,69 @@ Stateful services use SD-backed persistent storage under `/srv/storage/state/ser
 ### Source and CI
 
 - GitHub is the public canonical source and recovery copy.
-- Gitea is a private one-way pull mirror.
-- GitHub Actions runs repository validation on hosted ARM64 and then builds/tests `apps/platform-hello`.
+- `main` is protected and changes flow through pull requests plus CI.
+- Gitea is a private one-way pull mirror, not a second push target.
+- The R5C working copy keeps Gitea as a fetch-only remote and can prove GitHub/Gitea/local-main convergence with `scripts/ops/check-source-parity.sh`.
+- GitHub Actions runs repository validation and the application build/test/scan/publish path on hosted ARM64.
 - Gitea Actions runs repository validation on a physical ARM64 NanoPi R5C.
-- Both environments reuse repository-owned scripts instead of duplicating validation logic in workflow YAML.
+- Repository-owned scripts carry validation and image-transfer mechanics so workflow YAML stays focused on orchestration and permission boundaries.
 - The Gitea runner is repository-scoped, non-root, publishes no ports, drops Linux capabilities, and does not receive the production Docker socket.
 
-### First application
+### First application and OCI publication
 
-`apps/platform-hello` is intentionally small so the delivery mechanics can be learned and defended:
+`apps/platform-hello` is intentionally small so the delivery mechanics can be learned and defended.
 
-- static HTML served by Python's standard-library HTTP server
-- ARM64 container image
-- UID/GID 10001 runtime
-- local and GitHub-hosted HTTP readiness/content acceptance
-- Dockerfile pre-build check through Buildx
-- build job gated on repository validation
+The implemented path is:
 
-The image is not yet published to a registry and has not yet been deployed by CI to Kubernetes.
+```text
+source commit
+  -> repository validation
+  -> Dockerfile check
+  -> build one linux/arm64 image
+  -> runtime acceptance on that exact image
+  -> Trivy vulnerability + secret scan
+  -> export image + record Docker image ID
+  -> upload/download across a separate GitHub job
+  -> verify archive checksum
+  -> verify loaded Docker image ID matches
+  -> authenticate from a publisher with packages: write
+  -> publish the same verified image to GHCR
+```
+
+The first successful publication was produced by GitHub Actions run #27 from commit:
+
+```text
+1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+Published tag:
+
+```text
+ghcr.io/ctalaveraw/platform-hello:1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+Registry digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+The commit-derived tag provides traceability; the registry digest is the immutable OCI identity intended for later deployment.
 
 ## Delivery objective
 
 The next delivery path is:
 
 ```text
-commit
-  -> repository validation
-  -> application Dockerfile check
-  -> ARM64 image build
-  -> runtime acceptance
-  -> scan the same tested image
-  -> publish immutable OCI artifact
-  -> replicate to local Gitea OCI registry
-  -> deploy to Kubernetes
-  -> verify rollout
+verified GHCR artifact
+  -> prove independent retrieval by digest
+  -> replicate the same OCI artifact into Gitea's registry
+  -> prove retrieval from both registries
+  -> deploy by immutable digest to Kubernetes
+  -> verify rollout and endpoint
 ```
 
-The design goal is to build once and promote the same tested artifact rather than rebuild independently between test, scan, publication, and deployment.
+The design goal remains build once, then promote the same tested/scanned artifact instead of rebuilding independently between stages.
 
 ## Kubernetes compute plane
 
@@ -141,7 +175,8 @@ The cluster currently has hand-configured workloads; CI-produced application del
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Kubernetes does not yet consume an image produced by this repository's CI.
+- Gitea OCI replication and Kubernetes consumption of the CI-produced image are not yet proven.
+- `actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning and is queued for cheap cleanup.
 
 ## Running repository validation
 
@@ -150,10 +185,12 @@ bash scripts/ci/bootstrap.sh
 bash scripts/ci/validate.sh
 ```
 
-Application acceptance:
+Local application build and acceptance:
 
 ```bash
-bash scripts/ci/test-hello.sh
+IMAGE=platform-hello:local
+bash scripts/ci/build-hello.sh "$IMAGE"
+bash scripts/ci/test-hello.sh "$IMAGE"
 ```
 
 ## Ansible playbooks
@@ -176,10 +213,11 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [Current architecture](docs/architecture/overview.md)
 - [Roadmap](docs/roadmap.md)
 - [Engineering backlog](docs/backlog.md)
-- [CI and mirroring runbook](docs/ci.md)
+- [CI, mirroring and OCI publication](docs/ci.md)
 - [Engineering evidence ledger](docs/interview/engineering-evidence.md)
 - [PLAT-006 native Gitea CI sprint](docs/sprints/07-native-gitea-ci.md)
 - [PLAT-007 application delivery sprint](docs/sprints/08-application-delivery-foundation.md)
+- [ADR-0006 — Build-once OCI promotion](docs/adr/0006-build-once-oci-promotion.md)
 - [Architecture decisions](docs/adr/)
 - [Incident records](docs/incidents/)
 - [Evidence screenshots](docs/evidence/)

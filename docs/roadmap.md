@@ -38,6 +38,8 @@ Implemented:
 - GitHub canonical source plus private one-way Gitea mirror;
 - GitHub-hosted ARM64 validation;
 - physical R5C ARM64 Gitea validation;
+- protected GitHub `main`;
+- source parity check across GitHub, Gitea and controller-local `main`;
 - Ansible-owned enable/start lifecycle for all five services;
 - SD-backed guarded state.
 
@@ -45,35 +47,47 @@ Remaining operational work such as HTTPS, backup/restore, and full fresh-host re
 
 ## M3 — Application delivery
 
-**Status: In progress.**
+**Status: In progress; external OCI publication is complete.**
 
 Completed:
 
 - first application source under `apps/platform-hello`;
 - ARM64/non-root local image acceptance;
-- reusable HTTP readiness/content acceptance script;
-- GitHub Actions `validate -> build-hello` dependency;
 - Buildx Dockerfile pre-build check;
-- successful hosted ARM64 build and runtime acceptance.
+- build-once GitHub-hosted ARM64 image production;
+- runtime readiness/content acceptance against the exact built image;
+- Trivy vulnerability and secret scanning of the tested image;
+- repository quality gates with ShellCheck, Ruff, yamllint and actionlint;
+- isolated cross-job image transfer;
+- archive checksum verification;
+- Docker image-ID verification before and after transfer;
+- least-privileged GHCR publisher with `packages: write`;
+- successful GHCR publication and immutable registry digest capture.
+
+First verified publication:
+
+```text
+commit: 1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+digest: sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
 
 Next:
 
-- build once and carry one explicit image identity through test/scan/publish;
-- vulnerability scan;
-- publish immutable image to GHCR;
-- validate and populate local Gitea OCI distribution;
-- deploy the CI-produced artifact into Kubernetes;
-- verify endpoint and rollout.
+- prove independent pull from GHCR by digest;
+- validate and populate local Gitea OCI distribution without rebuilding;
+- prove retrieval from both registries;
+- deploy the CI-produced artifact into Kubernetes by digest;
+- verify pod identity, rollout and endpoint.
 
 Exit criteria:
 
 - [x] application builds for ARM64;
 - [x] CI performs application runtime acceptance;
 - [x] Dockerfile quality check precedes build;
-- [ ] security scan executes against the tested image;
-- [ ] immutable image is published;
+- [x] security scan executes against the tested image;
+- [x] immutable image is published externally;
 - [ ] verified artifact exists in external and local OCI distribution;
-- [ ] Kubernetes pulls a CI-produced image;
+- [ ] Kubernetes pulls a CI-produced image by digest;
 - [ ] rollout and endpoint are verified.
 
 ## M4 — Operational evidence
@@ -85,7 +99,9 @@ Already demonstrated:
 - controlled Gitea outage;
 - monitoring detection;
 - Gotify DOWN/UP notifications;
-- guarded recovery.
+- guarded recovery;
+- CI failure/recovery during artifact publication development;
+- integrity verification across isolated CI jobs.
 
 Still required:
 

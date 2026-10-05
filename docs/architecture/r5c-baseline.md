@@ -1,7 +1,7 @@
 # R5C Management Plane — Initial Baseline
 
-**Captured:** 2026-10-01
-**Status:** Brownfield / Pre-Automation
+**Captured:** 2026-10-01  
+**Status:** Brownfield / Pre-Automation  
 **Purpose:** Reference state for Ansible bootstrap.
 
 ## 1. Operating System
@@ -111,8 +111,7 @@ This document captures observed system state.
 It does not imply the infrastructure is already
 reproducible or configuration-managed.
 
-
-## Current-state delta — 2026-10-04
+## Current-state delta — 2026-10-05
 
 This file remains the original brownfield snapshot. It is not rewritten to make later automation appear to have existed at capture time.
 
@@ -123,8 +122,11 @@ Since the baseline:
 - Ansible now manages the host baseline and all management-service lifecycles;
 - Docker Engine and Compose are operational;
 - Gitea, Gitea Actions runner, Gotify, Uptime Kuma and APT-Cacher-NG are operational;
-- GitHub is canonical and Gitea is a private one-way pull mirror;
+- GitHub is canonical and protected; Gitea is a private one-way pull mirror;
+- the controller can prove GitHub/Gitea/local-main source convergence using a fetch-only Gitea remote;
 - GitHub-hosted and physical-R5C ARM64 repository validation are operational;
-- `platform-hello` now builds and passes HTTP acceptance in GitHub Actions.
+- repository validation now includes ShellCheck, Ruff, yamllint and actionlint in addition to the existing platform checks;
+- `platform-hello` is built once, runtime-tested, Trivy-scanned, integrity-checked across isolated CI jobs, and published to GHCR;
+- the first verified GHCR publication produced digest `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e`.
 
 See [the current architecture overview](overview.md) for the live design.
