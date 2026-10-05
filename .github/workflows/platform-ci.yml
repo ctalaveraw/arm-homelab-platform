@@ -71,14 +71,14 @@ jobs:
         run: |
           bash scripts/ci/export-image.sh \
             "$IMAGE_REF" \
-            .ci-artifacts
+            ci-artifacts
 
       - name: Upload tested and scanned image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: platform-hello-${{ github.sha }}
-          path: .ci-artifacts/
+          path: ci-artifacts/
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
@@ -110,13 +110,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: platform-hello-${{ github.sha }}
-          path: .ci-artifacts
+          path: ci-artifacts
 
       - name: Verify transferred image
         run: |
           bash scripts/ci/verify-image-transfer.sh \
             "$LOCAL_IMAGE_REF" \
-            .ci-artifacts
+            ci-artifacts
 
       - name: Authenticate to GHCR
         run: |
