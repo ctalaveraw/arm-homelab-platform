@@ -1,13 +1,13 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-04  
-**Scope:** Current convergence point after native Gitea CI and the first GitHub-hosted application build.
+**Updated:** 2026-10-05  
+**Scope:** Current convergence point after PLAT-007 build-once validation, security scanning, cross-job integrity verification, and first GHCR publication.
 
 ## Design intent
 
 The platform separates the **management plane** from the existing Kubernetes **compute plane**. GitHub remains an external recovery/source-of-truth dependency so management-plane reconstruction does not require the self-hosted Gitea instance.
 
-The delivery system is deliberately incremental: repository validation is operational in two CI environments; application build/runtime acceptance is operational in GitHub Actions; artifact publication and Kubernetes delivery are the next boundaries.
+Source, validation, artifact production, artifact promotion, and runtime deployment are intentionally treated as separate trust boundaries.
 
 ## Current and planned architecture
 
@@ -17,9 +17,17 @@ Solid arrows are implemented. Dashed arrows are planned.
 flowchart TB
     DEV["Developer / operator"]
     GH["GitHub<br/>canonical source + recovery"]
+    RULES["Protected main<br/>PR + CI gate"]
     GHCI["GitHub Actions<br/>hosted ARM64"]
-    VALIDATION["Portable validation<br/>bootstrap.sh + validate.sh"]
-    HELLO["platform-hello<br/>ARM64 build + HTTP acceptance"]
+
+    VALIDATION["Portable validation<br/>ShellCheck + Ruff + yamllint + actionlint<br/>Compose contracts + Ansible syntax"]
+    BUILD["Build once<br/>platform-hello:commit"]
+    TEST["Runtime acceptance<br/>linux/arm64 + UID 10001 + HTTP"]
+    SCAN["Trivy<br/>vulnerability + secret scan"]
+    EXPORT["Image export<br/>Docker image ID + tar checksum"]
+    ARTIFACT["GitHub Actions artifact<br/>job handoff"]
+    PUBLISH["Publisher job<br/>contents: read<br/>packages: write"]
+    GHCR["GHCR<br/>verified OCI artifact"]
 
     subgraph R5C["Independent NanoPi R5C management plane"]
         ANSIBLE["Ansible<br/>host + service lifecycle"]
@@ -28,7 +36,9 @@ flowchart TB
         GOTIFY["Gotify 3.1.1"]
         KUMA["Uptime Kuma 2.5.5"]
         ACNG["APT-Cacher-NG"]
+        PARITY["Source parity check<br/>GitHub / Gitea / local main"]
         SD["SD state<br/>storage_sdcard"]
+
         ANSIBLE --> GITEA
         ANSIBLE --> ACT
         ANSIBLE --> GOTIFY
@@ -39,6 +49,7 @@ flowchart TB
         GOTIFY --> SD
         KUMA --> SD
         ACNG --> SD
+        PARITY --> GITEA
         KUMA -->|"monitor"| GITEA
         KUMA -->|"monitor"| GOTIFY
         KUMA -->|"monitor"| ACNG
@@ -53,52 +64,122 @@ flowchart TB
         CP --- W2
     end
 
-    GHCR["GHCR<br/>planned canonical OCI distribution"]
     GITEAOCI["Gitea OCI registry<br/>planned local distribution"]
     RESTIC["Restic repository<br/>planned off-device backup"]
     FLUX["Flux<br/>future pull-based reconciliation"]
 
-    DEV -->|"push / PR"| GH
-    GH --> GHCI
+    DEV -->|"PR"| GH
+    GH --> RULES
+    RULES --> GHCI
     GHCI --> VALIDATION
-    VALIDATION --> HELLO
+    VALIDATION --> BUILD
+    BUILD --> TEST
+    TEST --> SCAN
+    SCAN --> EXPORT
+    EXPORT --> ARTIFACT
+    ARTIFACT -->|"download + verify"| PUBLISH
+    PUBLISH --> GHCR
 
     GH -->|"native pull mirror"| GITEA
     GITEA -->|"sync emits push event"| ACT
     ACT --> VALIDATION
+    GH --> PARITY
 
-    HELLO -.->|"scan same tested image"| GHCR
-    GHCR -.->|"replicate verified OCI artifact"| GITEAOCI
-    GHCR -.->|"image pull"| K8S
-    GITEAOCI -.->|"local image pull"| K8S
+    GHCR -.->|"replicate same OCI artifact"| GITEAOCI
+    GHCR -.->|"pull by digest"| K8S
+    GITEAOCI -.->|"local pull by digest"| K8S
 
     GITEA -.->|"consistent state backup"| RESTIC
-    GITEAOCI -.->|"registry/package state backup"| RESTIC
+    GITEAOCI -.->|"package state backup"| RESTIC
     GH -.->|"future desired state"| FLUX
     FLUX -.-> K8S
 ```
 
 ## Implemented boundaries
 
-### Source ownership
+### Source ownership and convergence
 
 GitHub is the canonical public repository. Gitea is a private pull mirror, not a second authoritative push target.
 
-### CI execution
+The controller working copy keeps:
+
+- GitHub as its normal push destination;
+- Gitea as a fetch-only remote;
+- `scripts/ops/check-source-parity.sh` to compare local `main`, GitHub `main`, and mirrored Gitea `main`.
+
+Source parity was proven at commit `e9eb8e245428dec8c91656df94f444bca88231a9` before the GHCR publication work continued.
+
+GitHub `main` is protected so merge policy is enforced by the platform rather than operator memory alone.
+
+### CI execution and validation
 
 GitHub Actions:
 
 - hosted ARM64 runner;
 - repository validation;
 - Dockerfile Buildx check;
-- dependent ARM64 Hello World build and HTTP acceptance.
+- one ARM64 application build;
+- runtime acceptance against that exact image;
+- Trivy vulnerability and secret scanning;
+- verified artifact export;
+- separate least-privileged publisher job.
+
+Repository validation currently covers:
+
+- Bash syntax;
+- ShellCheck;
+- Python syntax parsing;
+- Ruff;
+- YAML parsing;
+- yamllint using repository-owned policy;
+- actionlint for GitHub Actions;
+- four Compose safety-contract tests;
+- Ansible playbook syntax;
+- rendered Compose configuration.
 
 Gitea Actions:
 
 - repository-scoped physical ARM64 runner on the R5C;
-- same repository validation entrypoints;
+- same repository-owned validation entrypoints;
 - no production Docker socket;
 - no deployment, registry, or Kubernetes credentials.
+
+### Build-once artifact promotion
+
+The application image is built once in the read-only build job.
+
+The same image is then:
+
+1. runtime-tested;
+2. scanned;
+3. exported with its Docker image ID recorded;
+4. transferred as a GitHub Actions artifact;
+5. protected by an archive SHA-256 checksum;
+6. loaded on a separate publisher runner;
+7. checked against the original Docker image ID;
+8. pushed to GHCR by a job with `packages: write`.
+
+The publisher does not rebuild the image.
+
+The first successful publication came from commit:
+
+```text
+1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+Docker image ID preserved across the job boundary:
+
+```text
+sha256:6778f34a5be85bfd970f9124f53efb761d12317feb15c0a4f5c2b29117a0416b
+```
+
+GHCR manifest digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+The Docker image ID and registry manifest digest are intentionally different identities for different objects.
 
 ### Management service lifecycle
 
@@ -106,39 +187,49 @@ Ansible owns installation of the systemd unit, daemon reload, configuration vali
 
 Stateful workloads use explicit SD-backed bind mounts with `create_host_path: false` and service-specific startup guards.
 
-## Planned artifact path
+## Current artifact path
 
-The intended supply-chain path is:
+Implemented:
 
 ```text
 source commit
   -> validation
   -> build once
   -> runtime acceptance
-  -> vulnerability scan
-  -> publish same tested OCI artifact to GHCR
-  -> record immutable digest
-  -> replicate that artifact to Gitea OCI
-  -> pull by digest from Kubernetes
+  -> Trivy scan
+  -> transfer with checksum + image-ID verification
+  -> publish same verified artifact to GHCR
+  -> record registry digest
+```
+
+Next:
+
+```text
+GHCR digest
+  -> prove independent pull
+  -> replicate same OCI artifact to Gitea OCI
+  -> prove retrieval from both registries
+  -> deploy Kubernetes by immutable digest
 ```
 
 Rebuilding independently after testing is intentionally avoided because it breaks artifact identity and creates another drift/failure surface.
 
 ## Recovery path
 
-Planned recovery has two independent ideas:
+Recovery has two independent ideas:
 
-1. **Distribution redundancy:** GHCR and Gitea OCI provide separate places from which a verified image can be retrieved.
+1. **Distribution redundancy:** GHCR and the planned Gitea OCI registry provide separate places from which the same verified image can be retrieved.
 2. **Backup/restore:** Restic will protect persistent Gitea/package state off-device.
 
 A second registry is not a substitute for backup, and backup is not a live registry failover mechanism.
 
 ## Remaining architecture gaps
 
+- independent pull verification from GHCR by digest;
+- Gitea OCI validation and artifact replication;
+- Kubernetes delivery of the CI-produced image by digest;
 - shared trusted HTTPS for management endpoints;
-- registry publication and replication;
 - off-device Restic backup/restore validation;
-- Kubernetes delivery of a CI-produced image;
 - deployment rollback exercise;
 - full fresh-host rebuild;
 - eventual Flux migration from push-based deployment to pull-based reconciliation.

@@ -35,13 +35,9 @@ restore remain separate, unverified acceptance criteria.
 ## Implementation update — 2026-10-04
 
 Gitea now has a native, private pull mirror of this public GitHub repository.
-The mirror displayed the canonical `main` commit `3e58f61` following
-synchronization. GitHub remains the upstream source of truth; no
-bidirectional or dual-push workflow is configured. GitHub-hosted ARM64
-CI works independently of the R5C and Gitea.
-
-
-## Implementation update — native CI
+GitHub remains the upstream source of truth; no bidirectional or dual-push
+workflow is configured. GitHub-hosted ARM64 CI works independently of the
+R5C and Gitea.
 
 A repository-scoped Gitea Actions runner now runs on the R5C while GitHub-hosted ARM64 Actions continues to operate independently.
 
@@ -50,4 +46,17 @@ This preserves the original recovery decision:
 - GitHub can validate/build without the R5C.
 - Gitea can validate mirrored source inside the homelab.
 - The Gitea runner has no production Docker socket and no deployment credentials.
-- Application artifact publication is being designed so external distribution and local distribution remain separate from source ownership.
+- Application artifact publication is designed so external distribution and local distribution remain separate from source ownership.
+
+## Implementation update — 2026-10-05
+
+The controller working copy now has two intentionally asymmetric remotes:
+
+- GitHub: fetch + normal push destination;
+- Gitea: fetch-only mirror inspection.
+
+`scripts/ops/check-source-parity.sh` fetches both and compares local `main`, GitHub `main`, and Gitea `main`.
+
+This makes source convergence measurable without promoting Gitea into a second source of truth.
+
+GitHub `main` is protected and the external GHCR publication path now operates independently of Gitea. Loss of the self-hosted management plane therefore does not remove the canonical source repository or the externally published application artifact.

@@ -297,13 +297,122 @@ Verification:
 - GitHub-hosted ARM64 validate and build-hello jobs both passed.
 - The application build remains gated on repository validation.
 
-Trade-offs:
-- The test script currently builds the image internally.
-- The image is ephemeral on the hosted runner and is not yet published.
-- Scan, registry publication, immutable digest capture and Kubernetes delivery remain pending.
+Trade-offs at the time of this evidence:
+- The test script still built the image internally.
+- The image was ephemeral on the hosted runner and was not yet published.
+- Scan, registry publication, immutable digest capture and Kubernetes delivery were pending.
+
+Update (2026-10-05):
+- Build and test responsibilities were separated so one explicit image reference can move through later stages.
+- Trivy scanning, cross-job integrity verification, and GHCR publication are now implemented.
+- Kubernetes delivery remains pending.
 
 What I learned:
 CI success must be tied to the artifact produced by the current source. A stale local image or an independent rebuild after testing can break artifact identity and create misleading evidence.
+
+## EVIDENCE-012: Repository Quality Gates and Source Convergence
+
+Date: 2026-10-05
+
+Problem:
+The repository had grown beyond simple syntax checks, while the controller working copy, canonical GitHub repository, and private Gitea mirror did not yet have a single operator-visible convergence check.
+
+Implementation:
+- Changed CI bootstrap so an existing `.ci-venv` is converged on every run instead of assuming its dependency set is current.
+- Added Ruff for tracked Python.
+- Added yamllint with repository-owned policy.
+- Added actionlint for GitHub Actions semantics.
+- Expanded ShellCheck discovery so tracked operational scripts are covered.
+- Corrected four Python storage-guard executable modes.
+- Made intentional `subprocess.run(..., check=False)` behavior explicit.
+- Added `scripts/ops/check-source-parity.sh`.
+- Configured the controller's Gitea remote as fetch-only while retaining GitHub as the push destination.
+- Protected GitHub `main` so CI-backed PR flow is enforced by repository policy.
+
+Verification:
+- Bootstrap repaired an already-existing venv by installing the newly required validators.
+- A second bootstrap run reported all requirements already satisfied.
+- Ruff, yamllint, actionlint, ShellCheck, Compose contract tests, Ansible syntax and Compose rendering all passed.
+- Source parity check proved local `main`, GitHub `main`, and Gitea `main` at the same commit before the publication sprint continued.
+- PR #7 completed with green CI and merged to protected `main`.
+
+Trade-offs:
+- Gitea is intentionally not a second push target.
+- Gitea Actions still does not receive production Docker, registry, or Kubernetes credentials.
+- `actions/download-artifact@v4` still has a non-blocking Node.js runtime deprecation warning.
+
+What I learned:
+Validation quality and source convergence are separate controls. A mirror can be healthy while execution capabilities remain intentionally asymmetric, and bootstrap logic must converge dependencies rather than merely create them once.
+
+## EVIDENCE-013: Build-Once, Verified GHCR Publication
+
+Date: 2026-10-05
+
+Problem:
+The platform could build and test an ARM64 application but had not yet proven that the exact tested artifact could be scanned, transferred across isolated CI jobs, and published without rebuilding or over-granting registry credentials.
+
+Implementation:
+- Split application build from runtime acceptance.
+- Passed one explicit commit-associated image reference through build, test and Trivy scan.
+- Added vulnerability and secret scanning with an explicit CRITICAL promotion gate.
+- Added generic image export, transfer-verification and publication scripts.
+- Recorded Docker image ID before export.
+- Recorded SHA-256 for the exported image archive.
+- Uploaded/downloaded the image through GitHub Actions artifact storage.
+- Verified archive checksum and Docker image ID after `docker load`.
+- Isolated `packages: write` to a separate publisher job.
+- Authenticated to GHCR with the job-scoped `GITHUB_TOKEN`.
+- Published the verified image without rebuilding.
+
+Verification:
+- GitHub Actions run #27 completed successfully on `ubuntu-24.04-arm`.
+- Transfer verification reported `image.tar: OK`.
+- Docker image ID before and after job transfer matched:
+
+```text
+sha256:6778f34a5be85bfd970f9124f53efb761d12317feb15c0a4f5c2b29117a0416b
+```
+
+- Published source commit:
+
+```text
+1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+- Published GHCR tag:
+
+```text
+ghcr.io/ctalaveraw/platform-hello:1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
+```
+
+- GHCR reported registry digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+Failure-driven evidence:
+- The first post-merge upload failed because `.ci-artifacts/` was hidden from the upload action by default; changing to `ci-artifacts/` fixed transfer.
+- A later green run exposed that authentication alone did not imply publication because the final publish step had not yet been defined; the missing invocation was added and the next run proved the full path.
+
+Trade-offs:
+- CI artifact transfer adds temporary storage and time compared with a monolithic build/push job.
+- The commit-derived tag is traceable but movable; the registry digest is the immutable identity intended for later pull/deployment.
+- Local Gitea OCI replication and Kubernetes deployment are still pending.
+
+Evidence:
+- PR #5: separate build from acceptance.
+- PR #6: Trivy scan of the tested image.
+- PR #7: repository quality gates and source convergence tooling.
+- PR #8: verified image handoff and publisher architecture.
+- PR #9: artifact-path correction.
+- PR #10: completed GHCR publication.
+- GitHub Actions run #27: `37284420724`.
+- ADR-0006.
+- docs/sprints/08-application-delivery-foundation.md.
+
+What I learned:
+A promotion pipeline is not merely a sequence of successful commands. Artifact identity, integrity across trust boundaries, explicit security policy, and least-privilege credentials must all remain intact until the registry returns the immutable deployment identity.
 
 ## Evidence Template
 

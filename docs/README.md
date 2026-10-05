@@ -7,7 +7,7 @@ This directory separates **current-state documentation** from **historical evide
 - [Architecture overview](architecture/overview.md) — current implemented and planned component relationships.
 - [Roadmap](roadmap.md) — milestone-level progress toward application delivery.
 - [Backlog](backlog.md) — active and queued work items.
-- [CI and mirroring runbook](ci.md) — GitHub/Gitea CI behavior, validation contracts, and current limitations.
+- [CI, mirroring and OCI publication](ci.md) — GitHub/Gitea CI behavior, validation contracts, artifact handoff, and GHCR publication.
 - [Engineering evidence ledger](interview/engineering-evidence.md) — interview-oriented proof of implementation and verification.
 - [R5C baseline](architecture/r5c-baseline.md) — original brownfield snapshot plus a current-state delta.
 
@@ -18,6 +18,7 @@ This directory separates **current-state documentation** from **historical evide
 - [ADR-0003 — Independent management plane and recovery source](adr/0003-independent-management-plane.md)
 - [ADR-0004 — Fail-closed stateful Compose lifecycle](adr/0004-guarded-compose-lifecycle.md)
 - [ADR-0005 — Optional shared APT cache](adr/0005-optional-package-cache.md)
+- [ADR-0006 — Build-once, least-privilege OCI promotion](adr/0006-build-once-oci-promotion.md)
 
 ## Sprint records
 
@@ -41,10 +42,14 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Current convergence point
 
-As of 2026-10-04:
+As of 2026-10-05:
 
 - five management-plane services have Ansible-owned guarded lifecycles;
-- GitHub is canonical and Gitea is a private one-way pull mirror;
+- GitHub is canonical, protected `main` is enforced, and Gitea is a private one-way pull mirror;
+- the R5C can prove source convergence across local `main`, GitHub and Gitea with a fetch-only Gitea remote;
 - GitHub-hosted ARM64 CI and a physical R5C Gitea runner both validate the repository;
-- the first application image builds and passes HTTP acceptance in GitHub Actions;
-- image scan/publication, dual OCI distribution, backup/restore, and Kubernetes delivery remain pending.
+- repository validation includes Bash syntax, ShellCheck, Python parsing, Ruff, YAML parsing, yamllint, actionlint, Compose contract tests, Ansible syntax, and Compose rendering;
+- `platform-hello` is built once, runtime-tested, Trivy-scanned, transferred across an isolated job boundary, integrity-checked, and published to GHCR;
+- the publisher alone receives `packages: write`;
+- the first verified GHCR artifact was published from commit `1ddd76c...` with registry digest `sha256:f3c542d3...`;
+- Gitea OCI replication, independent digest retrieval, backup/restore, and Kubernetes delivery remain pending.
