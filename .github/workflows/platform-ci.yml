@@ -42,11 +42,17 @@ jobs:
     permissions:
       contents: read
 
+    env:
+      IMAGE_REF: platform-hello:${{ github.sha }}
+
     steps:
       - name: Checkout application source
         uses: actions/checkout@v5
         with:
           persist-credentials: false
 
-      - name: Build and test Hello World
-        run: bash scripts/ci/test-hello.sh
+      - name: Build ARM64 Hello World image
+        run: bash scripts/ci/build-hello.sh "$IMAGE_REF"
+
+      - name: Test built Hello World image
+        run: bash scripts/ci/test-hello.sh "$IMAGE_REF"
