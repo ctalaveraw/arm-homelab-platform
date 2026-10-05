@@ -20,6 +20,7 @@ activation = subprocess.run(
     ["/usr/bin/ls", "-A", str(MOUNT)],
     capture_output=True,
     text=True,
+    check=False,
 )
 
 if activation.returncode != 0:
@@ -38,6 +39,7 @@ mount = subprocess.run(
     ],
     capture_output=True,
     text=True,
+    check=False,
 )
 
 if mount.returncode != 0 or mount.stdout.strip() != EXPECTED_LABEL:
@@ -65,6 +67,7 @@ backing = subprocess.run(
     ],
     capture_output=True,
     text=True,
+    check=False,
 )
 
 if backing.returncode != 0 or backing.stdout.split() != [
@@ -83,6 +86,7 @@ rendered = subprocess.run(
     ],
     capture_output=True,
     text=True,
+    check=False,
 )
 
 if rendered.returncode != 0:

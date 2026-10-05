@@ -1,0 +1,25 @@
+---
+# ARM Homelab Platform YAML policy.
+#
+# Start from yamllint's relaxed profile so formatting preferences do not
+# overwhelm correctness checks.
+#
+# 120 columns is deliberate:
+# Ansible module paths, Compose interpolation expressions, and workflow
+# references are often less readable when artificially wrapped at 80 columns.
+
+extends: relaxed
+
+rules:
+  line-length:
+    max: 120
+    level: error
+
+  trailing-spaces:
+    level: error
+
+  new-line-at-end-of-file:
+    level: error
+
+  key-duplicates:
+    level: error
