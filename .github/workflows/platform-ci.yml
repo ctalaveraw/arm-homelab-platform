@@ -16,13 +16,22 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Bootstrap CI dependencies
         run: bash scripts/ci/bootstrap.sh
 
       - name: Validate repository
         run: bash scripts/ci/validate.sh
+
+      - name: Validate Dockerfile
+        run: |
+          docker buildx build \
+            --check \
+            --platform linux/arm64 \
+            ./apps/platform-hello
 
   build-hello:
     name: Build and test ARM64 Hello World
@@ -35,7 +44,7 @@ jobs:
 
     steps:
       - name: Checkout application source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
 
