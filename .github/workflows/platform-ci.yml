@@ -124,3 +124,13 @@ jobs:
             docker login ghcr.io \
               --username "${{ github.actor }}" \
               --password-stdin
+
+      - name: Publish verified image
+        run: |
+          bash scripts/ci/publish-image.sh \
+            "$LOCAL_IMAGE_REF" \
+            "$GHCR_IMAGE_REF"
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io || true
