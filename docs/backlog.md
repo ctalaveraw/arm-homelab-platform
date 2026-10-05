@@ -1,33 +1,51 @@
 # Platform Engineering Backlog
 
-## Working Agreement
+## Working agreement
 
-- One active implementation milestone at a time.
-- New ideas enter the backlog, not the current sprint.
-- Each completed milestone requires verification.
-- Record architectural decisions in docs/adr/.
-- Record implementation evidence in docs/interview/.
-- Reprioritize when interview requirements change.
+- One active delivery milestone at a time.
+- New ideas enter the backlog instead of interrupting the current gate.
+- A milestone is not complete until implementation **and** verification are recorded.
+- Architecture decisions belong in `docs/adr/`.
+- Interview-relevant proof belongs in `docs/interview/`.
+- Historical sprint/incident records remain historical.
+- Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
-## NOW — Delivery Foundation
+## NOW — Application delivery foundation
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
-- [x] PLAT-003: Ansible-managed Docker host (existing R5C)
-- [x] PLAT-004: Gitea with persistent storage
+- [x] PLAT-003: Ansible-managed Docker host
+- [x] PLAT-004: Gitea with guarded persistent storage
 - [x] PLAT-005: Gotify notifications
-- [x] OPS-005: Uptime Kuma monitoring and recovery drill
+- [x] PLAT-006: Repository-scoped native Gitea Actions runner and mirrored ARM64 validation
+- [x] CI-001: Portable ARM64 repository validation
+- [x] GIT-002: One-way GitHub -> Gitea native pull mirror
+- [x] OPS-005: Uptime Kuma monitoring and controlled recovery drill
 - [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
 - [ ] OPS-007: Shared HTTPS for management services
-- [x] CI-001: Portable ARM64 repository validation (GitHub Actions)
-- [x] GIT-002: GitHub canonical source mirrored into Gitea (one-way pull)
-- [ ] PLAT-006: Gitea Actions runner
-- [ ] PLAT-007: Validate Gitea built-in OCI registry
-- [ ] PLAT-008: Full application CI lint/test/build/scan (repository validation exists; app build/scan pending)
-- [ ] PLAT-009: Helm deployment pipeline
-- [ ] PLAT-010: Incident and rollback exercise
 
-## NEXT — Platform Maturity
+- [ ] PLAT-007: First application delivery pipeline
+  - [x] ARM64 Hello World application source
+  - [x] non-root local runtime acceptance
+  - [x] GitHub-hosted ARM64 build + HTTP acceptance
+  - [x] Buildx Dockerfile quality check before build job
+  - [ ] refactor to build once and test an explicit image reference
+  - [ ] vulnerability scan of the tested image
+  - [ ] publish immutable image to GHCR and record digest
+
+- [ ] PLAT-008: Dual OCI distribution
+  - [ ] validate Gitea built-in OCI registry
+  - [ ] replicate the verified OCI artifact from canonical publication into Gitea
+  - [ ] prove independent retrieval from both registries
+
+- [ ] PLAT-009: Kubernetes delivery pipeline
+  - [ ] deploy CI-produced image into the existing kubeadm cluster
+  - [ ] verify rollout and endpoint
+  - [ ] introduce Helm only after the raw delivery path is understood
+
+- [ ] PLAT-010: Deployment failure and rollback exercise
+
+## NEXT — Platform maturity
 
 - [ ] PLAT-011: Flux GitOps reconciliation
 - [ ] PLAT-012: Prometheus and Grafana
@@ -35,16 +53,16 @@
 - [ ] PLAT-014: Ansible bootstrap of fourth Pi
 - [ ] PLAT-015: Reproducible kubeadm node join
 - [ ] PLAT-016: OpenBao secrets integration
-- [ ] PLAT-017: Gitea backup/restore validation
-- [ ] PLAT-018: Management plane DR exercise
+- [ ] PLAT-017: Restic-backed Gitea/package-state backup and restore validation
+- [ ] PLAT-018: Management-plane disaster-recovery exercise
 
-## FUTURE — Independent Projects
+## FUTURE — Independent projects
 
 - [ ] AWS-001: Ephemeral hybrid access via Terraform
 - [ ] AWS-002: Terraform AWS networking baseline
 - [ ] AWS-003: IAM and infrastructure security
 - [ ] AWS-004: AWS CI/CD integration
-- [ ] SEC-001: Container supply-chain controls
+- [ ] SEC-001: Container supply-chain controls beyond the first image scan
 - [ ] OPS-001: SLO and incident response lab
 - [ ] OPS-002: Automated recovery exercises
 - [ ] AI-001: AI infrastructure deployment lab
@@ -53,12 +71,8 @@
   - Dependencies: zsh, fzf, zoxide, git-delta
   - Source: /srv/_local/scripts/bootstrap_shell.sh
   - Arguments: --human --add-root-shell
-  - Review root-shell changes before execution.
-  - Keep optional; do not block infrastructure bootstrap.
+  - Keep optional; do not block platform recovery.
 
-- [ ] OPS-004: Add Gitea HTTP readiness checks and HTTPS before broader access.
+## Parking lot
 
-## Parking Lot
-
-Ideas will go here until formally prioritized.
-
+Ideas belong here until they have a dependency, acceptance criterion, and place in the roadmap.

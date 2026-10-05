@@ -2,7 +2,7 @@
 
 **Work item:** PLAT-006  
 **Date completed:** 2026-10-04  
-**Status:** Functionally complete — evidence archival pending  
+**Status:** Complete — functional acceptance and evidence archived  
 **Platform:** NanoPi R5C · ARM64 · Armbian / Debian Trixie
 
 ## Objective
@@ -146,7 +146,7 @@ All four tests passed.
 
 The GitHub-hosted ARM64 runner successfully executed the portable repository validation workflow.
 
-One non-blocking annotation warning was visible and remains available for separate inspection.
+A non-blocking checkout runtime warning was observed at the time of this run. It was later resolved on GitHub-hosted jobs by upgrading `actions/checkout` to v5.
 
 ### Gitea Actions
 
@@ -218,7 +218,7 @@ Runner access must remain restricted to trusted repository workloads until stron
 - Complete blank-host bootstrap still requires SD preparation, local configuration and runner registration.
 - Off-device backup and restoration of persistent management-service state remain outstanding.
 - Unattended scheduled mirror-trigger behavior requires separate verification.
-- The non-blocking GitHub Actions annotation warning has not been triaged.
+- GitHub-hosted checkout warnings were subsequently resolved; Gitea remains on checkout v4 until compatibility is explicitly tested.
 
 
 ## Outcome
@@ -234,16 +234,10 @@ The management plane can now receive canonical repository changes through its pr
 
 ## Next sprint — PLAT-007
 
-Build → Scan → Publish.
+Application delivery foundation.
 
-Introduce an intentionally small ARM64 application image and establish a controlled artifact-delivery workflow.
+The first application now lives under `apps/platform-hello`. GitHub Actions validates the repository, performs a Dockerfile Buildx check, and then builds/runs HTTP acceptance on hosted ARM64.
 
-Initial objectives:
+Remaining PLAT-007 gates are to carry one image identity through test, scan, publication, immutable digest capture and independent retrieval before Kubernetes deployment.
 
-- Build an OCI image through CI.
-- Run vulnerability scanning.
-- Publish a versioned image to a registry.
-- Capture the immutable image digest.
-- Verify that the published artifact can be independently retrieved.
-
-Kubernetes deployment and deployment credentials remain subsequent delivery gates.
+See [Sprint 08](08-application-delivery-foundation.md).

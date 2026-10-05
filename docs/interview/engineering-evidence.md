@@ -236,9 +236,74 @@ Verification:
   3e58f61e8855b41623490c560f90f774b72ca3f0.
 
 Limits:
-- This verifies one observed synchronization, not a recurring sync SLA.
+- The original observation did not establish a recurring synchronization SLA.
 - GitHub Actions history/secrets are not replicated by a Git mirror.
-- A Gitea Actions runner is not yet installed.
+
+Update (2026-10-04):
+- A repository-scoped Gitea Actions runner is now operational on the R5C.
+- Forced mirror synchronization generated a push event that triggered native validation.
+- GitHub remains canonical; the mirror remains one-way.
+
+## EVIDENCE-010: Native Gitea Actions on Physical ARM64
+
+Date: 2026-10-04
+
+Implementation:
+- Built a purpose-specific ARM64 Gitea runner image.
+- Registered runner at repository scope.
+- Persisted runner identity on guarded SD storage.
+- Ran the runner as UID/GID 10001 without privileged mode or a host Docker socket.
+- Reused the same repository-owned bootstrap and validation entrypoints as GitHub Actions.
+- Added Ansible ownership for runner storage, systemd unit installation, enablement and startup.
+
+Verification:
+- Runner storage playbook converged with changed=0.
+- Runner declared successfully to Gitea.
+- Gitea Actions run #1 completed successfully on the physical NanoPi R5C.
+- Run details showed a push trigger on main after mirror synchronization.
+- Four Compose safety-contract tests passed.
+
+Trade-offs:
+- Host-mode jobs share the trusted runner container environment.
+- The runner is for trusted repository validation, not arbitrary untrusted PR execution.
+- No deployment, registry or Kubernetes credentials are present.
+
+Evidence:
+- docs/sprints/07-native-gitea-ci.md
+- docs/evidence/plat-006/
+
+What I learned:
+A self-hosted runner is an execution boundary, not merely another service. Registration scope, persisted identity, runtime privilege, and access to the host Docker daemon materially change the risk profile.
+
+## EVIDENCE-011: First ARM64 Application Build and Runtime Acceptance
+
+Date: 2026-10-04
+
+Problem:
+Repository validation existed, but the platform had not yet proven that CI could build and exercise an application image.
+
+Implementation:
+- Added apps/platform-hello with a minimal static HTML workload.
+- Built the image for Linux ARM64.
+- Ran the application as UID/GID 10001.
+- Added scripts/ci/test-hello.sh for architecture, runtime identity, readiness and content checks.
+- Added a dependent GitHub Actions build-hello job using needs: validate.
+- Added Docker Buildx --check before the build job.
+- Upgraded GitHub checkout actions to v5, removing the observed Node.js 20 warning.
+
+Verification:
+- Local ARM64 image and HTTP acceptance passed.
+- Readiness polling demonstrated that container-running state can precede HTTP readiness.
+- GitHub-hosted ARM64 validate and build-hello jobs both passed.
+- The application build remains gated on repository validation.
+
+Trade-offs:
+- The test script currently builds the image internally.
+- The image is ephemeral on the hosted runner and is not yet published.
+- Scan, registry publication, immutable digest capture and Kubernetes delivery remain pending.
+
+What I learned:
+CI success must be tied to the artifact produced by the current source. A stale local image or an independent rebuild after testing can break artifact identity and create misleading evidence.
 
 ## Evidence Template
 
