@@ -65,3 +65,62 @@ jobs:
 
       - name: Scan tested Hello World image
         run: bash scripts/ci/scan-hello.sh "$IMAGE_REF"
+
+      - name: Export tested and scanned image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          bash scripts/ci/export-image.sh \
+            "$IMAGE_REF" \
+            .ci-artifacts
+
+      - name: Upload tested and scanned image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-hello-${{ github.sha }}
+          path: .ci-artifacts/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  publish-hello:
+    name: Publish verified ARM64 image to GHCR
+    needs: build-hello
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      LOCAL_IMAGE_REF: platform-hello:${{ github.sha }}
+      GHCR_IMAGE_REF: ghcr.io/ctalaveraw/platform-hello:${{ github.sha }}
+
+    steps:
+      - name: Checkout publication scripts
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Download tested and scanned image
+        uses: actions/download-artifact@v4
+        with:
+          name: platform-hello-${{ github.sha }}
+          path: .ci-artifacts
+
+      - name: Verify transferred image
+        run: |
+          bash scripts/ci/verify-image-transfer.sh \
+            "$LOCAL_IMAGE_REF" \
+            .ci-artifacts
+
+      - name: Authenticate to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" |
+            docker login ghcr.io \
+              --username "${{ github.actor }}" \
+              --password-stdin
