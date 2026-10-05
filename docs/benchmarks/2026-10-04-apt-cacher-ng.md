@@ -86,4 +86,4 @@ APT package-signature verification must remain enabled.
 
 Network source restrictions, operational capacity alerts, full-host reboot verification and long-term expiry behavior require separate validation.
 
-**Next experiment:** Compare complete uncached and warmed pipeline dependency-installation stages after the Gitea Actions runner is operational.
+**Status update:** The Gitea Actions runner is now operational. The cache is not yet a required CI dependency, so a full cold-versus-warm pipeline benchmark remains deferred until cache use is deliberately wired into a controlled build path.

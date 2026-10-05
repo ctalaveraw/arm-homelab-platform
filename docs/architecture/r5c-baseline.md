@@ -110,3 +110,21 @@ drwxr-xr-x 2 runner runner 4096 Oct  1 01:06 /srv/storage/state
 This document captures observed system state.
 It does not imply the infrastructure is already
 reproducible or configuration-managed.
+
+
+## Current-state delta — 2026-10-04
+
+This file remains the original brownfield snapshot. It is not rewritten to make later automation appear to have existed at capture time.
+
+Since the baseline:
+
+- the SD state device was replaced with a 128 GB card while retaining `LABEL=storage_sdcard`;
+- the USB archive was decommissioned after I/O failures;
+- Ansible now manages the host baseline and all management-service lifecycles;
+- Docker Engine and Compose are operational;
+- Gitea, Gitea Actions runner, Gotify, Uptime Kuma and APT-Cacher-NG are operational;
+- GitHub is canonical and Gitea is a private one-way pull mirror;
+- GitHub-hosted and physical-R5C ARM64 repository validation are operational;
+- `platform-hello` now builds and passes HTTP acceptance in GitHub Actions.
+
+See [the current architecture overview](overview.md) for the live design.

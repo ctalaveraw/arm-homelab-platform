@@ -35,9 +35,10 @@ rather than prematurely generalized.
 Service startup fails closed when required storage
 or the declared Compose binding is invalid.
 
-Ansible provides repeatable provisioning and artifact
-installation. Activation is being moved into declarative
-Ansible tasks as each service is validated.
+Ansible provides repeatable provisioning, artifact
+installation, configuration validation, boot enablement
+and initial service activation for all five current
+management-plane services.
 
 This design protects startup, not unexpected physical
 SD removal during active writes.
@@ -47,3 +48,16 @@ not prove continued application availability.
 
 HTTP monitoring, off-device backup/restore and complete
 host reconstruction remain distinct responsibilities.
+
+
+## Implementation update — 2026-10-04
+
+The guarded lifecycle now covers:
+
+- Gitea
+- Gitea Actions runner
+- Gotify
+- Uptime Kuma
+- APT-Cacher-NG
+
+The runner adds a separate contract: its persisted `.runner` identity must exist on the expected SD-backed path with UID/GID 10001 and mode 0600 before startup.

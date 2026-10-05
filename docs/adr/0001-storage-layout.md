@@ -41,7 +41,7 @@ Logical backup namespace; physical placement TBD.
 Applications can reference stable logical paths
 without depending directly on block device names.
 
-Ansible will eventually enforce this arrangement.
+Ansible now enforces the service-state directory arrangement on the existing R5C.
 
 ## Implementation Note — 2026-10-03
 
@@ -53,3 +53,10 @@ The service directory is created through Ansible and guarded
 against accidental writes to an unmounted backing directory.
 
 The USB archive is decommissioned as recorded in ADR-0002.
+
+
+## Implementation update — 2026-10-04
+
+The guarded state namespace currently includes Gitea, the Gitea Actions runner, Gotify, Uptime Kuma, and APT-Cacher-NG.
+
+The runner identity is persisted under `/srv/storage/state/services/gitea-runner` with UID/GID 10001 and restrictive permissions. All five service playbooks now install their systemd units and declaratively enable/start the service after validation.

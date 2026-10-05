@@ -1,90 +1,128 @@
 # Platform Engineering Roadmap
 
-## Current Objective
+## Current objective
 
-Create one reproducible management plane capable
-of delivering an application into an existing
-upstream Kubernetes cluster.
+Deliver a reproducible ARM64 application artifact from canonical Git source into the existing Raspberry Pi Kubernetes cluster while preserving an independently recoverable management plane.
 
-## M0 — Bootstrap and Discovery
+## M0 — Bootstrap and discovery
 
-Status: Complete — bootstrap foundation established.
+**Status: Complete.**
+
+Exit criteria met:
+
+- repository initialized;
+- brownfield baseline captured;
+- storage decisions documented;
+- external GitHub recovery remote verified.
+
+## M1 — Management host as code
+
+**Status: Implemented on the existing R5C; fresh-host rebuild still untested.**
+
+Exit criteria met:
+
+- Ansible inventory and preflight;
+- common host role;
+- Docker/Compose installation;
+- repeated/idempotent execution;
+- guarded persistent service directories.
+
+## M2 — Development infrastructure
+
+**Status: Complete for the current lab scope.**
+
+Implemented:
+
+- Gitea, Gotify, Uptime Kuma, and APT-Cacher-NG;
+- repository-scoped Gitea Actions runner;
+- GitHub canonical source plus private one-way Gitea mirror;
+- GitHub-hosted ARM64 validation;
+- physical R5C ARM64 Gitea validation;
+- Ansible-owned enable/start lifecycle for all five services;
+- SD-backed guarded state.
+
+Remaining operational work such as HTTPS, backup/restore, and full fresh-host reconstruction is tracked under later maturity milestones rather than blocking M2.
+
+## M3 — Application delivery
+
+**Status: In progress.**
+
+Completed:
+
+- first application source under `apps/platform-hello`;
+- ARM64/non-root local image acceptance;
+- reusable HTTP readiness/content acceptance script;
+- GitHub Actions `validate -> build-hello` dependency;
+- Buildx Dockerfile pre-build check;
+- successful hosted ARM64 build and runtime acceptance.
+
+Next:
+
+- build once and carry one explicit image identity through test/scan/publish;
+- vulnerability scan;
+- publish immutable image to GHCR;
+- validate and populate local Gitea OCI distribution;
+- deploy the CI-produced artifact into Kubernetes;
+- verify endpoint and rollout.
 
 Exit criteria:
-- Repository initialized.
-- Brownfield baseline captured.
-- Storage decisions documented.
-- External GitHub remote verified.
 
-## M1 — Management Host as Code
+- [x] application builds for ARM64;
+- [x] CI performs application runtime acceptance;
+- [x] Dockerfile quality check precedes build;
+- [ ] security scan executes against the tested image;
+- [ ] immutable image is published;
+- [ ] verified artifact exists in external and local OCI distribution;
+- [ ] Kubernetes pulls a CI-produced image;
+- [ ] rollout and endpoint are verified.
 
-Status: Implemented on existing R5C; fresh-host rebuild untested.
+## M4 — Operational evidence
 
-Exit criteria:
-- Ansible inventory exists.
-- Common host role executes.
-- Docker/Compose installation automated.
-- Playbooks verified through repeated execution.
+**Status: Partially complete.**
 
-## M2 — Development Infrastructure
+Already demonstrated:
 
-Status: Partially implemented. Gitea, Gotify, Uptime Kuma and
-APT-Cacher-NG are operational. Public GitHub is the canonical recovery
-source and is mirrored into Gitea. Portable ARM64 validation runs on
-GitHub Actions; a Gitea Actions runner remains pending.
+- controlled Gitea outage;
+- monitoring detection;
+- Gotify DOWN/UP notifications;
+- guarded recovery.
 
-Exit criteria:
-- Gitea operational.
-- Gotify operational.
-- Runner accepts jobs.
-- Persistent storage documented.
-- Critical mount dependencies enforced.
+Still required:
 
-## M3 — Application Delivery
-
-Status: Repository validation pipeline operational. Application build,
-image publication and Kubernetes deployment remain untested.
-
-Exit criteria:
-- Application builds for ARM64.
-- CI validates application and Helm chart.
-- Security scan executes.
-- Image is published.
-- Helm deploys into existing Kubernetes.
-- Endpoint and rollout verified.
-
-## M4 — Operational Evidence
-
-Status: Pending. INC-001 demonstrated a controlled service
-outage and recovery; pipeline deployment rollback has not
-yet been demonstrated.
-
-Exit criteria:
-- A controlled deployment failure is introduced.
-- Failure is detected.
-- Recovery or rollback is demonstrated.
-- Incident report and runbook are committed.
+- controlled application/deployment failure;
+- detection;
+- rollback/recovery;
+- committed incident record and runbook.
 
 ## M5 — GitOps
 
-Introduce Flux and migrate deployment ownership
-from push-based CI/CD to pull-based reconciliation.
+Introduce Flux only after the push-based image build/publication/deployment path is understood and verified.
 
-## M6 — Operational Maturity
+Target:
 
-Observability, node reconstruction, secrets
-management, backup validation and disaster recovery.
+- desired state in Git;
+- Flux reconciles the cluster;
+- CI stops directly owning runtime deployment.
 
-## Sprint Cadence
+## M6 — Operational maturity
 
-Target: 3–7 focused hours weekly.
+- shared trusted HTTPS;
+- off-device Restic backup/restore;
+- Gitea/package recovery;
+- observability;
+- node reconstruction;
+- secrets management;
+- management-plane disaster recovery.
 
-Each working session:
+## Sprint cadence
+
+Each focused session follows:
+
 1. Orient.
-2. Understand.
+2. Explain the mechanism.
 3. Implement.
 4. Verify.
-5. Document.
-6. Commit.
-7. Complete a short knowledge gate.
-
+5. Troubleshoot or inject a failure when useful.
+6. Document evidence.
+7. Commit/PR.
+8. Complete a short knowledge gate before advancing delivery.

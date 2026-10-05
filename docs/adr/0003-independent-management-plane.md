@@ -39,3 +39,15 @@ The mirror displayed the canonical `main` commit `3e58f61` following
 synchronization. GitHub remains the upstream source of truth; no
 bidirectional or dual-push workflow is configured. GitHub-hosted ARM64
 CI works independently of the R5C and Gitea.
+
+
+## Implementation update — native CI
+
+A repository-scoped Gitea Actions runner now runs on the R5C while GitHub-hosted ARM64 Actions continues to operate independently.
+
+This preserves the original recovery decision:
+
+- GitHub can validate/build without the R5C.
+- Gitea can validate mirrored source inside the homelab.
+- The Gitea runner has no production Docker socket and no deployment credentials.
+- Application artifact publication is being designed so external distribution and local distribution remain separate from source ownership.

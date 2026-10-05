@@ -39,3 +39,10 @@ represented as whole-pipeline performance improvements.
 
 Source ACL verification and a complete pipeline-level
 benchmark remain outstanding.
+
+
+## Status update — 2026-10-04
+
+The Gitea Actions runner is now operational, but the cache has not yet been made a required CI dependency. The next meaningful benchmark should compare complete dependency-install stages only after cache use is explicitly wired into a controlled pipeline path.
+
+The platform's current application-delivery work is intentionally not blocked on the cache.
