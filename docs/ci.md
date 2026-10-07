@@ -1,6 +1,6 @@
 # CI, repository mirroring, and OCI publication
 
-**Status (2026-10-05):** Dual ARM64 repository validation is operational. GitHub Actions now builds one ARM64 application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a narrowly scoped publisher job. Gitea OCI replication and Kubernetes delivery remain pending.
+**Status (2026-10-07):** Dual ARM64 repository validation is operational. GitHub Actions builds one ARM64 application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a narrowly scoped publisher job. The qualified artifact is now independently retrievable from GHCR and Gitea with matching registry manifest digests. Kubernetes delivery remains pending.
 
 ## Source ownership
 
@@ -195,6 +195,65 @@ sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
 
 The commit-derived tag is traceable but movable. The registry digest is the immutable identity intended for retrieval and deployment.
 
+## Dual OCI distribution
+
+PLAT-008 extends the qualified artifact from GHCR into the local Gitea container registry without rebuilding it.
+
+Skopeo 1.18.0 is installed declaratively through the R5C Ansible common-package baseline.
+
+The source artifact is:
+
+```text
+ghcr.io/ctalaveraw/platform-hello@sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+The Gitea destination repository is:
+
+```text
+gitea.lab.home.arpa:3000/admin/platform-hello
+```
+
+The promotion path is:
+
+```text
+qualified GHCR digest
+  -> skopeo copy --preserve-digests
+  -> Gitea OCI
+  -> compare registry manifest digests
+  -> retrieve complete artifact from both registries
+  -> link Gitea package to mirrored source repository
+```
+
+Both registries report the same registry manifest digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+Repository-owned operational scripts are:
+
+- `scripts/ops/replicate-oci-image.sh`;
+- `scripts/ops/verify-oci-parity.sh`;
+- `scripts/ops/verify-oci-retrieval.sh`;
+- `scripts/ops/link-gitea-package.sh`.
+
+Registry and API credentials remain caller-owned and are not embedded in the scripts.
+
+The Gitea package-link helper is desired-state aware:
+
+```text
+already linked to requested repository
+  -> PASS
+
+unlinked
+  -> create association
+
+linked to another repository
+  -> fail closed
+```
+
+A second registry improves distribution availability, but does not establish off-device backup, build provenance, or artifact safety by itself.
+
 ## Gitea Actions
 
 Workflow: `.gitea/workflows/platform-ci.yml`
@@ -243,14 +302,24 @@ build image A
   -> record registry digest
 ```
 
-Next:
+Also implemented:
 
 ```text
 registry digest
-  -> prove independent pull
+  -> independently retrieve from GHCR
   -> replicate same artifact into Gitea OCI
-  -> prove both distributions
-  -> deploy by digest
+  -> preserve manifest digest
+  -> independently retrieve from Gitea
+  -> associate package with mirrored repository
+```
+
+Next:
+
+```text
+known immutable digest
+  -> deploy to Kubernetes
+  -> verify runtime image identity
+  -> verify rollout and endpoint
 ```
 
 An independent rebuild after testing is intentionally avoided.

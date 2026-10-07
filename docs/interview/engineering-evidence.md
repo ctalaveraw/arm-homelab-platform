@@ -414,6 +414,76 @@ Evidence:
 What I learned:
 A promotion pipeline is not merely a sequence of successful commands. Artifact identity, integrity across trust boundaries, explicit security policy, and least-privilege credentials must all remain intact until the registry returns the immutable deployment identity.
 
+## EVIDENCE-014: Dual OCI Distribution with Immutable Artifact Parity
+
+Date: 2026-10-07
+
+Problem:
+The platform had produced and qualified an ARM64 artifact in GHCR, but had not
+yet proven redundant OCI distribution without rebuilding the application.
+
+Implementation:
+- Added Skopeo 1.18.0 through the Ansible-managed R5C package baseline.
+- Inspected the qualified GHCR artifact directly by immutable digest.
+- Validated the Gitea Docker Registry v2 endpoint and Bearer authentication flow.
+- Used a package-scoped Gitea credential supplied outside repository code.
+- Replicated the qualified GHCR artifact directly into Gitea using digest preservation.
+- Added repository-owned tooling for OCI replication, registry parity,
+  complete retrieval verification and Gitea package/repository association.
+- Linked the Gitea container package to the mirrored source repository.
+- Hardened the package-link helper to operate idempotently by inspecting
+  current package metadata before mutation.
+
+Verification:
+- A fresh GHCR retrieval by digest downloaded the manifest, configuration and
+  all referenced layers.
+- A fresh Gitea retrieval by digest downloaded the manifest, configuration and
+  all referenced layers.
+- GHCR and Gitea both reported:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+- A second replication reused existing Gitea blobs and preserved the same
+  registry manifest digest.
+- The Gitea package appeared associated with `admin/arm-homelab-platform`.
+- Re-running the package-link helper detected the existing desired association
+  and exited successfully without mutation.
+- Final repository validation discovered 13 tracked shell scripts and passed
+  Bash syntax, ShellCheck, Python/Ruff, YAML/yamllint, actionlint, Compose
+  contracts, Ansible syntax and Compose rendering.
+
+Failure-driven evidence:
+- Re-linking an already-associated package initially returned HTTP 400
+  `invalid argument`.
+- Rather than treating an ambiguous 400 as success, the helper was redesigned
+  to read current package state and distinguish already-linked, unlinked and
+  mismatched states.
+
+Trade-offs:
+- Gitea currently uses LAN HTTP, so registry operations explicitly disable TLS
+  verification for that local endpoint rather than changing global Docker
+  daemon trust.
+- Registry redundancy is not off-device backup.
+- Matching digests establish artifact identity/integrity against the trusted
+  expected digest, not build provenance or application safety.
+- Package credentials remain operator/caller supplied rather than embedded in
+  repository tooling.
+
+Evidence:
+- `scripts/ops/replicate-oci-image.sh`
+- `scripts/ops/verify-oci-parity.sh`
+- `scripts/ops/verify-oci-retrieval.sh`
+- `scripts/ops/link-gitea-package.sh`
+- `docs/sprints/09-dual-oci-distribution.md`
+
+What I learned:
+Artifact identity, source traceability, provenance, vulnerability state,
+availability and backup are different properties. A matching immutable digest
+can prove that two registries reference the same qualified artifact without
+proving who built it or whether the surrounding build system is trustworthy.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

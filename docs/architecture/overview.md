@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-05  
-**Scope:** Current convergence point after PLAT-007 build-once validation, security scanning, cross-job integrity verification, and first GHCR publication.
+**Updated:** 2026-10-07
+**Scope:** Current convergence point after PLAT-008 dual OCI distribution, immutable-digest retrieval, registry parity verification, and Gitea package/repository association.
 
 ## Design intent
 
@@ -64,7 +64,7 @@ flowchart TB
         CP --- W2
     end
 
-    GITEAOCI["Gitea OCI registry<br/>planned local distribution"]
+    GITEAOCI["Gitea OCI registry<br/>local distribution"]
     RESTIC["Restic repository<br/>planned off-device backup"]
     FLUX["Flux<br/>future pull-based reconciliation"]
 
@@ -85,7 +85,7 @@ flowchart TB
     ACT --> VALIDATION
     GH --> PARITY
 
-    GHCR -.->|"replicate same OCI artifact"| GITEAOCI
+    GHCR -->|"replicate same OCI artifact<br/>preserve digest"| GITEAOCI
     GHCR -.->|"pull by digest"| K8S
     GITEAOCI -.->|"local pull by digest"| K8S
 
@@ -181,6 +181,31 @@ sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
 
 The Docker image ID and registry manifest digest are intentionally different identities for different objects.
 
+### Dual OCI distribution
+
+The R5C uses Ansible-managed Skopeo for registry-native artifact operations.
+
+Repository-owned operational tooling provides:
+
+- `scripts/ops/replicate-oci-image.sh` — copies an existing OCI artifact between registries with digest preservation and performs no rebuild;
+- `scripts/ops/verify-oci-parity.sh` — compares source and destination registry manifest digests;
+- `scripts/ops/verify-oci-retrieval.sh` — proves complete artifact retrieval into a fresh temporary OCI layout;
+- `scripts/ops/link-gitea-package.sh` — manages the Gitea-specific package/repository association independently of OCI artifact contents.
+
+The qualified `platform-hello` artifact is independently retrievable from both GHCR and Gitea by digest.
+
+Both registries report:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+for the promoted registry manifest.
+
+The Gitea package is associated with the mirrored `admin/arm-homelab-platform` repository.
+
+This provides distribution redundancy but is not a substitute for off-device backup or build provenance.
+
 ### Management service lifecycle
 
 Ansible owns installation of the systemd unit, daemon reload, configuration validation, enablement, and initial startup for all five management services.
@@ -200,16 +225,21 @@ source commit
   -> transfer with checksum + image-ID verification
   -> publish same verified artifact to GHCR
   -> record registry digest
+  -> independently retrieve GHCR artifact by digest
+  -> replicate same OCI artifact to Gitea with digest preservation
+  -> verify GHCR/Gitea manifest parity
+  -> independently retrieve Gitea artifact by digest
+  -> associate Gitea package with mirrored source repository
 ```
 
 Next:
 
 ```text
-GHCR digest
-  -> prove independent pull
-  -> replicate same OCI artifact to Gitea OCI
-  -> prove retrieval from both registries
-  -> deploy Kubernetes by immutable digest
+known immutable registry digest
+  -> deploy Kubernetes
+  -> verify running image identity
+  -> verify rollout
+  -> verify Service and HTTP endpoint
 ```
 
 Rebuilding independently after testing is intentionally avoided because it breaks artifact identity and creates another drift/failure surface.
@@ -218,15 +248,13 @@ Rebuilding independently after testing is intentionally avoided because it break
 
 Recovery has two independent ideas:
 
-1. **Distribution redundancy:** GHCR and the planned Gitea OCI registry provide separate places from which the same verified image can be retrieved.
+1. **Distribution redundancy:** GHCR and the local Gitea OCI registry provide separate places from which the same verified image can be retrieved.
 2. **Backup/restore:** Restic will protect persistent Gitea/package state off-device.
 
 A second registry is not a substitute for backup, and backup is not a live registry failover mechanism.
 
 ## Remaining architecture gaps
 
-- independent pull verification from GHCR by digest;
-- Gitea OCI validation and artifact replication;
 - Kubernetes delivery of the CI-produced image by digest;
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;

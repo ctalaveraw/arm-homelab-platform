@@ -10,7 +10,7 @@
 - Historical sprint/incident records remain historical.
 - Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
-## NOW — Dual OCI distribution
+## NOW — Kubernetes delivery
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
@@ -41,11 +41,14 @@
   - [x] protect GitHub `main` and require CI-backed PR flow
   - [x] strengthen repository validation with Ruff, yamllint and actionlint
 
-- [ ] PLAT-008: Dual OCI distribution
-  - [ ] prove independent pull of the GHCR artifact by digest
-  - [ ] validate Gitea built-in OCI registry
-  - [ ] replicate the verified OCI artifact from GHCR into Gitea without rebuilding
-  - [ ] prove independent retrieval from both registries by immutable identity
+- [x] PLAT-008: Dual OCI distribution
+  - [x] prove independent pull of the GHCR artifact by digest
+  - [x] validate Gitea built-in OCI registry
+  - [x] replicate the verified OCI artifact from GHCR into Gitea without rebuilding
+  - [x] preserve registry manifest digest across replication
+  - [x] prove complete independent retrieval from both registries
+  - [x] link the Gitea package to the mirrored source repository
+  - [x] encode replication, parity, retrieval and package-link operations in repo scripts
 
 - [ ] PLAT-009: Kubernetes delivery pipeline
   - [ ] deploy CI-produced image into the existing kubeadm cluster by digest
