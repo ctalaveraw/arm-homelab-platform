@@ -47,7 +47,7 @@ Remaining operational work such as HTTPS, backup/restore, and full fresh-host re
 
 ## M3 — Application delivery
 
-**Status: In progress; external OCI publication is complete.**
+**Status: In progress; dual OCI distribution is complete and Kubernetes delivery is next.**
 
 Completed:
 
@@ -62,7 +62,13 @@ Completed:
 - archive checksum verification;
 - Docker image-ID verification before and after transfer;
 - least-privileged GHCR publisher with `packages: write`;
-- successful GHCR publication and immutable registry digest capture.
+- successful GHCR publication and immutable registry digest capture;
+- independent full retrieval from GHCR by digest;
+- identity-preserving replication of the qualified artifact into Gitea OCI;
+- matching GHCR/Gitea registry manifest digests;
+- independent full retrieval from Gitea by digest;
+- Gitea package association with the mirrored source repository;
+- repository-owned OCI replication, parity, retrieval and package-link tooling.
 
 First verified publication:
 
@@ -73,9 +79,6 @@ digest: sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
 
 Next:
 
-- prove independent pull from GHCR by digest;
-- validate and populate local Gitea OCI distribution without rebuilding;
-- prove retrieval from both registries;
 - deploy the CI-produced artifact into Kubernetes by digest;
 - verify pod identity, rollout and endpoint.
 
@@ -86,7 +89,7 @@ Exit criteria:
 - [x] Dockerfile quality check precedes build;
 - [x] security scan executes against the tested image;
 - [x] immutable image is published externally;
-- [ ] verified artifact exists in external and local OCI distribution;
+- [x] verified artifact exists in external and local OCI distribution;
 - [ ] Kubernetes pulls a CI-produced image by digest;
 - [ ] rollout and endpoint are verified.
 

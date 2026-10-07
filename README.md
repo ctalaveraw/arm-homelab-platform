@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-05):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI now validates the repository, builds one application image, runtime-tests that exact image, scans it with Trivy, transfers it across an isolated job boundary with integrity checks, and publishes the verified artifact to GHCR from a least-privileged publisher job. Gitea remains a private one-way source mirror with independent ARM64 validation on the NanoPi R5C. Local Gitea OCI replication and Kubernetes delivery are the next gates.
+**Status (2026-10-07):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI validates the repository, builds one application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a least-privileged publisher job. The qualified artifact is now independently retrievable from both GHCR and the local Gitea OCI registry with the same registry manifest digest. Gitea remains a private one-way Git mirror with independent ARM64 validation on the NanoPi R5C. Kubernetes deployment by immutable digest is the next delivery gate.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -141,18 +141,29 @@ The commit-derived tag provides traceability; the registry digest is the immutab
 
 ## Delivery objective
 
-The next delivery path is:
+The implemented distribution path is:
 
 ```text
 verified GHCR artifact
-  -> prove independent retrieval by digest
-  -> replicate the same OCI artifact into Gitea's registry
-  -> prove retrieval from both registries
-  -> deploy by immutable digest to Kubernetes
-  -> verify rollout and endpoint
+  -> independently retrieve by immutable digest
+  -> replicate the same OCI artifact into Gitea
+  -> preserve registry manifest digest
+  -> independently retrieve from Gitea by digest
+  -> associate the Gitea package with the mirrored source repository
 ```
 
-The design goal remains build once, then promote the same tested/scanned artifact instead of rebuilding independently between stages.
+The next delivery path is:
+
+```text
+known immutable registry digest
+  -> Kubernetes Deployment
+  -> container runtime pull
+  -> Ready Pod
+  -> verify running image identity
+  -> verify Service and HTTP endpoint
+```
+
+The design goal remains build once, then promote and deploy the same tested/scanned artifact instead of rebuilding independently between stages.
 
 ## Kubernetes compute plane
 
@@ -175,7 +186,7 @@ The cluster currently has hand-configured workloads; CI-produced application del
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Gitea OCI replication and Kubernetes consumption of the CI-produced image are not yet proven.
+- Kubernetes consumption of the CI-produced image is not yet proven.
 - `actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning and is queued for cheap cleanup.
 
 ## Running repository validation
@@ -217,6 +228,7 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [Engineering evidence ledger](docs/interview/engineering-evidence.md)
 - [PLAT-006 native Gitea CI sprint](docs/sprints/07-native-gitea-ci.md)
 - [PLAT-007 application delivery sprint](docs/sprints/08-application-delivery-foundation.md)
+- [PLAT-008 dual OCI distribution sprint](docs/sprints/09-dual-oci-distribution.md)
 - [ADR-0006 — Build-once OCI promotion](docs/adr/0006-build-once-oci-promotion.md)
 - [Architecture decisions](docs/adr/)
 - [Incident records](docs/incidents/)

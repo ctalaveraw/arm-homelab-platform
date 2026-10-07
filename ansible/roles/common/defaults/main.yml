@@ -12,3 +12,4 @@ common_packages:
   - git-delta
   - rsync
   - shellcheck
+  - skopeo # OCI image inspection and registry-to-registry replication

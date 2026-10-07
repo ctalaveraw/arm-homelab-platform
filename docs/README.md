@@ -31,6 +31,7 @@ This directory separates **current-state documentation** from **historical evide
 - [Sprint 06 — Portable ARM64 CI](sprints/06-ci-foundation.md)
 - [Sprint 07 — Native Gitea Actions CI](sprints/07-native-gitea-ci.md)
 - [Sprint 08 — Application delivery foundation](sprints/08-application-delivery-foundation.md)
+- [Sprint 09 — Dual OCI distribution](sprints/09-dual-oci-distribution.md)
 
 ## Operational evidence
 
@@ -52,4 +53,8 @@ As of 2026-10-05:
 - `platform-hello` is built once, runtime-tested, Trivy-scanned, transferred across an isolated job boundary, integrity-checked, and published to GHCR;
 - the publisher alone receives `packages: write`;
 - the first verified GHCR artifact was published from commit `1ddd76c...` with registry digest `sha256:f3c542d3...`;
-- Gitea OCI replication, independent digest retrieval, backup/restore, and Kubernetes delivery remain pending.
+- the same qualified OCI artifact is independently retrievable from GHCR and Gitea by immutable digest;
+- GHCR and Gitea report the same registry manifest digest for the promoted artifact;
+- the Gitea package is associated with the mirrored source repository;
+- repository-owned tooling now handles OCI replication, parity checks, retrieval verification, and package linking;
+- Kubernetes delivery, backup/restore, and broader operational maturity remain pending.
