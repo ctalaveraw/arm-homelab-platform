@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-07
-**Scope:** Current convergence point after PLAT-008 dual OCI distribution, immutable-digest retrieval, registry parity verification, and Gitea package/repository association.
+**Updated:** 2026-10-08
+**Scope:** Current convergence point after PLAT-009 digest-pinned Kubernetes delivery with a scoped external deployment identity.
 
 ## Design intent
 
@@ -37,6 +37,7 @@ flowchart TB
         KUMA["Uptime Kuma 2.5.5"]
         ACNG["APT-Cacher-NG"]
         PARITY["Source parity check<br/>GitHub / Gitea / local main"]
+        KDEPLOY["Scoped Kubernetes deployer<br/>kubectl + X.509 / RBAC"]
         SD["SD state<br/>storage_sdcard"]
 
         ANSIBLE --> GITEA
@@ -86,8 +87,9 @@ flowchart TB
     GH --> PARITY
 
     GHCR -->|"replicate same OCI artifact<br/>preserve digest"| GITEAOCI
-    GHCR -.->|"pull by digest"| K8S
-    GITEAOCI -.->|"local pull by digest"| K8S
+    GHCR -->|"pull by digest"| K8S
+    KDEPLOY -->|"direct scoped API access"| K8S
+    GITEAOCI -.->|"future local pull by digest"| K8S
 
     GITEA -.->|"consistent state backup"| RESTIC
     GITEAOCI -.->|"package state backup"| RESTIC
@@ -232,15 +234,21 @@ source commit
   -> associate Gitea package with mirrored source repository
 ```
 
-Next:
+Kubernetes delivery is now implemented:
 
 ```text
 known immutable registry digest
-  -> deploy Kubernetes
+  -> Kubernetes Deployment
+  -> worker registry retrieval
+  -> Ready Pod
   -> verify running image identity
-  -> verify rollout
-  -> verify Service and HTTP endpoint
+  -> ClusterIP Service + EndpointSlice
+  -> in-cluster HTTP verification
+  -> direct scoped R5C reconciliation
 ```
+
+Routine deployment uses the namespace-scoped `platform-deployer` identity
+rather than SSH plus kubeadm administrator credentials.
 
 Rebuilding independently after testing is intentionally avoided because it breaks artifact identity and creates another drift/failure surface.
 
@@ -255,7 +263,7 @@ A second registry is not a substitute for backup, and backup is not a live regis
 
 ## Remaining architecture gaps
 
-- Kubernetes delivery of the CI-produced image by digest;
+- controlled Kubernetes deployment failure and rollback evidence;
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;
 - deployment rollback exercise;

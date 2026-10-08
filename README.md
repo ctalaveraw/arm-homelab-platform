@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-07):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI validates the repository, builds one application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a least-privileged publisher job. The qualified artifact is now independently retrievable from both GHCR and the local Gitea OCI registry with the same registry manifest digest. Gitea remains a private one-way Git mirror with independent ARM64 validation on the NanoPi R5C. Kubernetes deployment by immutable digest is the next delivery gate.
+**Status (2026-10-08):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest is now deployed successfully into the Raspberry Pi kubeadm cluster. The NanoPi R5C reconciles the workload directly through a namespace-scoped X.509 Kubernetes identity, and repository-owned tooling verifies rollout, runtime digest identity and Service endpoints. Deployment failure/rollback is the next delivery gate.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -46,7 +46,7 @@ flowchart LR
         WK["2 workers"]
     end
 
-    GREG["Gitea OCI registry<br/>planned local distribution"]
+    GREG["Gitea OCI registry<br/>local distribution"]
     BACKUP["Restic off-device backup<br/>planned"]
 
     DEV --> GH
@@ -63,9 +63,9 @@ flowchart LR
     GITEA -->|"push event after sync"| RUNNER
     RUNNER --> VALIDATE
 
-    GHCR -.->|"verified artifact replication"| GREG
-    GHCR -.-> COMPUTE
-    GREG -.-> COMPUTE
+    GHCR -->|"verified artifact replication"| GREG
+    GHCR -->|"digest pull"| COMPUTE
+    GREG -.->|"future local Kubernetes pull"| COMPUTE
     GITEA -.->|"state backup"| BACKUP
 ```
 
@@ -152,7 +152,7 @@ verified GHCR artifact
   -> associate the Gitea package with the mirrored source repository
 ```
 
-The next delivery path is:
+The Kubernetes delivery path is now implemented:
 
 ```text
 known immutable registry digest
@@ -160,7 +160,9 @@ known immutable registry digest
   -> container runtime pull
   -> Ready Pod
   -> verify running image identity
-  -> verify Service and HTTP endpoint
+  -> ClusterIP Service + EndpointSlice
+  -> in-cluster HTTP verification
+  -> direct scoped R5C reconciliation
 ```
 
 The design goal remains build once, then promote and deploy the same tested/scanned artifact instead of rebuilding independently between stages.
@@ -175,7 +177,7 @@ The target compute plane already exists:
 - two worker nodes
 - fourth Pi reserved for bootstrap/reconstruction testing
 
-The cluster currently has hand-configured workloads; CI-produced application delivery is intentionally still pending.
+The cluster still contains earlier hand-configured workloads, but `platform-hello` is now repository-defined and deployed from the verified OCI delivery path.
 
 ## Operational constraints
 
@@ -186,7 +188,7 @@ The cluster currently has hand-configured workloads; CI-produced application del
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Kubernetes consumption of the CI-produced image is not yet proven.
+- Controlled Kubernetes deployment failure and rollback remain pending.
 - `actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning and is queued for cheap cleanup.
 
 ## Running repository validation
@@ -214,6 +216,8 @@ bash scripts/ci/test-hello.sh "$IMAGE"
 04-gotify.yml
 05-uptime-kuma.yml
 06-apt-cacher-ng.yml
+
+The management baseline also includes the `kubernetes_client` role, which installs and verifies the pinned external `kubectl` client used by the R5C.
 ```
 
 Service playbooks install their systemd units, reload systemd when required, validate configuration, and declaratively enable/start the service.
@@ -229,6 +233,9 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [PLAT-006 native Gitea CI sprint](docs/sprints/07-native-gitea-ci.md)
 - [PLAT-007 application delivery sprint](docs/sprints/08-application-delivery-foundation.md)
 - [PLAT-008 dual OCI distribution sprint](docs/sprints/09-dual-oci-distribution.md)
+- [PLAT-009 Kubernetes delivery sprint](docs/sprints/10-kubernetes-delivery.md)
+- [ADR-0007 — Digest-pinned Kubernetes image pulls](docs/adr/0007-digest-pinned-kubernetes-image-pulls.md)
+- [ADR-0008 — External Kubernetes deployer identity](docs/adr/0008-external-kubernetes-deployer-identity.md)
 - [ADR-0006 — Build-once OCI promotion](docs/adr/0006-build-once-oci-promotion.md)
 - [Architecture decisions](docs/adr/)
 - [Incident records](docs/incidents/)
