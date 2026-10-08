@@ -60,3 +60,43 @@ The controller working copy now has two intentionally asymmetric remotes:
 This makes source convergence measurable without promoting Gitea into a second source of truth.
 
 GitHub `main` is protected and the external GHCR publication path now operates independently of Gitea. Loss of the self-hosted management plane therefore does not remove the canonical source repository or the externally published application artifact.
+
+## Implementation update — 2026-10-07
+
+PLAT-009 extends the independent R5C management controller with an
+Ansible-managed Kubernetes client capability.
+
+The management baseline now includes a dedicated `kubernetes_client` role that:
+
+- installs a version-pinned `kubectl` client for Linux ARM64;
+- currently pins `kubectl` to `v1.34.11`, matching the Kubernetes API server
+  version used during PLAT-009;
+- installs the client at `/usr/local/bin/kubectl`;
+- creates `/home/runner/.kube` with `runner:runner` ownership and mode `0700`;
+- verifies the installed client version during convergence.
+
+The role intentionally manages client tooling and protected configuration
+scaffolding only.
+
+It does not manage:
+
+- kubeadm `admin.conf`;
+- Kubernetes client certificates or private keys;
+- ServiceAccount tokens;
+- cluster-admin credentials;
+- host-local deployment credentials.
+
+This preserves the recovery boundary established by this ADR: the R5C can be
+reconstructed with the tooling required to act as an external Kubernetes
+management client without embedding cluster credentials in the public
+repository or copying the kubeadm administrator identity onto the management
+host.
+
+The first convergence installed `kubectl` and created the protected
+configuration directory. A second convergence completed with `changed=0`,
+proving the Kubernetes client baseline is idempotently Ansible-owned.
+
+PLAT-009 will establish a separately scoped deployment identity for direct
+R5C-to-Kubernetes API access. The authentication mechanism and associated
+least-privilege policy are evaluated separately from this management-plane
+bootstrap decision.

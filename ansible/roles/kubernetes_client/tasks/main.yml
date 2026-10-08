@@ -1,0 +1,41 @@
+---
+- name: Install pinned kubectl client
+  ansible.builtin.get_url:
+    url: >-
+      https://dl.k8s.io/release/{{ kubernetes_client_version
+      }}/bin/linux/{{ kubernetes_client_arch }}/kubectl
+    dest: "{{ kubernetes_client_install_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+    checksum: >-
+      sha256:https://dl.k8s.io/release/{{ kubernetes_client_version
+      }}/bin/linux/{{ kubernetes_client_arch }}/kubectl.sha256
+
+- name: Ensure Kubernetes client configuration directory exists
+  ansible.builtin.file:
+    path: "{{ kubernetes_client_kube_dir }}"
+    state: directory
+    owner: "{{ kubernetes_client_user }}"
+    group: "{{ kubernetes_client_group }}"
+    mode: '0700'
+
+- name: Verify installed kubectl client
+  ansible.builtin.command:
+    argv:
+      - "{{ kubernetes_client_install_path }}"
+      - version
+      - --client
+      - --output=yaml
+  register: kubernetes_client_version_output
+  changed_when: false
+
+- name: Assert expected kubectl version is installed
+  ansible.builtin.assert:
+    that:
+      - >-
+        kubernetes_client_version
+        in kubernetes_client_version_output.stdout
+    fail_msg: >-
+      Installed kubectl does not match
+      {{ kubernetes_client_version }}.
