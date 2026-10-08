@@ -189,7 +189,6 @@ The cluster still contains earlier hand-configured workloads, but `platform-hell
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
 - Controlled Kubernetes deployment failure and rollback remain pending.
-- `actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning and is queued for cheap cleanup.
 
 ## Running repository validation
 
@@ -216,9 +215,9 @@ bash scripts/ci/test-hello.sh "$IMAGE"
 04-gotify.yml
 05-uptime-kuma.yml
 06-apt-cacher-ng.yml
+```
 
 The management baseline also includes the `kubernetes_client` role, which installs and verifies the pinned external `kubectl` client used by the R5C.
-```
 
 Service playbooks install their systemd units, reload systemd when required, validate configuration, and declaratively enable/start the service.
 

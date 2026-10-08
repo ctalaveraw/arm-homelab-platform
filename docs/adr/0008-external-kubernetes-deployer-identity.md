@@ -217,7 +217,7 @@ Cluster-dependent deployment credential bootstrap is a separate operation.
 
 ## Follow-on work
 
-- add repository-owned direct deployment and verification commands;
+- maintain repository-owned direct deployment and verification tooling;
 - retain the scoped X.509 path for bootstrap and recovery;
 - evaluate OpenBao-leased Kubernetes credentials for routine deployment under
   PLAT-016;
