@@ -484,6 +484,94 @@ availability and backup are different properties. A matching immutable digest
 can prove that two registries reference the same qualified artifact without
 proving who built it or whether the surrounding build system is trustworthy.
 
+## EVIDENCE-015: Digest-Pinned Kubernetes Delivery with Scoped External Identity
+
+Date: 2026-10-08
+
+Problem:
+The platform had produced and distributed a verified ARM64 OCI artifact but
+had not yet proven that the same immutable artifact could be deployed into the
+existing Kubernetes cluster without rebuilding it or relying on cluster-admin
+for routine deployment.
+
+Implementation:
+- Added raw Namespace, Deployment and ClusterIP Service manifests.
+- Pinned the Deployment to the qualified GHCR registry manifest digest.
+- Explicitly selected `IfNotPresent` for digest-addressed image reuse.
+- Added a readiness probe and non-root container security context.
+- Restored the intended control-plane scheduling boundary before deployment.
+- Added an Ansible-managed, version-pinned Kubernetes client capability to the
+  independent R5C management controller.
+- Added namespace-scoped `platform-deployer` Role and RoleBinding.
+- Generated an R5C-local private key and Kubernetes client CSR.
+- Used the Kubernetes CSR API with explicit approval to issue a 90-day X.509
+  client certificate.
+- Added `scripts/ops/deploy-platform-hello.sh` for direct scoped deployment and
+  runtime verification.
+
+Verification:
+- Both schedulable workers lacked `platform-hello` before first deployment.
+- Kubernetes scheduled the workload to worker `ci-controller-04`.
+- The scheduled worker subsequently contained the exact digest-addressed
+  application artifact.
+- Deployment rollout completed successfully.
+- The Pod became `1/1 Ready` with zero restarts.
+- Desired, runtime and worker containerd image identities all matched:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+- Service EndpointSlice resolved to the Ready Pod.
+- In-cluster Service DNS returned HTTP 200 with expected application content.
+- Impersonated authorization tests proved both required access and intended
+  denials before credential issuance.
+- `kubectl auth whoami` using the real client certificate returned
+  `platform-deployer`.
+- The same positive and negative authorization matrix passed using the real
+  certificate.
+- Direct R5C deployment succeeded without SSH or kubeadm `admin.conf`.
+- A repeated desired-state application returned Deployment and Service
+  `unchanged`.
+- Repository-owned deployment verification confirmed expected and runtime
+  digests match.
+- Full repository validation passed.
+- The Kubernetes client Ansible role converged a second time with `changed=0`.
+
+Failure-driven evidence:
+- Cluster discovery exposed a stale containerd CRI sandbox that prevented the
+  kube-controller-manager static Pod from restarting.
+- Removing only the stale sandbox allowed kubelet to recreate the controller
+  manager and higher-level reconciliation resumed.
+- The incident demonstrated why healthy existing Pods do not imply healthy
+  Deployment/ReplicaSet controllers.
+
+Trade-offs:
+- The current X.509 credential has a finite manual lifecycle and is retained as
+  an independent bootstrap/recovery path.
+- Routine dynamic credentials are deferred to PLAT-016, where the OpenBao
+  Kubernetes secrets engine will be evaluated.
+- GHCR is used for the first Kubernetes pull so private Gitea authentication
+  and LAN HTTP registry configuration remain separate concerns.
+- Helm and Flux remain deliberately downstream from the proven raw deployment
+  mechanism.
+
+Evidence:
+- `deploy/kubernetes/platform-hello/`
+- `deploy/kubernetes/access/platform-demo-deployer.yaml`
+- `scripts/ops/deploy-platform-hello.sh`
+- ADR-0007.
+- ADR-0008.
+- `docs/sprints/10-kubernetes-delivery.md`
+
+What I learned:
+Kubernetes authentication, authorization, scheduling, artifact identity and
+application networking are separate boundaries. A deployer can reconcile a
+Deployment without permission to create Pods directly because Kubernetes
+controllers own those child resources. Negative RBAC tests are as important
+as positive ones, and a running Pod does not by itself prove that the control
+plane is healthy.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

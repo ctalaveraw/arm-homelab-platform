@@ -47,7 +47,7 @@ Remaining operational work such as HTTPS, backup/restore, and full fresh-host re
 
 ## M3 — Application delivery
 
-**Status: In progress; dual OCI distribution is complete and Kubernetes delivery is next.**
+**Status: Complete.**
 
 Completed:
 
@@ -77,10 +77,17 @@ commit: 1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
 digest: sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
 ```
 
-Next:
+Kubernetes delivery completed:
 
-- deploy the CI-produced artifact into Kubernetes by digest;
-- verify pod identity, rollout and endpoint.
+- raw repository-owned Namespace, Deployment and ClusterIP Service manifests;
+- immutable GHCR digest deployment;
+- first-pull proof from a worker without the application cached;
+- successful rollout and Ready Pod;
+- runtime image digest matched the CI-qualified registry digest;
+- EndpointSlice and in-cluster Service-DNS HTTP acceptance;
+- namespace-scoped deployment RBAC;
+- direct R5C-to-Kubernetes authentication with a scoped X.509 identity;
+- repository-owned deployment and runtime-verification tooling.
 
 Exit criteria:
 
@@ -90,8 +97,8 @@ Exit criteria:
 - [x] security scan executes against the tested image;
 - [x] immutable image is published externally;
 - [x] verified artifact exists in external and local OCI distribution;
-- [ ] Kubernetes pulls a CI-produced image by digest;
-- [ ] rollout and endpoint are verified.
+- [x] Kubernetes pulls a CI-produced image by digest;
+- [x] rollout and endpoint are verified.
 
 ## M4 — Operational evidence
 

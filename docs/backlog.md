@@ -50,11 +50,17 @@
   - [x] link the Gitea package to the mirrored source repository
   - [x] encode replication, parity, retrieval and package-link operations in repo scripts
 
-- [ ] PLAT-009: Kubernetes delivery pipeline
-  - [ ] deploy CI-produced image into the existing kubeadm cluster by digest
-  - [ ] verify running pod image identity against the published digest
-  - [ ] verify rollout and endpoint
-  - [ ] introduce Helm only after the raw delivery path is understood
+- [x] PLAT-009: Kubernetes delivery pipeline
+  - [x] deploy CI-produced image into the existing kubeadm cluster by digest
+  - [x] verify running pod image identity against the published digest
+  - [x] verify rollout and endpoint
+  - [x] establish namespace-scoped deployment RBAC
+  - [x] prove positive and negative authorization boundaries
+  - [x] authenticate directly from the R5C with a scoped X.509 identity
+  - [x] remove SSH and cluster-admin from the routine deployment path
+  - [x] add repository-owned deployment and verification interface
+  - [x] record engineering evidence and close the delivery milestone
+  - [x] keep the first delivery path raw; defer Helm until its abstraction is justified
 
 - [ ] PLAT-010: Deployment failure and rollback exercise
 
@@ -66,6 +72,10 @@
 - [ ] PLAT-014: Ansible bootstrap of fourth Pi
 - [ ] PLAT-015: Reproducible kubeadm node join
 - [ ] PLAT-016: OpenBao secrets integration
+  - [ ] evaluate the Kubernetes secrets engine for short-lived routine deployment credentials
+  - [ ] preserve the independent X.509 bootstrap/recovery path
+  - [ ] define R5C-to-OpenBao machine authentication
+  - [ ] verify credential TTL, renewal/reissue and revocation behavior
 - [ ] PLAT-017: Restic-backed Gitea/package-state backup and restore validation
 - [ ] PLAT-018: Management-plane disaster-recovery exercise
 

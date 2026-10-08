@@ -1,0 +1,8 @@
+---
+kubernetes_client_version: v1.34.11
+kubernetes_client_arch: arm64
+kubernetes_client_install_path: /usr/local/bin/kubectl
+
+kubernetes_client_user: runner
+kubernetes_client_group: runner
+kubernetes_client_kube_dir: /home/runner/.kube

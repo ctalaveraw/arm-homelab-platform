@@ -19,6 +19,8 @@ This directory separates **current-state documentation** from **historical evide
 - [ADR-0004 — Fail-closed stateful Compose lifecycle](adr/0004-guarded-compose-lifecycle.md)
 - [ADR-0005 — Optional shared APT cache](adr/0005-optional-package-cache.md)
 - [ADR-0006 — Build-once, least-privilege OCI promotion](adr/0006-build-once-oci-promotion.md)
+- [ADR-0007 — Digest-pinned Kubernetes image pulls](adr/0007-digest-pinned-kubernetes-image-pulls.md)
+- [ADR-0008 — External Kubernetes deployer identity](adr/0008-external-kubernetes-deployer-identity.md)
 
 ## Sprint records
 
@@ -32,6 +34,7 @@ This directory separates **current-state documentation** from **historical evide
 - [Sprint 07 — Native Gitea Actions CI](sprints/07-native-gitea-ci.md)
 - [Sprint 08 — Application delivery foundation](sprints/08-application-delivery-foundation.md)
 - [Sprint 09 — Dual OCI distribution](sprints/09-dual-oci-distribution.md)
+- [Sprint 10 — Kubernetes delivery](sprints/10-kubernetes-delivery.md)
 
 ## Operational evidence
 
@@ -43,7 +46,7 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Current convergence point
 
-As of 2026-10-05:
+As of 2026-10-08:
 
 - five management-plane services have Ansible-owned guarded lifecycles;
 - GitHub is canonical, protected `main` is enforced, and Gitea is a private one-way pull mirror;
@@ -56,5 +59,8 @@ As of 2026-10-05:
 - the same qualified OCI artifact is independently retrievable from GHCR and Gitea by immutable digest;
 - GHCR and Gitea report the same registry manifest digest for the promoted artifact;
 - the Gitea package is associated with the mirrored source repository;
-- repository-owned tooling now handles OCI replication, parity checks, retrieval verification, and package linking;
-- Kubernetes delivery, backup/restore, and broader operational maturity remain pending.
+- repository-owned tooling handles OCI replication, parity checks, retrieval verification, package linking, and scoped Kubernetes deployment verification;
+- the CI-qualified `platform-hello` artifact is running in Kubernetes by immutable digest;
+- the R5C can reconcile the workload directly using namespace-scoped X.509 authentication without SSH or kubeadm administrator credentials;
+- Kubernetes rollout, runtime digest identity, EndpointSlice resolution and in-cluster HTTP delivery are proven;
+- deployment failure/rollback, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.

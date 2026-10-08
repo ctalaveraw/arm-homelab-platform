@@ -9,6 +9,7 @@
   roles:
     - common
     - docker_host
+    - kubernetes_client
 
   tasks:
     - name: Ensure services directory exists
