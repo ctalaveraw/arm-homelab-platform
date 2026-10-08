@@ -19,6 +19,7 @@ This directory separates **current-state documentation** from **historical evide
 - [ADR-0004 — Fail-closed stateful Compose lifecycle](adr/0004-guarded-compose-lifecycle.md)
 - [ADR-0005 — Optional shared APT cache](adr/0005-optional-package-cache.md)
 - [ADR-0006 — Build-once, least-privilege OCI promotion](adr/0006-build-once-oci-promotion.md)
+- [ADR-0007 — Digest-pinned Kubernetes image pulls](adr/0007-digest-pinned-kubernetes-image-pulls.md)
 
 ## Sprint records
 
