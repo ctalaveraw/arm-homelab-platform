@@ -1,0 +1,73 @@
+---
+- name: Inspect installed Flux client
+  ansible.builtin.command:
+    argv:
+      - "{{ flux_client_install_path }}"
+      - --version
+  register: flux_client_existing_version
+  changed_when: false
+  failed_when: false
+
+- name: Determine whether Flux client installation is required
+  ansible.builtin.set_fact:
+    flux_client_install_required: >-
+      {{
+        flux_client_existing_version.rc != 0
+        or
+        (
+          'flux version ' ~ flux_client_version
+          not in flux_client_existing_version.stdout
+        )
+      }}
+
+- name: Download pinned Flux client archive
+  ansible.builtin.get_url:
+    url: >-
+      https://github.com/fluxcd/flux2/releases/download/v{{
+      flux_client_version }}/flux_{{ flux_client_version }}_linux_{{
+      flux_client_arch }}.tar.gz
+    dest: "{{ flux_client_archive_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+    checksum: "sha256:{{ flux_client_sha256 }}"
+  when: flux_client_install_required
+
+- name: Install pinned Flux client
+  ansible.builtin.unarchive:
+    src: "{{ flux_client_archive_path }}"
+    dest: /usr/local/bin
+    remote_src: true
+  when: flux_client_install_required
+
+- name: Enforce Flux client ownership and mode
+  ansible.builtin.file:
+    path: "{{ flux_client_install_path }}"
+    state: file
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Remove downloaded Flux client archive
+  ansible.builtin.file:
+    path: "{{ flux_client_archive_path }}"
+    state: absent
+  when: flux_client_install_required
+
+- name: Verify installed Flux client
+  ansible.builtin.command:
+    argv:
+      - "{{ flux_client_install_path }}"
+      - --version
+  register: flux_client_version_output
+  changed_when: false
+
+- name: Assert expected Flux client version is installed
+  ansible.builtin.assert:
+    that:
+      - >-
+        'flux version ' ~ flux_client_version
+        in flux_client_version_output.stdout
+    fail_msg: >-
+      Installed Flux client does not match
+      {{ flux_client_version }}.

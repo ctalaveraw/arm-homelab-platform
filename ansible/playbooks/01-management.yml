@@ -10,6 +10,7 @@
     - common
     - docker_host
     - kubernetes_client
+    - flux_client
 
   tasks:
     - name: Ensure services directory exists

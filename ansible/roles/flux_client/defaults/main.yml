@@ -1,0 +1,10 @@
+---
+flux_client_version: "2.9.6"
+flux_client_arch: arm64
+flux_client_install_path: /usr/local/bin/flux
+
+flux_client_archive_path: >-
+  /tmp/flux_{{ flux_client_version }}_linux_{{ flux_client_arch }}.tar.gz
+
+flux_client_sha256: >-
+  6663c154755b732f43dc993d72321f71c2fc1ff0bcb94b2696e0a8638fa562b4
