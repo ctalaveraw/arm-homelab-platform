@@ -126,11 +126,24 @@ EXPECTED_IMAGE="$(
 EXPECTED_DIGEST="${EXPECTED_IMAGE##*@}"
 
 echo
-echo "=== RECONCILE DESIRED STATE ==="
 
-"${KUBECTL[@]}" apply \
-    -f "$DEPLOYMENT_MANIFEST" \
-    -f "$SERVICE_MANIFEST"
+case "$BREAK_GLASS_RECONCILE" in
+    true)
+        echo "=== BREAK-GLASS RECONCILIATION ==="
+        echo "WARN: directly applying repository manifests outside Flux"
+
+        "${KUBECTL[@]}" apply \
+            -f "$DEPLOYMENT_MANIFEST" \
+            -f "$SERVICE_MANIFEST"
+        ;;
+    false)
+        echo "=== GITOPS VERIFICATION MODE ==="
+        echo "Direct reconciliation skipped; Flux owns normal desired state."
+        ;;
+    *)
+        fail "BREAK_GLASS_RECONCILE must be true or false"
+        ;;
+esac
 
 echo
 echo "=== VERIFY ROLLOUT ==="

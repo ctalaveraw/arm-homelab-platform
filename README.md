@@ -47,6 +47,7 @@ flowchart LR
     end
 
     GREG["Gitea OCI registry<br/>local distribution"]
+    FLUX["Flux<br/>source + kustomize controllers"]
     BACKUP["Restic off-device backup<br/>planned"]
 
     DEV --> GH
@@ -65,6 +66,8 @@ flowchart LR
 
     GHCR -->|"verified artifact replication"| GREG
     GHCR -->|"digest pull"| COMPUTE
+    GH -->|"desired-state pull"| FLUX
+    FLUX -->|"scoped reconcile"| COMPUTE
     GREG -.->|"future local Kubernetes pull"| COMPUTE
     GITEA -.->|"state backup"| BACKUP
 ```
