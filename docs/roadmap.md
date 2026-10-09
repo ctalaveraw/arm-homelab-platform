@@ -128,13 +128,33 @@ PLAT-013 rather than a blocker for M4.
 
 ## M5 — GitOps
 
-Introduce Flux only after the push-based image build/publication/deployment path is understood and verified.
+**Status: Complete.**
 
-Target:
+Implemented:
 
-- desired state in Git;
-- Flux reconciles the cluster;
-- CI stops directly owning runtime deployment.
+- Ansible-managed Flux 2.9.6 client on the independent R5C;
+- repository-owned Flux controller installation generated from upstream;
+- source-controller and kustomize-controller only;
+- repository-owned hardening overlay;
+- namespace-local Flux object watches;
+- cross-namespace Flux references disabled;
+- remote Kustomize bases disabled;
+- fail-closed default reconciliation ServiceAccount;
+- public GitHub canonical source consumed without Git credentials;
+- dedicated namespace-scoped application reconciliation ServiceAccount;
+- application inventory limited to Deployment and Service;
+- immutable digest delivery preserved under Flux;
+- live drift correction;
+- intentional Git desired-state propagation;
+- suspend and resume behavior;
+- retained scoped X.509 break-glass path.
+
+Verification proved that runtime drift is corrected when reconciliation is
+active, persists while the application Kustomization is suspended, and is
+corrected again immediately after reconciliation resumes.
+
+Normal application reconciliation is now pull-based from protected Git rather
+than operator-driven application of manifests.
 
 ## M6 — Operational maturity
 

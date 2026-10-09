@@ -1,0 +1,64 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - gotk-components.yaml
+
+patches:
+  # This lab keeps Flux API objects in flux-system for the initial GitOps
+  # implementation. Controllers do not need to watch Flux objects cluster-wide.
+  - target:
+      kind: Deployment
+      name: source-controller
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/1
+        value: --watch-all-namespaces=false
+
+  - target:
+      kind: Deployment
+      name: kustomize-controller
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/1
+        value: --watch-all-namespaces=false
+
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --no-cross-namespace-refs=true
+
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --no-remote-bases=true
+
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --default-service-account=default
+
+  # Only an installed reconciliation controller should inherit the generated
+  # cluster-admin binding.
+  - target:
+      kind: ClusterRoleBinding
+      name: cluster-reconciler-flux-system
+    patch: |-
+      - op: replace
+        path: /subjects
+        value:
+          - kind: ServiceAccount
+            name: kustomize-controller
+            namespace: flux-system
+
+  # Remove dormant subjects for Flux components that are not installed.
+  - target:
+      kind: ClusterRoleBinding
+      name: crd-controller-flux-system
+    patch: |-
+      - op: replace
+        path: /subjects
+        value:
+          - kind: ServiceAccount
+            name: kustomize-controller
+            namespace: flux-system
+          - kind: ServiceAccount
+            name: source-controller
+            namespace: flux-system

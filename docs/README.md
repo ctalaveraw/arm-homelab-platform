@@ -21,6 +21,7 @@ This directory separates **current-state documentation** from **historical evide
 - [ADR-0006 — Build-once, least-privilege OCI promotion](adr/0006-build-once-oci-promotion.md)
 - [ADR-0007 — Digest-pinned Kubernetes image pulls](adr/0007-digest-pinned-kubernetes-image-pulls.md)
 - [ADR-0008 — External Kubernetes deployer identity](adr/0008-external-kubernetes-deployer-identity.md)
+- [ADR-0009 — Flux GitOps trust boundary](adr/0009-flux-gitops-trust-boundary.md)
 
 ## Sprint records
 
@@ -36,6 +37,7 @@ This directory separates **current-state documentation** from **historical evide
 - [Sprint 09 — Dual OCI distribution](sprints/09-dual-oci-distribution.md)
 - [Sprint 10 — Kubernetes delivery](sprints/10-kubernetes-delivery.md)
 - [Sprint 11 — Deployment failure and rollback](sprints/11-deployment-failure-rollback.md)
+- [Sprint 12 — Flux GitOps](sprints/12-flux-gitops.md)
 
 ## Operational evidence
 
@@ -49,7 +51,7 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Current convergence point
 
-As of 2026-10-08:
+As of 2026-10-09:
 
 - five management-plane services have Ansible-owned guarded lifecycles;
 - GitHub is canonical, protected `main` is enforced, and Gitea is a private one-way pull mirror;
@@ -68,4 +70,11 @@ As of 2026-10-08:
 - Kubernetes rollout, runtime digest identity, EndpointSlice resolution and in-cluster HTTP delivery are proven;
 - a controlled failed rollout preserved application availability and was recovered through scoped Kubernetes rollback;
 - Git desired state reconverged cleanly after recovery;
-- Flux GitOps, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.
+- Flux source-controller and kustomize-controller now run with a repository-owned hardening overlay;
+- Flux reads canonical GitHub without repository credentials;
+- application reconciliation impersonates a dedicated namespace-scoped ServiceAccount;
+- initial Flux adoption caused no application rollout churn;
+- live replica drift was automatically corrected back to unchanged Git state;
+- intentional Git replica changes propagated to the cluster;
+- suspended reconciliation allowed drift to persist, and resume restored Git state;
+- Prometheus/Grafana, runtime alerting, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.
