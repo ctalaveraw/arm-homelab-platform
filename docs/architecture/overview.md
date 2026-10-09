@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-08
-**Scope:** Current convergence point after PLAT-009 digest-pinned Kubernetes delivery with a scoped external deployment identity.
+**Updated:** 2026-10-09
+**Scope:** Current convergence point after PLAT-010 controlled Kubernetes rollout failure and rollback validation.
 
 ## Design intent
 
@@ -263,9 +263,7 @@ A second registry is not a substitute for backup, and backup is not a live regis
 
 ## Remaining architecture gaps
 
-- controlled Kubernetes deployment failure and rollback evidence;
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;
-- deployment rollback exercise;
 - full fresh-host rebuild;
 - eventual Flux migration from push-based deployment to pull-based reconciliation.

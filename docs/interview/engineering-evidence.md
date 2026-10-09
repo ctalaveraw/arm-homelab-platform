@@ -572,6 +572,86 @@ controllers own those child resources. Negative RBAC tests are as important
 as positive ones, and a running Pod does not by itself prove that the control
 plane is healthy.
 
+## EVIDENCE-016: Controlled Kubernetes Rollout Failure and Recovery
+
+Date: 2026-10-09
+
+Problem:
+The platform could successfully deploy a verified immutable artifact but had
+not proven how Kubernetes would behave when a new application revision could
+not start or how the scoped external deployer would recover it.
+
+Implementation:
+- Captured the healthy Deployment, ReplicaSet, Pod, Service and EndpointSlice
+  baseline.
+- Confirmed default RollingUpdate behavior with `maxSurge=25%` and
+  `maxUnavailable=25%`.
+- Changed only live cluster state to a syntactically valid but nonexistent OCI
+  digest using the scoped `platform-deployer` identity.
+- Preserved Git as the known-good desired state throughout the exercise.
+- Diagnosed the failed replacement using Deployment state, ReplicaSets, Pods,
+  kubelet Events and EndpointSlice conditions.
+- Rolled back to the known-good Deployment template with `kubectl rollout undo`.
+- Added a committed incident record and deployment rollback runbook.
+
+Verification:
+- Kubernetes created revision 2 and a new ReplicaSet.
+- The replacement Pod was scheduled successfully but failed registry retrieval
+  with `NotFound`.
+- Pod state progressed through `ErrImagePull` and `ImagePullBackOff`.
+- `kubectl rollout status` timed out rather than reporting a successful rollout.
+- The original ReplicaSet remained `1/1 Ready`.
+- During failure, EndpointSlice state showed:
+
+```text
+good endpoint: ready=true  serving=true
+bad endpoint:  ready=false serving=false
+```
+
+- Ten consecutive ClusterIP requests returned HTTP 200 while the rollout was
+  broken.
+- Rollback restored the qualified digest:
+
+```text
+sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+- The failed ReplicaSet scaled to zero.
+- The previous good ReplicaSet was reused and annotated as Deployment revision
+  3.
+- Ten additional ClusterIP requests returned HTTP 200 after rollback.
+- The repository-owned deployment verifier then reported Deployment and
+  Service `unchanged` and confirmed desired and runtime digests matched.
+
+Failure-driven evidence:
+- EndpointSlice membership alone does not imply that an endpoint is eligible
+  for normal Service traffic; readiness and serving conditions matter.
+- Deployment revision numbers describe rollout history, not immutable
+  application artifact identity.
+- RollingUpdate availability constraints prevented the old Ready replica from
+  being terminated before its replacement became healthy.
+
+Trade-offs:
+- No automated destructive fault-injection script was added because native
+  Kubernetes commands make the failure mechanics explicit and reduce the risk
+  of accidentally breaking the live workload.
+- Detection during this exercise used native Kubernetes signals. Automated
+  runtime alerting is deferred to PLAT-013.
+- Manual push-based reconciliation remains in place until Flux is introduced
+  under PLAT-011.
+
+Evidence:
+- `docs/incidents/2026-10-09-platform-hello-failed-rollout.md`
+- `docs/runbooks/kubernetes-deployment-rollback.md`
+- `docs/sprints/11-deployment-failure-rollback.md`
+
+What I learned:
+A failed rollout is not necessarily an outage. Deployment strategy,
+ReplicaSet ownership, Pod readiness, EndpointSlice conditions and Service
+routing all participate in availability. Rollback restores a previous Pod
+template as new desired state, while the OCI digest remains the stable artifact
+identity.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title
