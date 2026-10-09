@@ -1,6 +1,6 @@
 # CI, repository mirroring, and OCI publication
 
-**Status (2026-10-07):** Dual ARM64 repository validation is operational. GitHub Actions builds one ARM64 application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a narrowly scoped publisher job. The qualified artifact is now independently retrievable from GHCR and Gitea with matching registry manifest digests. Kubernetes delivery remains pending.
+**Status (2026-10-09):** Dual ARM64 repository validation is operational. GitHub Actions builds one ARM64 application image, runtime-tests and Trivy-scans that exact image, transfers it across an isolated job boundary with integrity verification, and publishes it to GHCR from a narrowly scoped publisher job. The qualified artifact is independently retrievable from GHCR and Gitea with matching registry manifest digests, deployed to Kubernetes by immutable digest, and proven through controlled rollout failure and rollback.
 
 ## Source ownership
 
@@ -313,22 +313,25 @@ registry digest
   -> associate package with mirrored repository
 ```
 
-Next:
+Also implemented:
 
 ```text
 known immutable digest
   -> deploy to Kubernetes
   -> verify runtime image identity
-  -> verify rollout and endpoint
+  -> inject controlled bad revision
+  -> observe failed rollout
+  -> preserve serving replica
+  -> rollback
+  -> reconcile with Git desired state
 ```
 
 An independent rebuild after testing is intentionally avoided.
 
-## Known CI cleanup
+## CI action runtime
 
-`actions/upload-artifact` was upgraded to v5 during the artifact-path fix.
-
-`actions/download-artifact@v4` currently emits a non-blocking Node.js runtime deprecation warning on GitHub-hosted runners. This is tracked as cheap cleanup and does not invalidate run #27.
+Both artifact upload and download steps now use the v5 actions used by the
+current GitHub-hosted workflow.
 
 ## Evidence
 

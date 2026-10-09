@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-08):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest is now deployed successfully into the Raspberry Pi kubeadm cluster. The NanoPi R5C reconciles the workload directly through a namespace-scoped X.509 Kubernetes identity, and repository-owned tooling verifies rollout, runtime digest identity and Service endpoints. Deployment failure/rollback is the next delivery gate.
+**Status (2026-10-09):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest is deployed successfully into the Raspberry Pi kubeadm cluster through a namespace-scoped external identity. A controlled bad-image rollout has now proven failure diagnosis, continued Service availability, scoped rollback and reconciliation back to unchanged Git desired state. Flux pull-based reconciliation is the next platform milestone.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -188,7 +188,7 @@ The cluster still contains earlier hand-configured workloads, but `platform-hell
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Controlled Kubernetes deployment failure and rollback remain pending.
+- Pull-based GitOps reconciliation with Flux remains pending.
 
 ## Running repository validation
 

@@ -35,12 +35,15 @@ This directory separates **current-state documentation** from **historical evide
 - [Sprint 08 — Application delivery foundation](sprints/08-application-delivery-foundation.md)
 - [Sprint 09 — Dual OCI distribution](sprints/09-dual-oci-distribution.md)
 - [Sprint 10 — Kubernetes delivery](sprints/10-kubernetes-delivery.md)
+- [Sprint 11 — Deployment failure and rollback](sprints/11-deployment-failure-rollback.md)
 
 ## Operational evidence
 
 - [APT cache benchmark](benchmarks/2026-10-04-apt-cacher-ng.md)
 - [USB storage incident](incidents/2026-10-03-usb-storage.md)
 - [Controlled Gitea outage](incidents/2026-10-04-gitea-controlled-outage.md)
+- [Controlled Kubernetes deployment failure](incidents/2026-10-09-platform-hello-failed-rollout.md)
+- [Kubernetes deployment rollback runbook](runbooks/kubernetes-deployment-rollback.md)
 - [OPS-005 screenshots](evidence/ops-005/)
 - [PLAT-006 screenshots](evidence/plat-006/)
 
@@ -63,4 +66,6 @@ As of 2026-10-08:
 - the CI-qualified `platform-hello` artifact is running in Kubernetes by immutable digest;
 - the R5C can reconcile the workload directly using namespace-scoped X.509 authentication without SSH or kubeadm administrator credentials;
 - Kubernetes rollout, runtime digest identity, EndpointSlice resolution and in-cluster HTTP delivery are proven;
-- deployment failure/rollback, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.
+- a controlled failed rollout preserved application availability and was recovered through scoped Kubernetes rollback;
+- Git desired state reconverged cleanly after recovery;
+- Flux GitOps, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.

@@ -62,7 +62,7 @@
   - [x] record engineering evidence and close the delivery milestone
   - [x] keep the first delivery path raw; defer Helm until its abstraction is justified
 
-- [ ] PLAT-010: Deployment failure and rollback exercise
+- [x] PLAT-010: Deployment failure and rollback exercise
 
 ## NEXT — Platform maturity
 
@@ -102,5 +102,4 @@ Ideas belong here until they have a dependency, acceptance criterion, and place 
 
 Cheap cleanup currently parked:
 
-- upgrade `actions/download-artifact@v4` when convenient to remove the remaining non-blocking Node.js runtime deprecation warning;
-- evaluate image signing/attestation only after digest-based retrieval and dual-registry distribution are working.
+- evaluate image signing/attestation after the current platform-maturity milestones.

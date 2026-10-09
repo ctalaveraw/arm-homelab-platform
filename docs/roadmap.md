@@ -102,23 +102,29 @@ Exit criteria:
 
 ## M4 — Operational evidence
 
-**Status: Partially complete.**
+**Status: Complete for the current delivery milestone.**
 
-Already demonstrated:
+Demonstrated:
 
 - controlled Gitea outage;
 - monitoring detection;
 - Gotify DOWN/UP notifications;
 - guarded recovery;
 - CI failure/recovery during artifact publication development;
-- integrity verification across isolated CI jobs.
+- integrity verification across isolated CI jobs;
+- controlled Kubernetes deployment failure;
+- registry `NotFound`, `ErrImagePull`, and `ImagePullBackOff` diagnosis;
+- failed rollout detection through native Kubernetes state and Events;
+- preservation of the previous Ready replica during failed RollingUpdate;
+- EndpointSlice readiness-state inspection;
+- HTTP availability during the failed rollout;
+- scoped rollback to the known-good Pod template;
+- post-rollback HTTP verification;
+- reconciliation back to unchanged Git desired state;
+- committed incident record and recovery runbook.
 
-Still required:
-
-- controlled application/deployment failure;
-- detection;
-- rollback/recovery;
-- committed incident record and runbook.
+Automated runtime alerting remains a later observability milestone under
+PLAT-013 rather than a blocker for M4.
 
 ## M5 — GitOps
 
