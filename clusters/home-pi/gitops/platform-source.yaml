@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: arm-homelab-platform
+  namespace: flux-system
+spec:
+  interval: 1m
+  ref:
+    branch: feat/plat-011-flux-gitops
+  url: https://github.com/ctalaveraw/arm-homelab-platform.git
