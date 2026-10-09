@@ -6,5 +6,5 @@ metadata:
 spec:
   interval: 1m
   ref:
-    branch: feat/plat-011-flux-gitops
+    branch: main
   url: https://github.com/ctalaveraw/arm-homelab-platform.git

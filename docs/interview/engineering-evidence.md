@@ -652,6 +652,94 @@ routing all participate in availability. Rollback restores a previous Pod
 template as new desired state, while the OCI digest remains the stable artifact
 identity.
 
+## EVIDENCE-017: Hardened Flux GitOps Reconciliation
+
+Date: 2026-10-09
+
+Problem:
+The platform had proven immutable Kubernetes delivery and manual recovery, but
+normal runtime reconciliation still depended on an operator explicitly
+applying repository manifests.
+
+Implementation:
+- Added an Ansible-managed Flux 2.9.6 ARM64 client to the R5C baseline.
+- Exported the upstream Flux controller installation into the repository.
+- Installed only source-controller and kustomize-controller.
+- Added a repository-owned hardening overlay that restricts Flux object watches
+  to `flux-system`, disables cross-namespace references and remote bases, and
+  configures a fail-closed default reconciliation ServiceAccount.
+- Removed dormant generated RBAC subjects for controllers that are not
+  installed.
+- Kept privileged Flux bootstrap separate from continuous application
+  reconciliation.
+- Added a dedicated `platform-hello-reconciler` ServiceAccount with a
+  namespace-scoped Role in `platform-demo`.
+- Configured Flux to read the public canonical GitHub repository without a Git
+  credential.
+- Added a Flux Kustomization that impersonates the scoped application identity.
+- Kept Namespace ownership outside the application Kustomization.
+- Preserved the X.509 `platform-deployer` as an independent break-glass path.
+
+Verification:
+- Flux client Ansible convergence repeated with `changed=0`.
+- source-controller and kustomize-controller both reached `1/1 Ready`.
+- Live controller arguments matched the hardened repository render.
+- The application ServiceAccount could manage Deployment and Service resources
+  in `platform-demo` while Secrets, RBAC mutation, Namespace creation, Nodes,
+  direct Pod creation, `pods/exec`, and cross-namespace Deployment creation
+  were denied.
+- The GitRepository fetched exact feature-branch commit
+  `6ceeda76f5f092b068e77430d34d8a35598cc2ed`.
+- First reconciliation reported Ready and Healthy.
+- Flux inventory contained only the application Deployment and Service.
+- Existing workload objects were adopted without rollout churn.
+- Managed fields showed `kustomize-controller` as the server-side Apply manager.
+
+Drift proof:
+- Git remained at one replica.
+- Live state was manually changed to three replicas.
+- Flux restored the Deployment to one replica without a Git revision change.
+
+Desired-state proof:
+- Git commit `6787404c22c1b92e4bca9563ba1567b41445b8c7`
+  changed desired replicas from one to two.
+- Both source and Kustomization status reported that exact revision.
+- Runtime converged to `2/2`.
+- Git commit `f9c7997f93160d6d32865974cb1619ef86031053`
+  restored desired replicas to one and runtime returned to `1/1`.
+
+Suspend/resume proof:
+- Suspending the application Kustomization allowed live three-replica drift to
+  remain for more than 90 seconds despite Git declaring one.
+- Resuming reconciliation restored runtime to one replica within seconds.
+
+Trade-offs:
+- The kustomize-controller itself retains cluster-admin authority so it can
+  impersonate constrained reconciliation identities.
+- Application authority is therefore enforced by explicit ServiceAccount
+  impersonation and a fail-closed default identity rather than by making the
+  controller process itself unprivileged.
+- Flux installation, controller RBAC and tenant bootstrap remain explicit
+  administrator operations instead of self-managed cluster-admin GitOps state.
+- Public GitHub availability is now part of normal desired-state delivery.
+- Automated reconciliation metrics and alerts are deferred to PLAT-012 and
+  PLAT-013.
+
+Evidence:
+- `clusters/home-pi/flux-system/`
+- `clusters/home-pi/gitops/`
+- `deploy/kubernetes/access/platform-hello-flux.yaml`
+- `deploy/kubernetes/platform-hello/kustomization.yaml`
+- `docs/adr/0009-flux-gitops-trust-boundary.md`
+- `docs/sprints/12-flux-gitops.md`
+
+What I learned:
+Git source acquisition and Kubernetes reconciliation are separate control
+loops. Runtime drift should be corrected when reconciliation is active, while
+a Git change represents legitimate new desired state. Suspend/resume testing
+proved that Flux, rather than Kubernetes itself, was responsible for restoring
+the declared application state.
+
 ## Evidence Template
 
 ### EVIDENCE-XXX: Title

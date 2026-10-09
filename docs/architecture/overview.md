@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
 **Updated:** 2026-10-09
-**Scope:** Current convergence point after PLAT-010 controlled Kubernetes rollout failure and rollback validation.
+**Scope:** Current convergence point after PLAT-011 hardened Flux GitOps reconciliation validation.
 
 ## Design intent
 
@@ -67,7 +67,7 @@ flowchart TB
 
     GITEAOCI["Gitea OCI registry<br/>local distribution"]
     RESTIC["Restic repository<br/>planned off-device backup"]
-    FLUX["Flux<br/>future pull-based reconciliation"]
+    FLUX["Flux<br/>source + kustomize controllers<br/>scoped pull reconciliation"]
 
     DEV -->|"PR"| GH
     GH --> RULES
@@ -93,8 +93,8 @@ flowchart TB
 
     GITEA -.->|"consistent state backup"| RESTIC
     GITEAOCI -.->|"package state backup"| RESTIC
-    GH -.->|"future desired state"| FLUX
-    FLUX -.-> K8S
+    GH -->|"anonymous desired-state pull"| FLUX
+    FLUX -->|"scoped reconcile"| K8S
 ```
 
 ## Implemented boundaries
@@ -247,8 +247,12 @@ known immutable registry digest
   -> direct scoped R5C reconciliation
 ```
 
-Routine deployment uses the namespace-scoped `platform-deployer` identity
-rather than SSH plus kubeadm administrator credentials.
+Normal application reconciliation is now pull-based through Flux using
+the dedicated `platform-hello-reconciler` ServiceAccount in `flux-system`,
+bound only to application permissions in `platform-demo`.
+
+The namespace-scoped X.509 `platform-deployer` identity remains an independent
+break-glass and verification path rather than the routine deployment mechanism.
 
 Rebuilding independently after testing is intentionally avoided because it breaks artifact identity and creates another drift/failure surface.
 
@@ -266,4 +270,4 @@ A second registry is not a substitute for backup, and backup is not a live regis
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;
 - full fresh-host rebuild;
-- eventual Flux migration from push-based deployment to pull-based reconciliation.
+- automated observability and alerting for GitOps reconciliation failures.

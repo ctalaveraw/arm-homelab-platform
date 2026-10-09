@@ -10,7 +10,7 @@
 - Historical sprint/incident records remain historical.
 - Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
-## NOW — Kubernetes delivery
+## COMPLETE — Core delivery
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
@@ -64,9 +64,9 @@
 
 - [x] PLAT-010: Deployment failure and rollback exercise
 
-## NEXT — Platform maturity
+## NOW — Platform maturity
 
-- [ ] PLAT-011: Flux GitOps reconciliation
+- [x] PLAT-011: Flux GitOps reconciliation
 - [ ] PLAT-012: Prometheus and Grafana
 - [ ] PLAT-013: Runtime alerting to Gotify
 - [ ] PLAT-014: Ansible bootstrap of fourth Pi

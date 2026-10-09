@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-09):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest is deployed successfully into the Raspberry Pi kubeadm cluster through a namespace-scoped external identity. A controlled bad-image rollout has now proven failure diagnosis, continued Service availability, scoped rollback and reconciliation back to unchanged Git desired state. Flux pull-based reconciliation is the next platform milestone.
+**Status (2026-10-09):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -162,7 +162,7 @@ known immutable registry digest
   -> verify running image identity
   -> ClusterIP Service + EndpointSlice
   -> in-cluster HTTP verification
-  -> direct scoped R5C reconciliation
+  -> scoped Flux pull reconciliation from canonical Git
 ```
 
 The design goal remains build once, then promote and deploy the same tested/scanned artifact instead of rebuilding independently between stages.
@@ -188,7 +188,7 @@ The cluster still contains earlier hand-configured workloads, but `platform-hell
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Pull-based GitOps reconciliation with Flux remains pending.
+- Automated GitOps/runtime observability and alerting remain pending.
 
 ## Running repository validation
 
@@ -217,7 +217,7 @@ bash scripts/ci/test-hello.sh "$IMAGE"
 06-apt-cacher-ng.yml
 ```
 
-The management baseline also includes the `kubernetes_client` role, which installs and verifies the pinned external `kubectl` client used by the R5C.
+The management baseline also includes the `kubernetes_client` and `flux_client` roles, which install and verify pinned ARM64 Kubernetes and Flux clients used by the R5C.
 
 Service playbooks install their systemd units, reload systemd when required, validate configuration, and declaratively enable/start the service.
 
@@ -233,8 +233,11 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [PLAT-007 application delivery sprint](docs/sprints/08-application-delivery-foundation.md)
 - [PLAT-008 dual OCI distribution sprint](docs/sprints/09-dual-oci-distribution.md)
 - [PLAT-009 Kubernetes delivery sprint](docs/sprints/10-kubernetes-delivery.md)
+- [PLAT-010 failure and rollback sprint](docs/sprints/11-deployment-failure-rollback.md)
+- [PLAT-011 Flux GitOps sprint](docs/sprints/12-flux-gitops.md)
 - [ADR-0007 — Digest-pinned Kubernetes image pulls](docs/adr/0007-digest-pinned-kubernetes-image-pulls.md)
 - [ADR-0008 — External Kubernetes deployer identity](docs/adr/0008-external-kubernetes-deployer-identity.md)
+- [ADR-0009 — Flux GitOps trust boundary](docs/adr/0009-flux-gitops-trust-boundary.md)
 - [ADR-0006 — Build-once OCI promotion](docs/adr/0006-build-once-oci-promotion.md)
 - [Architecture decisions](docs/adr/)
 - [Incident records](docs/incidents/)

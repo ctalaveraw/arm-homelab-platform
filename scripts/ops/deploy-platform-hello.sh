@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Deploy and verify platform-hello using caller-supplied Kubernetes credentials.
+# Verify platform-hello using caller-supplied Kubernetes credentials.
+#
+# Normal application reconciliation is owned by Flux.
+# Direct mutation is retained only as an explicit break-glass path.
 #
 # This script intentionally does NOT:
 #   - create the namespace;
@@ -18,8 +21,16 @@ set -Eeuo pipefail
 # Optional:
 #
 #   EXPECTED_KUBE_USER=platform-deployer
+#
+# Explicit break-glass reconciliation:
+#
+#   BREAK_GLASS_RECONCILE=true
+#
+# If break-glass state intentionally differs from Git, suspend the Flux
+# Kustomization first or Flux will restore repository desired state.
 
 EXPECTED_KUBE_USER="${EXPECTED_KUBE_USER:-platform-deployer}"
+BREAK_GLASS_RECONCILE="${BREAK_GLASS_RECONCILE:-false}"
 NAMESPACE="platform-demo"
 APP_NAME="platform-hello"
 APP_LABEL="app.kubernetes.io/name=${APP_NAME}"
