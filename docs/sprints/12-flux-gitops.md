@@ -2,7 +2,7 @@
 
 Work item: PLAT-011
 Date: 2026-10-09
-Status: Complete, with post-merge live source handoff required
+Status: Complete
 
 ## Objective
 
@@ -152,12 +152,17 @@ explicit break-glass flag before applying manifests.
 
 The committed GitRepository definition points to canonical protected `main`.
 
-The live cluster intentionally remains on the feature branch until this PR is
-merged so Flux cannot consume pre-PLAT-011 main state during acceptance.
+After PR #16 merged, the repository-owned GitRepository manifest was applied
+once through the privileged bootstrap path.
 
-Immediately after merge, the repository-owned GitRepository manifest must be
-applied once through the privileged bootstrap path and verified to fetch the
-merged `main` revision.
+Both source-controller and kustomize-controller then reported:
+
+`main@sha1:e8dc395a4ca4e50d9a02d73ac20780996d4760f2`
+
+The application remained healthy at one desired, Ready and available replica.
+
+This completed the transition from feature-branch acceptance to continuous
+reconciliation from canonical protected `main`.
 
 ## Acceptance
 
@@ -176,7 +181,7 @@ merged `main` revision.
 - [x] Suspend prevented drift correction.
 - [x] Resume restored drift correction.
 - [x] Final repository source points to `main`.
-- [ ] Post-merge live source handoff to `main`.
+- [x] Post-merge live source handoff to `main`.
 
 ## Next
 

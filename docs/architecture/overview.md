@@ -244,7 +244,7 @@ known immutable registry digest
   -> verify running image identity
   -> ClusterIP Service + EndpointSlice
   -> in-cluster HTTP verification
-  -> direct scoped R5C reconciliation
+  -> scoped Flux reconciliation from canonical Git
 ```
 
 Normal application reconciliation is now pull-based through Flux using
