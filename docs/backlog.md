@@ -96,10 +96,138 @@
   - Arguments: --human --add-root-shell
   - Keep optional; do not block platform recovery.
 
+## Tracked future DevSecOps and platform objective register
+
+The [platform charter](vision/platform-charter.md) and [93-objective register](planning/objectives.md) convert the planning ideas into stable work IDs with acceptance, dependencies and P/S/H evidence tiers. Work is queued, **not implemented**. Approved architecture choices and unresolved implementation gates are in [design gates](planning/design-gates.md). Existing PLAT-012..018 retain priority; only one milestone is active at a time. Evaluation items may legitimately close with a reasoned no-adopt decision.
+
+### ENG — Code maintainability and interface design
+
+- [ ] ENG-001: Modularize repetitive CI/ops logic ([acceptance](planning/objectives.md#eng--code-maintainability-and-interface-design))
+- [ ] ENG-002: Selective Python extraction ([acceptance](planning/objectives.md#eng--code-maintainability-and-interface-design))
+- [ ] ENG-003: Ansible roles and host coverage ([acceptance](planning/objectives.md#eng--code-maintainability-and-interface-design))
+- [ ] ENG-004: Operator-friendly scripts ([acceptance](planning/objectives.md#eng--code-maintainability-and-interface-design))
+- [ ] ENG-005: Standardized automation result contract ([acceptance](planning/objectives.md#eng--code-maintainability-and-interface-design))
+
+### CI — Quality gates and CI/CD orchestration
+
+- [ ] CI-002: Ansible lint policy ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-003: Kubernetes/IaC semantic validation ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-004: Modular pipeline job contracts ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-005: Change-aware pipelines and cache proof ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-006: Preflight/postflight and rollback checks ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-007: Offline-capable unit/integration tests ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-008: Reproducible toolchains and runner images ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-009: Workflow resiliency and release event policy ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-010: Build cache and multi-platform test matrix ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+- [ ] CI-011: Job artifact contract and retention ([acceptance](planning/objectives.md#ci--quality-gates-and-cicd-orchestration))
+
+### OPS — Out-of-cluster host operations
+
+- [ ] OPS-008: Dedicated trusted operations runner ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-009: Approval-gated Ansible operations ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-010: Negative SD/systemd/Compose contracts ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-011: Optional APT cache clients ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-012: Idempotent service integration seeding ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-013: Environment and configuration contract ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-014: HTTPS PKI and trust deployment ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-015: Audited operations job lifecycle ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-016: Patch and OS upgrade lifecycle ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-017: Cross-service dependency health ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-018: Capacity and wear management ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-019: Service boot-order failure drills ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+
+### OBS — Observability and operational reliability
+
+- [ ] OBS-001: Infrastructure metrics coverage ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+- [ ] OBS-002: Actionable alert delivery ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+- [ ] OBS-003: Structured logs and event correlation ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+- [ ] OBS-004: SLO/SLI and error-budget lab ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+- [ ] OBS-005: Incident runbooks and game days ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+- [ ] OBS-006: Traceability/optional tracing evaluation ([acceptance](planning/objectives.md#obs--observability-and-operational-reliability))
+
+### REL — Release, promotion and lifecycle management
+
+- [ ] REL-001: Digest-driven GitOps promotion ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+- [ ] REL-002: Release manifest and changelog contract ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+- [ ] REL-003: Environment promotion and drift isolation ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+- [ ] REL-004: Registry retention and disaster recovery ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+- [ ] REL-005: Controlled rollback and progressive delivery ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+- [ ] REL-006: Release policy and exception enforcement ([acceptance](planning/objectives.md#rel--release-promotion-and-lifecycle-management))
+
+### SEC — DevSecOps security and assurance (SEC-001 is existing supply-chain umbrella)
+
+- [ ] SEC-002: Threat modeling and asset register ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-003: SCM and code review governance ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-004: CI runner boundary and injection defense ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-005: Workflow supply-chain policy ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-006: Secrets leak prevention and response ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-007: Application SAST/SCA ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-008: IaC and infrastructure policy scanning ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-009: Build-specific SBOM ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-010: Verifiable build provenance ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-011: Artifact signing and verification ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-012: Supply-chain promotion policy ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-013: Ongoing vulnerability management ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-014: Dependency/image/action update strategy ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-015: Kubernetes admission policy ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-016: Pod and container runtime hardening ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-017: Network segmentation and egress policy ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-018: ARM runtime detection evaluation ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-019: Audit log capture and retention ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-020: Incident containment and response ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-021: Security policy as code and exceptions ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-022: DAST and API authorization checks ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-023: Compliance/evidence mapping ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-024: Periodic security scorecard ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-025: Identity inventory and privilege review ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-026: Data integrity, encryption and access ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-027: Secure base images and patch windows ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-028: Policy enforcement negative-test suite ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-029: GitOps controller and bootstrap audit ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-030: Host hardening and service permissions ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+- [ ] SEC-031: Backup/restore adversarial security drill ([acceptance](planning/objectives.md#sec--devsecops-security-and-assurance-sec-001-is-existing-supply-chain-umbrella))
+
+### DR — Day-zero bootstrap, state recovery and disaster recovery
+
+- [ ] DR-001: Blank-device bootstrap ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-002: Network and storage reconstruction ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-003: Host/service convergence ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-004: Mutable state and configuration restoration ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-005: PKI and certificate recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-006: Gitea, registry and runner reconstruction ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-007: Kubernetes bootstrap trust recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-008: etcd and cluster control-plane recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-009: Off-device backup design and verification ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-010: Timed isolated disaster-recovery drill ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-011: Recovery key escrow and rotation ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-012: Failure dependency matrix ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+
+### PORT — Portability and infrastructure adapters
+
+- [ ] PORT-001: Environment contracts and capability matrix ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-002: Proxmox Terraform reference lab ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-003: Forgejo isolated migration evaluation ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-004: IaC state and provider trust ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-005: Scale-out and multi-site test ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+
+### DX — Off-lab development and developer workflow
+
+- [ ] DX-001: Tiered off-lab contribution path ([acceptance](planning/objectives.md#dx--off-lab-development-and-developer-workflow))
+- [ ] DX-002: Reproducible contributor environment ([acceptance](planning/objectives.md#dx--off-lab-development-and-developer-workflow))
+- [ ] DX-003: Trusted testing/evidence handoff ([acceptance](planning/objectives.md#dx--off-lab-development-and-developer-workflow))
+
+### IDP — Internal developer platform evaluation
+
+- [ ] IDP-001: Backstage/developer portal assessment ([acceptance](planning/objectives.md#idp--internal-developer-platform-evaluation))
+- [ ] IDP-002: Self-service golden-path proof ([acceptance](planning/objectives.md#idp--internal-developer-platform-evaluation))
+
+### DOC — Human documentation and portfolio capstone
+
+- [ ] DOC-001: Human-centered documentation capstone ([acceptance](planning/objectives.md#doc--human-documentation-and-portfolio-capstone))
+- [ ] DOC-002: Repository information architecture ([acceptance](planning/objectives.md#doc--human-documentation-and-portfolio-capstone))
+
 ## Parking lot
 
 Ideas belong here until they have a dependency, acceptance criterion, and place in the roadmap.
 
-Cheap cleanup currently parked:
-
-- evaluate image signing/attestation after the current platform-maturity milestones.
+Remaining unscoped ideas enter here only after deduplication against the objective register. Artifact signing, provenance and attestations now have explicit SEC-009..012 objectives; future tooling choices remain evaluation decisions.

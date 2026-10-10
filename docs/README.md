@@ -11,6 +11,14 @@ This directory separates **current-state documentation** from **historical evide
 - [Engineering evidence ledger](interview/engineering-evidence.md) — interview-oriented proof of implementation and verification.
 - [R5C baseline](architecture/r5c-baseline.md) — original brownfield snapshot plus a current-state delta.
 
+## Target vision and planning (not yet implemented)
+
+- [Platform charter](vision/platform-charter.md) — ARM-first portable DevSecOps purpose, owners, trust boundaries, success criteria and recovery targets.
+- [Full objective register](planning/objectives.md) — 93 testable planned/evaluate-only objectives across all platform streams.
+- [Approved decisions and open implementation gates](planning/design-gates.md) — eight approved choices and questions that must be resolved before live activation.
+- [Phased roadmap](roadmap.md) — PLAT-012..018 sequencing followed by security, trusted operations, portability and documentation.
+- [Active backlog](backlog.md) — historical progress plus every additional tracked objective; proposed controls are not marked complete.
+
 ## Architecture decisions
 
 - [ADR-0001 — Management plane storage layout](adr/0001-storage-layout.md)
@@ -22,6 +30,10 @@ This directory separates **current-state documentation** from **historical evide
 - [ADR-0007 — Digest-pinned Kubernetes image pulls](adr/0007-digest-pinned-kubernetes-image-pulls.md)
 - [ADR-0008 — External Kubernetes deployer identity](adr/0008-external-kubernetes-deployer-identity.md)
 - [ADR-0009 — Flux GitOps trust boundary](adr/0009-flux-gitops-trust-boundary.md)
+- [ADR-0010 — Trusted local operations runner](adr/0010-trusted-local-operations.md)
+- [ADR-0011 — Recovery root and environment configuration](adr/0011-recovery-root-and-configuration.md)
+- [ADR-0012 — ARM portability, Forgejo and portal evaluation](adr/0012-portability-and-platform-product.md)
+- [ADR-0013 — Risk-based DevSecOps and promotion](adr/0013-devsecops-policy-and-promotion.md)
 
 ## Sprint records
 

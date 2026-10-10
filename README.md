@@ -6,6 +6,8 @@
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
+**Future direction (planning only):** grow the proven ARM64 platform into an [ARM-first, portable DevSecOps reference architecture](docs/vision/platform-charter.md) with independently recoverable trust, risk-gated software supply-chain promotion, approved local operations, observability and a rehearsed recovery goal of **4h RTO / 1h RPO** (targets, not achieved guarantees). The [93-objective backlog register](docs/planning/objectives.md) and [phased roadmap](docs/roadmap.md) explicitly distinguish completed work from future evaluation. [Approved design gates](docs/planning/design-gates.md) capture the decisions; the planning PR changes no infrastructure.
+
 ## Current architecture
 
 Solid arrows are implemented. Dashed arrows are planned.
@@ -227,6 +229,9 @@ Service playbooks install their systemd units, reload systemd when required, val
 ## Documentation
 
 - [Documentation index](docs/README.md)
+- [Platform charter and target architecture](docs/vision/platform-charter.md)
+- [DevSecOps and recovery objective register](docs/planning/objectives.md)
+- [Approved decisions and implementation gates](docs/planning/design-gates.md)
 - [Current architecture](docs/architecture/overview.md)
 - [Roadmap](docs/roadmap.md)
 - [Engineering backlog](docs/backlog.md)
