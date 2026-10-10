@@ -1,0 +1,112 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Configure Prometheus on the R5C
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Ensure persistent services directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services
+        state: directory
+        owner: runner
+        group: runner
+        mode: '0750'
+
+    - name: Ensure Prometheus persistent directory exists
+      ansible.builtin.file:
+        path: /srv/storage/state/services/prometheus
+        state: directory
+        owner: '65534'
+        group: '65534'
+        mode: '0750'
+
+    - name: Install Prometheus storage guard
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/observability/check-storage.py"
+        dest: /usr/local/sbin/prometheus-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install Prometheus systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/observability/prometheus.service"
+        dest: /etc/systemd/system/prometheus.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Apply pending systemd changes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Validate Prometheus Compose configuration
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/docker-compose
+          - --env-file
+          - /dev/null
+          - -f
+          - /srv/platform/compose/observability/compose.yml
+          - config
+          - --quiet
+      environment:
+        STATE_SERVICES_ROOT: /srv/storage/state/services
+      changed_when: false
+
+    - name: Inspect Prometheus configuration without following links
+      ansible.builtin.stat:
+        path: /srv/platform/compose/observability/prometheus.yml
+        follow: false
+      register: prometheus_config_stat
+
+    - name: Reject missing or symlinked Prometheus configuration
+      ansible.builtin.assert:
+        that:
+          - prometheus_config_stat.stat.isreg | default(false)
+          - not (prometheus_config_stat.stat.islnk | default(false))
+
+    - name: Enforce readable Prometheus configuration
+      ansible.builtin.file:
+        path: /srv/platform/compose/observability/prometheus.yml
+        state: file
+        follow: false
+        owner: runner
+        group: runner
+        mode: '0644'
+      notify: Restart Prometheus
+
+    - name: Enable and start guarded Prometheus
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        enabled: true
+        state: started
+
+    - name: Apply pending Prometheus restart
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify Prometheus HTTP readiness
+      ansible.builtin.uri:
+        url: http://127.0.0.1:9090/-/ready
+        method: GET
+        status_code: 200
+        use_proxy: false
+        timeout: 2
+      register: prometheus_readiness
+      until: prometheus_readiness.status | default(0) == 200
+      retries: 15
+      delay: 2
+      changed_when: false
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Prometheus
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        state: restarted
