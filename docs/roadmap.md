@@ -2,7 +2,7 @@
 
 ## Current objective
 
-Deliver a reproducible ARM64 application artifact from canonical Git source into the existing Raspberry Pi Kubernetes cluster while preserving an independently recoverable management plane.
+Mature the proven ARM64 delivery/GitOps foundation into a portable, recoverable DevSecOps platform: observability and alerting first, then fresh-node bootstrap, controlled secrets, verified restore, policy-enforced supply-chain promotion and approved operations. See the [platform charter](vision/platform-charter.md), [design gates](planning/design-gates.md) and [93-objective register](planning/objectives.md).
 
 ## M0 — Bootstrap and discovery
 
@@ -156,15 +156,43 @@ corrected again immediately after reconciliation resumes.
 Normal application reconciliation is now pull-based from protected Git rather
 than operator-driven application of manifests.
 
-## M6 — Operational maturity
+## M6 — Observable, reproducible and recoverable operations (active roadmap)
 
-- shared trusted HTTPS;
-- off-device Restic backup/restore;
-- Gitea/package recovery;
-- observability;
-- node reconstruction;
-- secrets management;
-- management-plane disaster recovery.
+**Status: Queued, not complete.** Deliver the following sequentially, allowing small prerequisite quality/security checks to join the relevant sprint without creating competing active milestones:
+
+1. **PLAT-012 — Prometheus/Grafana:** metrics for node, K8s, Flux and R5C where practical; retention, availability and resource budget, failing-scrape evidence. Seed only necessary configuration, with a later service-integration objective (OBS-001, OPS-017/018).
+2. **PLAT-013 — Gotify runtime alerting:** meaningful alert thresholds, routing, deduplication, recovery and missing-signal tests (OBS-002, OPS-012).
+3. **PLAT-014/015 — fourth Pi and reproducible join:** pin/lint Ansible, optional approved APT cache, day-zero versus host-convergence distinction, role/network/SD failure tests (CI-002, OPS-010/011, DR-001..003).
+4. **PLAT-016 — OpenBao and identity:** define independent encryption/PKI recovery first; short-lived routine credentials and renewal/revocation. **OPS-007 shared trusted HTTPS is a prerequisite for production-like management API/secret integrations**, not an excuse to delay monitoring (OPS-013/014, DR-004/005/011).
+5. **PLAT-017/018 — encrypted off-device backups and isolated disaster recovery:** consistent Gitea/OCI/config recovery, standalone reconstruction without live forge/vault/R5C, time-bound exercise and truthfully measured targets (DR-004..012).
+
+**Design targets:** recovery time objective **4 hours** and recovery point objective **1 hour** for a classified *critical* scope, **not achieved guarantees**. Define data/services covered, incident timing, spare hardware availability, restore-key redundancy, consistency, backup frequency and multiple isolated drills before claiming either goal.
+
+Ansible's current management preflight assumes a booted ARM64 host and mounted labeled SD. It is not day-zero recovery; DR-001..003 must establish the missing preconditions.
+
+## M7 — Secure delivery and continuous assurance (planned)
+
+Extend the working build-once artifact contract, not replace it. Threat model and SCM/runner governance; appropriate SAST/SCA/IaC policy; image SBOM, builder/source provenance, digest signing, verifier and approved promotion PR; Kubernetes admission/workload/network/runtime policy; vulnerability rescan/remediation, exceptions and incident response. Use measured Observe → Warn → Block → Verify progression, with owner and expiry on exceptions. Keep CI, operations and Flux distinct authorities.
+
+Key tickets: SEC-001 and SEC-002..031; REL-001..006; CI-003..011. Tools are selected for coverage and ARM practicality; passing multiple overlapping scanners is not the definition of success.
+
+## M8 — Independent trusted local operations (planned)
+
+Build a *separate* approval-gated Gitea operations runner after trust, baseline recovery and service visibility prerequisites. Workflows authorize approved operations, Ansible converges R5C hosts, tested Bash/Python helpers perform pre/post checks, and Flux remains the sole routine reconciler of selected Kubernetes application resources. No privileged credentials for the existing validation runner; no dependence on live Gitea to restore Gitea.
+
+Key tickets: OPS-008/009/015, ENG-001..005, CI-006/009. Existing manual recovery remains operational throughout.
+
+## M9 — Portability, development experience and portfolio capstone (future/evaluate)
+
+- Demonstrate a secondary target with explicit ARM-first platform contracts; optionally Terraform-provisioned Proxmox VMs, Ansible convergence and independent Flux reconciliation (PORT-001/002/004/005).
+- Rehearse Forgejo migration **in isolation** with proven compatibility/export/rollback; no immediate switch or assumed drop-in image migration (PORT-003).
+- Evaluate Backstage only with multiple services/personas and a justified self-service golden-path experiment (IDP-001/002).
+- Maintain off-lab contributions using portable, simulated and physical validation tiers (DX-001..003).
+- Human-edit and reorganize documentation for cold readers/evaluators; credible evidence and explicit current-vs-target labels (DOC-001/002).
+
+## Scope discipline and acceptance
+
+The [backlog](backlog.md) enumerates 93 additional objectives with [exit evidence and prerequisites](planning/objectives.md). This is a catalog of **planned/evaluation work**, not 93 simultaneous active projects. One active milestone remains the policy. Gate-specific design details may change through reviewed ADRs. Off-lab GitHub checks establish portable P or simulated S evidence; physical H testing must not be assumed passed.
 
 ## Sprint cadence
 
