@@ -33,12 +33,12 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 
 | Objective | Mode | Acceptance / failure evidence | Dependency | Tier |
 |---|---|---|---|---|
-| **CI-002 — Ansible lint policy** | Planned | Pinned ansible-lint passes or has documented bounded exceptions; runs in hosted and local CI. | PLAT-014 | P |
-| **CI-003 — Kubernetes/IaC semantic validation** | Planned | Render manifests and validate schema, policy and target versions; negative fixtures fail. | SEC-008 | P/S |
+| **CI-002 — Ansible lint policy** | Planned | Pinned ansible-lint passes or has documented bounded exceptions; runs in hosted and local CI. | CI-001 | P |
+| **CI-003 — Kubernetes/IaC semantic validation** | Planned | Render manifests and validate schema, policy and target versions; negative fixtures fail. | CI-001 | P/S |
 | **CI-004 — Modular pipeline job contracts** | Planned | Validate, build, test, scan, publish and promote have documented inputs/outputs and permissions. | PLAT-011 | P |
 | **CI-005 — Change-aware pipelines and cache proof** | Planned | Paths reduce unnecessary work without bypassing required gates; cold/warm benchmark recorded. | CI-004 | P |
 | **CI-006 — Preflight/postflight and rollback checks** | Planned | Each mutating operation has identity, authorization, state and artifact checks plus recorded final verification. | OPS-009 | P/H |
-| **CI-007 — Offline-capable unit/integration tests** | Planned | Portable tests run on hosted ARM64; simulated and physical-only tests are visibly differentiated. | DX-001 | P/S |
+| **CI-007 — Offline-capable unit/integration tests** | Planned | Portable tests run on hosted ARM64; simulated and physical-only tests are visibly differentiated. | CI-001 | P/S |
 | **CI-008 — Reproducible toolchains and runner images** | Planned | Pin/document dependencies and platform versions; clean runner reproduces same checks. | CI-002 | P/S |
 | **CI-009 — Workflow resiliency and release event policy** | Planned | Retry, cancel, concurrency, timeout and trusted event conditions tested; no publish from untrusted contexts. | CI-004, SEC-004 | P/S |
 | **CI-010 — Build cache and multi-platform test matrix** | Evaluate | BuildKit caching measured; arm64 source remains canonical, second target tested without rebuilding release identity. | CI-005, PORT-001 | P/S |
@@ -53,7 +53,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **OPS-010 — Negative SD/systemd/Compose contracts** | Planned | Tests simulate wrong/missing filesystem, label, symlink and bind; startup refuses unsafe state. | CI-007 | P/H |
 | **OPS-011 — Optional APT cache clients** | Planned | Finish OPS-006 ACL checks; test real Pi cold/warm install and bypass on cache outage. | OPS-006, PLAT-014 | H |
 | **OPS-012 — Idempotent service integration seeding** | Planned | Gitea/monitor/notification config reconciliation is repeatable, non-secret in Git and restore-safe. | OPS-013, PLAT-013 | S/H |
-| **OPS-013 — Environment and configuration contract** | Planned | Classify vars, .env.example, file injection and restricted config; ensure cleartext secrets never enter Git/logs. | DR-004 | P/H |
+| **OPS-013 — Environment and configuration contract** | Planned | Classify vars, .env.example, file injection and restricted config; ensure cleartext secrets never enter Git/logs. | ADR-0011 | P/H |
 | **OPS-014 — HTTPS PKI and trust deployment** | Planned | Close OPS-007 with certificate renewal, trusted CA deployment, client validation and failure exercise. | OPS-007, DR-005 | H |
 | **OPS-015 — Audited operations job lifecycle** | Planned | Approval, scheduler, retention, execution identity, timeout, replay resistance and incident log proved. | OPS-009 | H |
 | **OPS-016 — Patch and OS upgrade lifecycle** | Planned | Version matrix, staging, rollback/reboot safety, maintenance windows and host recovery checks. | ENG-003, DR-003 | H |
@@ -67,7 +67,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 |---|---|---|---|---|
 | **OBS-001 — Infrastructure metrics coverage** | Planned | PLAT-012 collects Pi, K8s, Flux and R5C measurements with cardinality and retention budget. | PLAT-012 | H |
 | **OBS-002 — Actionable alert delivery** | Planned | PLAT-013 maps observed failures to deduplicated Gotify notifications with recovery/silence checks. | PLAT-013 | H |
-| **OBS-003 — Structured logs and event correlation** | Planned | Trace action, image digest, Flux revision and incident in accessible redacted logs. | PLAT-012, SEC-019 | H |
+| **OBS-003 — Structured logs and event correlation** | Planned | Trace action, image digest, Flux revision and incident in accessible redacted logs. | PLAT-012 | H |
 | **OBS-004 — SLO/SLI and error-budget lab** | Planned | Choose critical user-visible journey, target and burn alert; run controlled violation and response. | OPS-001, PLAT-013 | H |
 | **OBS-005 — Incident runbooks and game days** | Planned | Repeatable detection/triage/mitigation/restore evidence, incident ownership and postmortem. | OBS-002, DR-010 | H |
 | **OBS-006 — Traceability/optional tracing evaluation** | Evaluate | Determine whether app tracing adds value, benchmark resource cost, adopt only with concrete span/use case. | OBS-003 | S/H |
@@ -76,7 +76,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 
 | Objective | Mode | Acceptance / failure evidence | Dependency | Tier |
 |---|---|---|---|---|
-| **REL-001 — Digest-driven GitOps promotion** | Planned | Approved digest PR enters protected main only after qualified attestations; Flux remains sole application state owner. | SEC-012 | P/H |
+| **REL-001 — Digest-driven GitOps promotion** | Planned | Approved digest PR enters protected main only after qualified attestations; Flux remains sole application state owner. | PLAT-011 | P/H |
 | **REL-002 — Release manifest and changelog contract** | Planned | Commit/build provenance, image digest, policy result and deployment revision recorded per release. | SEC-010 | P |
 | **REL-003 — Environment promotion and drift isolation** | Planned | A second isolated environment exercises promotion/rollback without split-brain writers. | PORT-002, REL-001 | S/H |
 | **REL-004 — Registry retention and disaster recovery** | Planned | Retention/GC does not delete running digests; replication/restore testing respects immutable references. | PLAT-017, DR-006 | H |
@@ -89,7 +89,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 |---|---|---|---|---|
 | **SEC-002 — Threat modeling and asset register** | Planned | Data-flow/STRIDE-style risks, trust actors, recovery roots and abuse cases documented with owners. | ADR-0010..0013 | P |
 | **SEC-003 — SCM and code review governance** | Planned | Protected main, CODEOWNERS/review critical paths, workflow change scrutiny and test bypass denied. | SEC-002 | P |
-| **SEC-004 — CI runner boundary and injection defense** | Planned | Fork/untrusted workflow cannot reach internal authority or leak tokens; approval and isolation negative tests. | OPS-008 | P/S |
+| **SEC-004 — CI runner boundary and injection defense** | Planned | Fork/untrusted workflow cannot reach internal authority or leak tokens; approval and isolation negative tests. | SEC-002 | P/S |
 | **SEC-005 — Workflow supply-chain policy** | Planned | Pin/audit external actions, minimal permissions, evaluate workflow OIDC and verify third-party action update paths. | CI-009 | P |
 | **SEC-006 — Secrets leak prevention and response** | Planned | Scan source, artifacts and logs; injected canary leak rejected; rotation/runbook exercised. | OPS-013 | P/S |
 | **SEC-007 — Application SAST/SCA** | Planned | Supported-language SAST and dependency/SCA findings triaged; false-positive policy recorded. | CI-003 | P |
@@ -122,7 +122,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 
 | Objective | Mode | Acceptance / failure evidence | Dependency | Tier |
 |---|---|---|---|---|
-| **DR-001 — Blank-device bootstrap** | Planned | From documented off-device media/source provision OS, operator, SSH/trust, Python/Ansible and supported architecture. | PLAT-018 | H |
+| **DR-001 — Blank-device bootstrap** | Planned | From documented off-device media/source provision OS, operator, SSH/trust, Python/Ansible and supported architecture. | ADR-0011 | H |
 | **DR-002 — Network and storage reconstruction** | Planned | Restore interfaces/DNS, SD partition/UUID/label, mount/automount and safety contract from blank host. | DR-001 | H |
 | **DR-003 — Host/service convergence** | Planned | Freshly rebuilt machine safely installs Docker/systemd units and recreates service lifecycles from Git. | DR-002, ENG-003 | H |
 | **DR-004 — Mutable state and configuration restoration** | Planned | Restore consistent Gitea/OCI/monitor service configs with independent encrypted material; no unknown manual steps. | PLAT-017, OPS-013 | H |
@@ -131,7 +131,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **DR-007 — Kubernetes bootstrap trust recovery** | Planned | Rebuild namespace/RBAC/Flux CRDs/controllers/sources and scoped credentials without relying on a live R5C. | DR-005, PLAT-015 | H |
 | **DR-008 — etcd and cluster control-plane recovery** | Planned | Consistent snapshot capture/restore and fresh cluster versus same-cluster migration delineated and tested. | DR-007 | H |
 | **DR-009 — Off-device backup design and verification** | Planned | Encrypted/versioned independent backups, integrity and consistency tests, measured 1h RPO target within classified scope. | PLAT-017, DR-004 | H |
-| **DR-010 — Timed isolated disaster-recovery drill** | Planned | Loss of R5C/Gitea/SD (and separate cluster scenario) measured toward 4h RTO and 1h RPO; report gaps. | PLAT-018, DR-009 | H |
+| **DR-010 — Timed isolated disaster-recovery drill** | Planned | Loss of R5C/Gitea/SD (and separate cluster scenario) measured toward 4h RTO and 1h RPO; report gaps. | DR-009, DR-003 | H |
 | **DR-011 — Recovery key escrow and rotation** | Planned | At least two documented independent authorized paths to decryption; revoke/rekey, compromised and lost key exercises. | DR-004, DR-005 | H |
 | **DR-012 — Failure dependency matrix** | Planned | DNS, network, power, clock, external Git, TLS CA, storage, OpenBao and registry outage order documented/tested. | DR-001, SEC-002 | P/H |
 
