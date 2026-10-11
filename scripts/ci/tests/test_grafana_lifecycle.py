@@ -12,13 +12,28 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 OBS = ROOT / "compose/observability"
 
+DISABLED_PLUGINS = {
+    "elasticsearch",
+    "grafana-postgresql-datasource",
+    "grafana-pyroscope-datasource",
+    "influxdb",
+    "jaeger",
+    "loki",
+    "mssql",
+    "mysql",
+    "opentsdb",
+    "stackdriver",
+    "tempo",
+    "zipkin",
+}
+
 
 def check_policy(service):
     expected = {
         "restart": "no",
         "user": "472:472",
         "read_only": True,
-        "mem_limit": "512m",
+        "mem_limit": "768m",
         "pids_limit": 256,
         "cap_drop": ["ALL"],
         "security_opt": ["no-new-privileges:true"],
@@ -42,6 +57,15 @@ def check_policy(service):
         or env.get("GF_PLUGINS_PREINSTALL_AUTO_UPDATE") != "false"
     ):
         raise ValueError("Unsafe bootstrap or plugin update configuration")
+
+
+    disabled = {
+        item.strip()
+        for item in env.get("GF_PLUGINS_DISABLE_PLUGINS", "").split(",")
+        if item.strip()
+    }
+    if disabled != DISABLED_PLUGINS:
+        raise ValueError("Unsafe plugin loading policy")
 
     sources = {
         "/var/lib/grafana": (
@@ -117,6 +141,16 @@ class GrafanaLifecycleTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             check_policy(bad)
+
+    def test_unused_plugins_must_remain_disabled(self):
+        check_policy(self.service)
+
+        for value in ("prometheus", "", "loki"):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.service)
+                bad["environment"]["GF_PLUGINS_DISABLE_PLUGINS"] = value
+                with self.assertRaises(ValueError):
+                    check_policy(bad)
 
     def test_unit_and_ansible_integration(self):
         unit = (OBS / "grafana.service").read_text()

@@ -13,7 +13,7 @@ services:
       - ALL
 
     read_only: true
-    mem_limit: 512m
+    mem_limit: 768m
     pids_limit: 256
 
     tmpfs:
@@ -23,6 +23,10 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana-admin-password
       GF_PLUGINS_PREINSTALL_AUTO_UPDATE: "false"
+      GF_PLUGINS_DISABLE_PLUGINS: >-
+        elasticsearch,grafana-postgresql-datasource,
+        grafana-pyroscope-datasource,influxdb,jaeger,loki,
+        mssql,mysql,opentsdb,stackdriver,tempo,zipkin
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/platform-overview.json
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"

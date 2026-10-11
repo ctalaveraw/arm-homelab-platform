@@ -15,6 +15,21 @@ SECRET = AUTH / "admin-password"
 COMPOSE = Path("/srv/platform/compose/observability/compose.yml")
 SOURCE = COMPOSE.parent / "grafana"
 
+DISABLED_PLUGINS = {
+    "elasticsearch",
+    "grafana-postgresql-datasource",
+    "grafana-pyroscope-datasource",
+    "influxdb",
+    "jaeger",
+    "loki",
+    "mssql",
+    "mysql",
+    "opentsdb",
+    "stackdriver",
+    "tempo",
+    "zipkin",
+}
+
 
 def fail(message):
     raise SystemExit(f"Grafana storage preflight FAILED: {message}")
@@ -136,6 +151,16 @@ if (
 ):
     fail("Unsafe Grafana credentials or plugin-update configuration")
 
+
+disabled = {
+    item.strip()
+    for item in env.get("GF_PLUGINS_DISABLE_PLUGINS", "").split(",")
+    if item.strip()
+}
+
+if disabled != DISABLED_PLUGINS:
+    fail("Unexpected Grafana plugin loading policy")
+
 if (
     service.get("restart") != "no"
     or service.get("user") != "472:472"
@@ -144,7 +169,7 @@ if (
     or service.get("network_mode") == "host"
     or service.get("cap_drop") != ["ALL"]
     or "no-new-privileges:true" not in service.get("security_opt", [])
-    or int(service.get("mem_limit", 0)) != 536870912
+    or int(service.get("mem_limit", 0)) != 805306368
     or service.get("pids_limit") != 256
 ):
     fail("Unsafe Grafana runtime security contract")

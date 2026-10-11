@@ -25,7 +25,7 @@ class GrafanaContractTests(unittest.TestCase):
         self.assertEqual(service["restart"], "no")
         self.assertEqual(service["user"], "472:472")
         self.assertTrue(service["read_only"])
-        self.assertEqual(service["mem_limit"], "512m")
+        self.assertEqual(service["mem_limit"], "768m")
         self.assertEqual(service["pids_limit"], 256)
         self.assertEqual(service["cap_drop"], ["ALL"])
         self.assertEqual(
@@ -47,6 +47,16 @@ class GrafanaContractTests(unittest.TestCase):
             service["environment"]["GF_PLUGINS_PREINSTALL_AUTO_UPDATE"],
             "false",
         )
+
+        disabled = {
+            item.strip()
+            for item in service["environment"][
+                "GF_PLUGINS_DISABLE_PLUGINS"
+            ].split(",")
+            if item.strip()
+        }
+        self.assertEqual(len(disabled), 12)
+        self.assertNotIn("prometheus", disabled)
 
         volumes = service["volumes"]
         self.assertEqual(len(volumes), 4)
