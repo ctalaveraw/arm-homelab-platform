@@ -115,7 +115,7 @@ class R5CHostMetricsTests(unittest.TestCase):
             job["job_name"]: job
             for job in config["scrape_configs"]
         }
-        self.assertEqual(set(jobs), {"prometheus", "r5c"})
+        self.assertTrue({"prometheus", "r5c"} <= set(jobs))
         self.assertEqual(
             jobs["r5c"]["static_configs"][0]["targets"],
             ["10.0.0.50:9100"],

@@ -89,6 +89,7 @@ for filename in (
     SOURCE / "provisioning/dashboards/platform.yml",
     SOURCE / "dashboards/platform-overview.json",
     SOURCE / "dashboards/r5c-host.json",
+    SOURCE / "dashboards/pi-nodes.json",
 ):
     if filename.is_symlink() or not filename.is_file():
         fail(f"Missing or unsafe provisioning file: {filename}")
