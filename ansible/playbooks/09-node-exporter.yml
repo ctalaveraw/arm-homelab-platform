@@ -1,0 +1,228 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Configure R5C host metrics exporter
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Create dedicated Node Exporter system group
+      ansible.builtin.group:
+        name: node-exporter
+        system: true
+
+    - name: Create dedicated Node Exporter service identity
+      ansible.builtin.user:
+        name: node-exporter
+        group: node-exporter
+        system: true
+        create_home: false
+        home: /nonexistent
+        shell: /usr/sbin/nologin
+
+    - name: Ensure filesystem ACL utilities are installed
+      ansible.builtin.apt:
+        name: acl
+        state: present
+        update_cache: false
+
+    - name: Verify actual SD filesystem before assigning access
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/findmnt
+          - --kernel
+          - --mountpoint
+          - /srv/storage/state
+          - --types
+          - ext4
+          - --noheadings
+          - --output
+          - LABEL
+      register: exporter_sd_label
+      changed_when: false
+
+    - name: Require expected SD storage label
+      ansible.builtin.assert:
+        that:
+          - exporter_sd_label.stdout | trim == 'storage_sdcard'
+
+    - name: Reject symlinked SD mountpoint
+      ansible.builtin.stat:
+        path: /srv/storage/state
+        follow: false
+      register: exporter_sd_path
+
+    - name: Require real SD mount directory
+      ansible.builtin.assert:
+        that:
+          - exporter_sd_path.stat.isdir | default(false)
+          - not (exporter_sd_path.stat.islnk | default(false))
+
+    - name: Inspect storage parent without following symlinks
+      ansible.builtin.stat:
+        path: /srv/storage
+        follow: false
+      register: exporter_storage_parent
+
+    - name: Require genuine storage parent directory
+      ansible.builtin.assert:
+        that:
+          - exporter_storage_parent.stat.isdir | default(false)
+          - not (exporter_storage_parent.stat.islnk | default(false))
+
+    - name: Inspect storage parent ACL
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/getfacl
+          - --omit-header
+          - /srv/storage
+      register: exporter_parent_acl
+      changed_when: false
+
+    - name: Grant exporter traverse-only storage parent access
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/setfacl
+          - -m
+          - u:node-exporter:--x
+          - /srv/storage
+      when: >-
+        'user:node-exporter:--x' not in
+        exporter_parent_acl.stdout_lines
+
+    - name: Inspect existing SD mount ACL
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/getfacl
+          - --omit-header
+          - /srv/storage/state
+      register: exporter_sd_acl
+      changed_when: false
+
+    - name: Grant exporter traverse-only SD mount access
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/setfacl
+          - -m
+          - u:node-exporter:--x
+          - /srv/storage/state
+      when: >-
+        'user:node-exporter:--x' not in
+        exporter_sd_acl.stdout_lines
+
+    - name: Verify exporter can inspect SD filesystem capacity
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/stat
+          - -f
+          - --format=%a:%b
+          - /srv/storage/state
+      become_user: node-exporter
+      changed_when: false
+
+    - name: Verify exporter cannot read Grafana admin secret
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/stat
+          - /srv/storage/state/services/grafana-auth/admin-password
+      become_user: node-exporter
+      register: exporter_secret_denial
+      changed_when: false
+      failed_when: exporter_secret_denial.rc == 0
+      no_log: true
+
+    - name: Ensure platform package cache exists
+      ansible.builtin.file:
+        path: /var/cache/arm-platform
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Ensure versioned installation directory exists
+      ansible.builtin.file:
+        path: /opt/arm-platform
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Download SHA256-verified ARM64 Node Exporter
+      ansible.builtin.get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.12.1/node_exporter-1.12.1.linux-arm64.tar.gz
+        dest: /var/cache/arm-platform/node_exporter-1.12.1.linux-arm64.tar.gz
+        checksum: sha256:ad35b605f9954b9f1ffddf5ba054bdc5a98d790b9eae5291e1eeb83f1ecbd0e7
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Extract verified exporter archive
+      ansible.builtin.unarchive:
+        src: /var/cache/arm-platform/node_exporter-1.12.1.linux-arm64.tar.gz
+        dest: /opt/arm-platform
+        remote_src: true
+        creates: /opt/arm-platform/node_exporter-1.12.1.linux-arm64/node_exporter
+        owner: root
+        group: root
+
+    - name: Install versioned Node Exporter executable
+      ansible.builtin.copy:
+        src: /opt/arm-platform/node_exporter-1.12.1.linux-arm64/node_exporter
+        dest: /usr/local/bin/node_exporter
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Restart Node Exporter
+
+    - name: Install Node Exporter systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname }}/files/node-exporter.service"
+        dest: /etc/systemd/system/node-exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - Reload systemd
+        - Restart Node Exporter
+
+    - name: Apply updated service configuration
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start Node Exporter
+      ansible.builtin.systemd_service:
+        name: node-exporter.service
+        enabled: true
+        state: started
+
+    - name: Verify host metrics endpoint
+      ansible.builtin.uri:
+        url: http://10.0.0.50:9100/metrics
+        method: GET
+        status_code: 200
+        return_content: true
+        use_proxy: false
+        timeout: 5
+      register: node_metrics
+      until: node_metrics.status | default(0) == 200
+      retries: 10
+      delay: 2
+      changed_when: false
+
+    - name: Verify real host CPU and memory metrics
+      ansible.builtin.assert:
+        that:
+          - "'node_cpu_seconds_total' in node_metrics.content"
+          - "'node_memory_MemTotal_bytes' in node_metrics.content"
+          - "'node_exporter_build_info' in node_metrics.content"
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Node Exporter
+      ansible.builtin.systemd_service:
+        name: node-exporter.service
+        state: restarted

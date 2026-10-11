@@ -120,6 +120,7 @@
         - /srv/platform/compose/observability/grafana/provisioning/datasources/prometheus.yml
         - /srv/platform/compose/observability/grafana/provisioning/dashboards/platform.yml
         - /srv/platform/compose/observability/grafana/dashboards/platform-overview.json
+        - /srv/platform/compose/observability/grafana/dashboards/r5c-host.json
       register: grafana_provisioning
 
     - name: Reject missing or symlinked provisioning files
@@ -141,6 +142,7 @@
         - /srv/platform/compose/observability/grafana/provisioning/datasources/prometheus.yml
         - /srv/platform/compose/observability/grafana/provisioning/dashboards/platform.yml
         - /srv/platform/compose/observability/grafana/dashboards/platform-overview.json
+        - /srv/platform/compose/observability/grafana/dashboards/r5c-host.json
       notify: Restart Grafana
 
     - name: Install Grafana storage guard

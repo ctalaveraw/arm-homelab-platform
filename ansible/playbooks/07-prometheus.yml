@@ -85,6 +85,18 @@
         enabled: true
         state: started
 
+    - name: Track Prometheus scrape configuration
+      ansible.builtin.copy:
+        dest: /etc/observability-prometheus-config.sha256
+        content: >-
+          {{ lookup('file',
+          (playbook_dir | dirname | dirname) ~
+          '/compose/observability/prometheus.yml') | hash('sha256') }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Prometheus
+
     - name: Apply pending Prometheus restart
       ansible.builtin.meta: flush_handlers
 
