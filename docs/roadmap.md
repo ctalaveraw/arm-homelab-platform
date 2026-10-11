@@ -158,9 +158,9 @@ than operator-driven application of manifests.
 
 ## M6 — Observable, reproducible and recoverable operations (active roadmap)
 
-**Status: Queued, not complete.** Deliver the following sequentially, allowing small prerequisite quality/security checks to join the relevant sprint without creating competing active milestones:
+**Status: Active; PLAT-012 host telemetry foundation delivered, full observability not complete.** Deliver the following sequentially, allowing small prerequisite quality/security checks to join the relevant sprint without creating competing active milestones:
 
-1. **PLAT-012 — Prometheus/Grafana:** metrics for node, K8s, Flux and R5C where practical; retention, availability and resource budget, failing-scrape evidence. Seed only necessary configuration, with a later service-integration objective (OBS-001, OPS-017/018).
+1. **PLAT-012 — Prometheus/Grafana:** host foundation implemented for R5C and three Pis, with provisioned dashboards, 48h/512MB retention, bounded services, successful live acceptance and idempotence. Still pending: K8s/Flux controller and workload metrics, service probes/capacity signals, network-access verification and failing-scrape/resource-budget exercises (OBS-001, OPS-017/018). Follow-up PRs will close these without expanding the current host-foundation delivery.
 2. **PLAT-013 — Gotify runtime alerting:** meaningful alert thresholds, routing, deduplication, recovery and missing-signal tests (OBS-002, OPS-012).
 3. **PLAT-014/015 — fourth Pi and reproducible join:** pin/lint Ansible, optional approved APT cache, day-zero versus host-convergence distinction, role/network/SD failure tests (CI-002, OPS-010/011, DR-001..003).
 4. **PLAT-016 — OpenBao and identity:** define independent encryption/PKI recovery first; short-lived routine credentials and renewal/revocation. **OPS-007 shared trusted HTTPS is a prerequisite for production-like management API/secret integrations**, not an excuse to delay monitoring (OPS-013/014, DR-004/005/011).

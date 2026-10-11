@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-09
-**Scope:** Current convergence point after PLAT-011 hardened Flux GitOps reconciliation validation.
+**Updated:** 2026-10-11
+**Scope:** Current architecture after PLAT-012 R5C and Raspberry Pi host-metrics foundation; Kubernetes/Flux controller telemetry remains pending.
 
 ## Design intent
 
@@ -36,6 +36,11 @@ flowchart TB
         GOTIFY["Gotify 3.1.1"]
         KUMA["Uptime Kuma 2.5.5"]
         ACNG["APT-Cacher-NG"]
+        PROM["Prometheus<br/>48h / 512MB retention"]
+        GRAF["Grafana<br/>provisioned dashboards"]
+        HOSTEXP["Node Exporter<br/>R5C"]
+        HOSTEXP -->|"metrics"| PROM
+        PROM --> GRAF
         PARITY["Source parity check<br/>GitHub / Gitea / local main"]
         KDEPLOY["Scoped Kubernetes deployer<br/>kubectl + X.509 / RBAC"]
         SD["SD state<br/>storage_sdcard"]
@@ -61,6 +66,7 @@ flowchart TB
         CP["Raspberry Pi control plane"]
         W1["Worker 1"]
         W2["Worker 2"]
+        PIEXP["3 native Node Exporters"]
         CP --- W1
         CP --- W2
     end
@@ -93,6 +99,7 @@ flowchart TB
 
     GITEA -.->|"consistent state backup"| RESTIC
     GITEAOCI -.->|"package state backup"| RESTIC
+    PIEXP -->|"R5C scrapes TCP/9100"| PROM
     GH -->|"anonymous desired-state pull"| FLUX
     FLUX -->|"scoped reconcile"| K8S
 ```
@@ -265,9 +272,17 @@ Recovery has two independent ideas:
 
 A second registry is not a substitute for backup, and backup is not a live registry failover mechanism.
 
+## Implemented host observability (PLAT-012 foundation)
+
+The independent R5C runs Prometheus v3.15.0 and Grafana 13.2.2 under Ansible-owned, systemd-guarded Compose lifecycles with SD-backed state. Prometheus binds its API to 127.0.0.1:9090 and has 48-hour/512MB retention; Grafana binds to 10.0.0.50:3300. Prometheus is bounded to 384 MiB and Grafana to 768 MiB. Native, unprivileged Node Exporters (v1.12.1, SHA-256 pinned) publish R5C metrics on 10.0.0.50:9100 and three Pi host metrics on 10.0.0.5/.6/.8:9100, respectively. R5C exporter memory is capped at 96 MiB and Pi exporter memory at 64 MiB per host. R5C SD access grants traverse-only ACLs and denies the exporter access to Grafana secrets.
+
+The R5C and all Pi targets passed live Prometheus acceptance; Pi and management Ansible playbooks passed a repeated execution with `changed=0`. The host exporters use unauthenticated management-LAN HTTP; network access restrictions have not yet been independently demonstrated. See the [host metrics runbook](../runbooks/observability-host-metrics.md) and [Sprint 13 evidence](../sprints/13-observability-host-foundation.md).
+
 ## Remaining architecture gaps
 
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;
 - full fresh-host rebuild;
-- automated observability and alerting for GitOps reconciliation failures.
+- Kubernetes control-plane, workload-state, Flux controller and management-service telemetry;
+- runtime alerting for GitOps reconciliation failures and end-to-end failure exercises;
+- independently verified network restrictions on exporter TCP/9100.

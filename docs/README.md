@@ -10,6 +10,7 @@ This directory separates **current-state documentation** from **historical evide
 - [CI, mirroring and OCI publication](ci.md) — GitHub/Gitea CI behavior, validation contracts, artifact handoff, and GHCR publication.
 - [Engineering evidence ledger](interview/engineering-evidence.md) — interview-oriented proof of implementation and verification.
 - [R5C baseline](architecture/r5c-baseline.md) — original brownfield snapshot plus a current-state delta.
+- [Host telemetry operations](runbooks/observability-host-metrics.md) — dashboards, deployment, verification, rollback and security limits.
 
 ## Target vision and planning (not yet implemented)
 
@@ -50,6 +51,7 @@ This directory separates **current-state documentation** from **historical evide
 - [Sprint 10 — Kubernetes delivery](sprints/10-kubernetes-delivery.md)
 - [Sprint 11 — Deployment failure and rollback](sprints/11-deployment-failure-rollback.md)
 - [Sprint 12 — Flux GitOps](sprints/12-flux-gitops.md)
+- [Sprint 13 — Physical host observability foundation](sprints/13-observability-host-foundation.md)
 
 ## Operational evidence
 
@@ -63,7 +65,7 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Current convergence point
 
-As of 2026-10-09:
+As of 2026-10-11:
 
 - five management-plane services have Ansible-owned guarded lifecycles;
 - GitHub is canonical, protected `main` is enforced, and Gitea is a private one-way pull mirror;
@@ -89,4 +91,6 @@ As of 2026-10-09:
 - live replica drift was automatically corrected back to unchanged Git state;
 - intentional Git replica changes propagated to the cluster;
 - suspended reconciliation allowed drift to persist, and resume restored Git state;
-- Prometheus/Grafana, runtime alerting, backup/restore, OpenBao credential lifecycle and broader operational maturity remain pending.
+- Prometheus/Grafana are running independently on the R5C with guarded SD persistence, explicit retention and RAM budgets, and provisioned R5C/Pi dashboards;
+- all three Pi Node Exporters and R5C exporter serve CPU, RAM, network and filesystem telemetry; Prometheus target health and Ansible second-run convergence were verified;
+- Kubernetes/Flux object-state metrics, expanded service measurements, alerting, backup/restore, OpenBao and broader operational maturity remain pending.
