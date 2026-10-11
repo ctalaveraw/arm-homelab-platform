@@ -97,7 +97,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) ||
 
 cd "$REPO_ROOT"
 
-echo "=== CI DEPENDENCY BOOTSTRAP ==="
+# shellcheck source=scripts/ci/ui.sh
+source scripts/ci/ui.sh
+ci_ui_init
+ci_ui_banner "DEPENDENCY BOOTSTRAP"
 echo "Repository : $REPO_ROOT"
 echo "Git HEAD   : $(git rev-parse --short HEAD)"
 echo "Python     : $(python3 --version)"
@@ -119,6 +122,7 @@ command -v python3 >/dev/null 2>&1 ||
 # Dependency installation below is deliberately NOT inside this condition.
 # -----------------------------------------------------------------------------
 
+ci_ui_stage "VIRTUAL ENVIRONMENT"
 if [[ ! -x .ci-venv/bin/python ]]; then
     echo
     echo "=== CREATE CI VIRTUAL ENVIRONMENT ==="
@@ -149,7 +153,7 @@ fi
 # -----------------------------------------------------------------------------
 
 echo
-echo "=== CONVERGE CI PYTHON DEPENDENCIES ==="
+ci_ui_stage "PINNED PYTHON DEPENDENCIES"
 
 .ci-venv/bin/python -m pip install \
     --disable-pip-version-check \
@@ -170,6 +174,7 @@ echo "=== CONVERGE CI PYTHON DEPENDENCIES ==="
 # GitHub-hosted CI may need bootstrap.sh to install it.
 # -----------------------------------------------------------------------------
 
+ci_ui_stage "SHELLCHECK"
 if command -v shellcheck >/dev/null 2>&1; then
     echo
     echo "ShellCheck already available: $(shellcheck --version | awk '/version:/ {print $2}')"
@@ -194,7 +199,7 @@ fi
 # -----------------------------------------------------------------------------
 
 echo
-echo "=== VERIFY CI TOOLCHAIN ==="
+ci_ui_stage "TOOLCHAIN VERIFICATION"
 
 REQUIRED_EXECUTABLES=(
     .ci-venv/bin/python
@@ -209,7 +214,7 @@ for executable in "${REQUIRED_EXECUTABLES[@]}"; do
         die "Expected CI executable is missing after bootstrap: $executable"
     fi
 
-    printf 'PASS: %s\n' "$executable"
+    ci_ui_pass "$executable"
 done
 
 
@@ -220,7 +225,7 @@ done
 # -----------------------------------------------------------------------------
 
 echo
-echo "=== CI TOOL VERSIONS ==="
+ci_ui_stage "TOOL VERSIONS"
 
 .ci-venv/bin/python --version
 .ci-venv/bin/ansible-playbook --version | head -n 1
@@ -233,4 +238,4 @@ if command -v shellcheck >/dev/null 2>&1; then
 fi
 
 echo
-echo "PASS: CI dependencies converged."
+ci_ui_finish "CI dependencies converged"

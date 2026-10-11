@@ -74,10 +74,7 @@ trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
 # -----------------------------------------------------------------------------
 
 section() {
-    echo
-    echo "================================================================"
-    echo "$1"
-    echo "================================================================"
+    ci_ui_stage "$1"
 }
 
 die() {
@@ -113,7 +110,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) ||
 
 cd "$REPO_ROOT"
 
-echo "=== PLATFORM VALIDATION ==="
+# shellcheck source=scripts/ci/ui.sh
+source scripts/ci/ui.sh
+ci_ui_init
+ci_ui_banner "REPOSITORY VALIDATION"
 echo "Repository   : $REPO_ROOT"
 echo "Architecture : $(uname -m)"
 echo "Git HEAD     : $(git rev-parse --short HEAD)"
@@ -186,12 +186,14 @@ else
     echo
     echo "--- bash -n ---"
     bash -n "${SHELL_FILES[@]}"
+    ci_ui_pass "Bash syntax" "${#SHELL_FILES[@]} scripts"
 
     echo
     echo "--- ShellCheck ---"
 
     if command -v shellcheck >/dev/null 2>&1; then
         shellcheck "${SHELL_FILES[@]}"
+        ci_ui_pass "ShellCheck" "${#SHELL_FILES[@]} scripts"
     elif [[ "${CI:-false}" == "true" ]]; then
         die "ShellCheck is required in CI but is unavailable."
     else
@@ -218,6 +220,7 @@ section "PYTHON AND YAML PARSE VALIDATION"
 
 "$PYTHON" <<'PY'
 import ast
+import os
 import subprocess
 from pathlib import Path
 
@@ -253,7 +256,8 @@ for path in tracked:
         )
 
         python_count += 1
-        print(f"PASS Python parse: {path}")
+        if os.environ.get("CI_VERBOSE") == "true":
+            print(f"PASS Python parse: {path}")
 
     # Parse all tracked YAML, including:
     #   - GitHub Actions
@@ -265,13 +269,15 @@ for path in tracked:
             list(yaml.safe_load_all(stream))
 
         yaml_count += 1
-        print(f"PASS YAML parse: {path}")
+        if os.environ.get("CI_VERBOSE") == "true":
+            print(f"PASS YAML parse: {path}")
 
 
 print()
 print(f"Parsed Python guards : {python_count}")
 print(f"Parsed YAML files    : {yaml_count}")
 PY
+ci_ui_pass "Python/YAML parsing"
 
 
 # -----------------------------------------------------------------------------
@@ -296,6 +302,7 @@ if (( ${#PYTHON_FILES[@]} == 0 )); then
 else
     echo "Python files: ${#PYTHON_FILES[@]}"
     "$RUFF" check "${PYTHON_FILES[@]}"
+    ci_ui_pass "Ruff" "${#PYTHON_FILES[@]} files"
 fi
 
 
@@ -346,6 +353,7 @@ else
         "$YAMLLINT" \
             -c .yamllint.yml \
             "${YAMLLINT_FILES[@]}"
+        ci_ui_pass "yamllint" "${#YAMLLINT_FILES[@]} files"
     fi
 fi
 
@@ -380,6 +388,7 @@ if (( ${#GITHUB_WORKFLOWS[@]} == 0 )); then
 else
     echo "GitHub workflows: ${#GITHUB_WORKFLOWS[@]}"
     "$ACTIONLINT" "${GITHUB_WORKFLOWS[@]}"
+    ci_ui_pass "actionlint" "${#GITHUB_WORKFLOWS[@]} workflows"
 fi
 
 
@@ -398,10 +407,15 @@ fi
 
 section "COMPOSE SAFETY CONTRACT TESTS"
 
+test_verbosity=-q
+if [[ "${CI_VERBOSE:-false}" == "true" ]]; then
+    test_verbosity=-v
+fi
 "$PYTHON" -m unittest discover \
     -s scripts/ci/tests \
     -p 'test_*.py' \
-    -v
+    "$test_verbosity"
+ci_ui_pass "Python regression tests"
 
 
 # -----------------------------------------------------------------------------
@@ -430,7 +444,7 @@ echo "Playbooks: ${#ANSIBLE_PLAYBOOKS[@]}"
 
 for playbook in "${ANSIBLE_PLAYBOOKS[@]}"; do
     echo
-    echo "--- Checking: $playbook ---"
+    ci_ui_note "Ansible: $playbook"
 
     if [[ "$playbook" == "ansible/playbooks/10-pi-exporters.yml" ]]; then
         "$ANSIBLE" \
@@ -442,6 +456,7 @@ for playbook in "${ANSIBLE_PLAYBOOKS[@]}"; do
             --syntax-check \
             "$playbook"
     fi
+    ci_ui_pass "Ansible syntax" "$playbook"
 done
 
 
@@ -503,12 +518,13 @@ echo "Compose manifests: ${#COMPOSE_MANIFESTS[@]}"
 
 for manifest in "${COMPOSE_MANIFESTS[@]}"; do
     echo
-    echo "--- Rendering: $manifest ---"
+    ci_ui_note "Compose: $manifest"
 
     "${COMPOSE[@]}" \
         --env-file /dev/null \
         -f "$manifest" \
         config --quiet
+    ci_ui_pass "Compose render" "$manifest"
 done
 
 
@@ -516,7 +532,5 @@ done
 # Final result
 # -----------------------------------------------------------------------------
 
-section "VALIDATION COMPLETE"
-
-echo "PASS: All platform validation checks completed."
+ci_ui_finish "All platform validation checks completed"
 echo "Git HEAD: $(git rev-parse --short HEAD)"
