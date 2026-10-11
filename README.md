@@ -2,11 +2,11 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-09):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven.
+**Status (2026-10-11):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven. The independent R5C now runs bounded Prometheus and Grafana services; native exporters report CPU, memory, network and filesystem metrics for the R5C and all three physical Kubernetes hosts. Kubernetes object-state/Flux controller metrics, comprehensive service telemetry and runtime alerting remain planned.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
-**Future direction (planning only):** grow the proven ARM64 platform into an [ARM-first, portable DevSecOps reference architecture](docs/vision/platform-charter.md) with independently recoverable trust, risk-gated software supply-chain promotion, approved local operations, observability and a rehearsed recovery goal of **4h RTO / 1h RPO** (targets, not achieved guarantees). The [93-objective backlog register](docs/planning/objectives.md) and [phased roadmap](docs/roadmap.md) explicitly distinguish completed work from future evaluation. [Approved design gates](docs/planning/design-gates.md) capture the decisions; the planning PR changes no infrastructure.
+**Future direction (planning only):** grow the proven ARM64 platform into an [ARM-first, portable DevSecOps reference architecture](docs/vision/platform-charter.md) with independently recoverable trust, risk-gated software supply-chain promotion, approved local operations, expanded observability and a rehearsed recovery goal of **4h RTO / 1h RPO** (targets, not achieved guarantees). The [93-objective backlog register](docs/planning/objectives.md) and [phased roadmap](docs/roadmap.md) explicitly distinguish completed work from future evaluation. [Approved design gates](docs/planning/design-gates.md) capture the decisions; the planning PR changes no infrastructure.
 
 ## Current architecture
 
@@ -31,6 +31,11 @@ flowchart LR
         GOTIFY["Gotify"]
         KUMA["Uptime Kuma"]
         ACNG["APT-Cacher-NG"]
+        PROM["Prometheus<br/>48h / 512MB retention"]
+        GRAF["Grafana<br/>provisioned host dashboards"]
+        R5CEXP["Node Exporter<br/>R5C host"]
+        PROM --> GRAF
+        R5CEXP -->|"scrape"| PROM
         SD["SD-backed state<br/>/srv/storage/state"]
         GITEA --> SD
         RUNNER --> SD
@@ -46,6 +51,7 @@ flowchart LR
     subgraph COMPUTE["Existing kubeadm Raspberry Pi cluster"]
         CP["1 control-plane"]
         WK["2 workers"]
+        PIEXP["3 native Node Exporters"]
     end
 
     GREG["Gitea OCI registry<br/>local distribution"]
@@ -68,6 +74,7 @@ flowchart LR
 
     GHCR -->|"verified artifact replication"| GREG
     GHCR -->|"digest pull"| COMPUTE
+    PIEXP -->|"metrics scrape from R5C"| PROM
     GH -->|"desired-state pull"| FLUX
     FLUX -->|"scoped reconcile"| COMPUTE
     GREG -.->|"future local Kubernetes pull"| COMPUTE
@@ -89,6 +96,8 @@ Ansible owns the host baseline plus guarded systemd/Compose lifecycles for:
 - Gotify
 - Uptime Kuma
 - APT-Cacher-NG
+- Prometheus and Grafana (bounded, SD-backed, guarded and Ansible/systemd-managed)
+- a native non-root Node Exporter on the R5C; three additional exporters on physical Pi nodes
 
 Stateful services use SD-backed persistent storage under `/srv/storage/state/services/<service>`. Startup guards verify the actual ext4 filesystem, reject unsafe path redirection, validate rendered Compose bindings, and fail closed instead of silently writing state to eMMC.
 
@@ -193,7 +202,7 @@ The cluster still contains earlier hand-configured workloads, but `platform-hell
 - TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
 - Fresh-host reconstruction is not yet fully proven.
 - Off-device application backup/restore is not yet proven.
-- Automated GitOps/runtime observability and alerting remain pending.
+- Kubernetes object-state, Flux reconciliation, service-level telemetry and automated runtime alerting remain pending. Host-level CPU/memory/network/filesystem metrics are implemented.
 
 ## Running repository validation
 
@@ -220,6 +229,10 @@ bash scripts/ci/test-hello.sh "$IMAGE"
 04-gotify.yml
 05-uptime-kuma.yml
 06-apt-cacher-ng.yml
+07-prometheus.yml
+08-grafana.yml
+09-node-exporter.yml
+10-pi-exporters.yml  # dedicated Pi SSH-alias inventory
 ```
 
 The management baseline also includes the `kubernetes_client` and `flux_client` roles, which install and verify pinned ARM64 Kubernetes and Flux clients used by the R5C.
@@ -243,6 +256,8 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [PLAT-009 Kubernetes delivery sprint](docs/sprints/10-kubernetes-delivery.md)
 - [PLAT-010 failure and rollback sprint](docs/sprints/11-deployment-failure-rollback.md)
 - [PLAT-011 Flux GitOps sprint](docs/sprints/12-flux-gitops.md)
+- [PLAT-012 host observability foundation](docs/sprints/13-observability-host-foundation.md)
+- [Host metrics operations runbook](docs/runbooks/observability-host-metrics.md)
 - [ADR-0007 — Digest-pinned Kubernetes image pulls](docs/adr/0007-digest-pinned-kubernetes-image-pulls.md)
 - [ADR-0008 — External Kubernetes deployer identity](docs/adr/0008-external-kubernetes-deployer-identity.md)
 - [ADR-0009 — Flux GitOps trust boundary](docs/adr/0009-flux-gitops-trust-boundary.md)

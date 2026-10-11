@@ -1,0 +1,26 @@
+[Unit]
+Description=Prometheus Node Exporter - R5C host metrics
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=node-exporter
+Group=node-exporter
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=10.0.0.50:9100
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+LockPersonality=true
+MemoryMax=96M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

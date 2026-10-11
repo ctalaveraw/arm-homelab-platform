@@ -1,0 +1,25 @@
+[Unit]
+Description=Prometheus - SD-backed observability service
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/prometheus
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/observability
+Environment=STATE_SERVICES_ROOT=/srv/storage/state/services
+
+ExecStartPre=/usr/local/sbin/prometheus-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /dev/null -f /srv/platform/compose/observability/compose.yml up -d prometheus
+
+ExecStop=/usr/bin/docker-compose --env-file /dev/null -f /srv/platform/compose/observability/compose.yml stop prometheus
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

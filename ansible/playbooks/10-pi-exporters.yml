@@ -1,0 +1,147 @@
+---
+- name: Deploy bounded native Node Exporter to physical Pi nodes
+  hosts: pi_nodes
+  gather_facts: true
+  become: true
+  serial: 1
+
+  tasks:
+    - name: Verify physical node identity and architecture
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['architecture'] == 'aarch64'
+          - ansible_facts['distribution'] == 'Debian'
+          - ansible_facts['hostname'] == exporter_hostname
+          - exporter_address in ansible_facts['all_ipv4_addresses']
+
+    - name: Verify Kubernetes kubelet is already active
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/systemctl
+          - is-active
+          - kubelet.service
+      register: pi_kubelet
+      changed_when: false
+      failed_when: pi_kubelet.stdout | trim != 'active'
+
+    - name: Create dedicated exporter system group
+      ansible.builtin.group:
+        name: node-exporter
+        system: true
+
+    - name: Create dedicated exporter system account
+      ansible.builtin.user:
+        name: node-exporter
+        group: node-exporter
+        system: true
+        create_home: false
+        home: /nonexistent
+        shell: /usr/sbin/nologin
+
+    - name: Create versioned binary directory
+      ansible.builtin.file:
+        path: /opt/arm-platform
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create package cache directory
+      ansible.builtin.file:
+        path: /var/cache/arm-platform
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Download checksum-verified ARM64 exporter
+      ansible.builtin.get_url:
+        url: >-
+          {{ 'https://github.com/prometheus/node_exporter/releases/download/'
+          ~ 'v1.12.1/node_exporter-1.12.1.linux-arm64.tar.gz' }}
+        dest: /var/cache/arm-platform/node_exporter-1.12.1.linux-arm64.tar.gz
+        checksum: sha256:ad35b605f9954b9f1ffddf5ba054bdc5a98d790b9eae5291e1eeb83f1ecbd0e7
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Extract verified versioned binary
+      ansible.builtin.unarchive:
+        src: /var/cache/arm-platform/node_exporter-1.12.1.linux-arm64.tar.gz
+        dest: /opt/arm-platform
+        remote_src: true
+        creates: /opt/arm-platform/node_exporter-1.12.1.linux-arm64/node_exporter
+        owner: root
+        group: root
+
+    - name: Install native exporter executable
+      ansible.builtin.copy:
+        src: /opt/arm-platform/node_exporter-1.12.1.linux-arm64/node_exporter
+        dest: /usr/local/bin/node_exporter
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0755'
+      notify: Restart Pi exporter
+
+    - name: Install restricted exporter systemd service
+      ansible.builtin.template:
+        src: "{{ playbook_dir | dirname }}/templates/pi-node-exporter.service.j2"
+        dest: /etc/systemd/system/node-exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - Reload Pi systemd
+        - Restart Pi exporter
+
+    - name: Apply updated exporter configuration
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start Pi exporter
+      ansible.builtin.systemd_service:
+        name: node-exporter.service
+        enabled: true
+        state: started
+
+    - name: Verify native exporter metrics response
+      ansible.builtin.uri:
+        url: "http://{{ exporter_address }}:9100/metrics"
+        method: GET
+        status_code: 200
+        return_content: true
+        use_proxy: false
+        timeout: 10
+      register: pi_metrics
+      until: pi_metrics.status | default(0) == 200
+      retries: 10
+      delay: 2
+      changed_when: false
+
+    - name: Verify actual CPU memory and root filesystem metrics
+      ansible.builtin.assert:
+        that:
+          - "'node_cpu_seconds_total' in pi_metrics.content"
+          - "'node_memory_MemTotal_bytes' in pi_metrics.content"
+          - "'node_filesystem_avail_bytes' in pi_metrics.content"
+          - "'node_exporter_build_info' in pi_metrics.content"
+
+    - name: Verify kubelet remains active
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/systemctl
+          - is-active
+          - kubelet.service
+      register: pi_kubelet_after
+      changed_when: false
+      failed_when: pi_kubelet_after.stdout | trim != 'active'
+
+  handlers:
+    - name: Reload Pi systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Restart Pi exporter
+      ansible.builtin.systemd_service:
+        name: node-exporter.service
+        state: restarted

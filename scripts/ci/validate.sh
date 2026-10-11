@@ -432,9 +432,16 @@ for playbook in "${ANSIBLE_PLAYBOOKS[@]}"; do
     echo
     echo "--- Checking: $playbook ---"
 
-    "$ANSIBLE" \
-        --syntax-check \
-        "$playbook"
+    if [[ "$playbook" == "ansible/playbooks/10-pi-exporters.yml" ]]; then
+        "$ANSIBLE" \
+            -i ansible/inventories/pi-nodes.ini \
+            --syntax-check \
+            "$playbook"
+    else
+        "$ANSIBLE" \
+            --syntax-check \
+            "$playbook"
+    fi
 done
 
 

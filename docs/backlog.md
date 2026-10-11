@@ -67,7 +67,12 @@
 ## NOW — Platform maturity
 
 - [x] PLAT-011: Flux GitOps reconciliation
-- [ ] PLAT-012: Prometheus and Grafana
+- [ ] PLAT-012: Prometheus and Grafana (host-foundation implementation verified; K8s/Flux/service metrics and final failure/security acceptance pending)
+  - [x] R5C Prometheus/Grafana with guarded SD state, explicit retention and memory budgets
+  - [x] R5C and three physical Pi Node Exporters, provisioned dashboards and live acceptance
+  - [x] Repeat Ansible convergence with zero changes across Pi and management targets
+  - [ ] Kubernetes/Flux runtime metrics and management-service health coverage
+  - [ ] Network isolation, failing-scrape and resource-budget exercises; final PLAT-012 closeout
 - [ ] PLAT-013: Runtime alerting to Gotify
 - [ ] PLAT-014: Ansible bootstrap of fourth Pi
 - [ ] PLAT-015: Reproducible kubeadm node join

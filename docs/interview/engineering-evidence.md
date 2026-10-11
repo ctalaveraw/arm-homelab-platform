@@ -751,3 +751,34 @@ Verification:
 Trade-offs:
 Evidence:
 What I learned:
+
+
+## EVIDENCE-018: R5C and Raspberry Pi Host Observability Foundation
+
+Date: 2026-10-11
+
+Implementation:
+- Ansible-owned, guarded SD-backed Prometheus and Grafana on the independent R5C.
+- Prometheus v3.15.0 (48h/512MB retention, 384 MiB memory cap) and Grafana 13.2.2 (768 MiB cap).
+- Native SHA-256-pinned Node Exporter v1.12.1 on R5C and three physical Raspberry Pis.
+- Dedicated unprivileged service identities, bounded tasks/memory and R5C traverse-only SD ACL with secret access denied.
+- Provisioned platform, R5C and multi-Pi dashboards; an explicit `pi-nodes` scrape job.
+- Dedicated alias-based Ansible Pi inventory and serial deployment.
+
+Physical verification:
+- R5C CPU, RAM, SD available capacity and no filesystem-device error observed through Prometheus.
+- All three Pi scrape targets returned `up=1`, with CPU, memory, root filesystem and filesystem-error metrics checked.
+- All three Pi exporters verified with 64 MiB systemd limits and active kubelets.
+- Pi Ansible second run: 14 tasks per Pi, each `changed=0 failed=0`.
+- R5C Prometheus/Grafana second run: `ok=38 changed=0 failed=0`.
+- Canonical repository validation: 30 Python regression tests passed before pushing commit `8a46ceb`.
+
+Limits:
+- Exporter HTTP TCP/9100 management-network isolation has not yet been independently verified.
+- Kubernetes API/workload state, Flux controller telemetry, detailed service coverage and runtime alerts are separate work.
+- This is not proof of full PLAT-012 completion or of independent recovery.
+
+Evidence:
+- `docs/sprints/13-observability-host-foundation.md`
+- `docs/runbooks/observability-host-metrics.md`
+- Commits `dfa33e4`, `2b5a1e6`, `9b19672`, `bf0c5aa`, `8a46ceb`.
