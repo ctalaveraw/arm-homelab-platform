@@ -1,0 +1,22 @@
+[Unit]
+Description=Grafana - guarded SD-backed observability service
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/grafana /srv/storage/state/services/grafana-auth
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/platform/compose/observability
+Environment=STATE_SERVICES_ROOT=/srv/storage/state/services
+
+ExecStartPre=/usr/local/sbin/grafana-check-storage
+ExecStart=/usr/bin/docker-compose --env-file /dev/null -f /srv/platform/compose/observability/compose.yml up -d grafana
+ExecStop=/usr/bin/docker-compose --env-file /dev/null -f /srv/platform/compose/observability/compose.yml stop grafana
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target
