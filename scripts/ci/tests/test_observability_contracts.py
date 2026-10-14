@@ -281,6 +281,39 @@ class ObservabilityContractTests(unittest.TestCase):
         positions = [position(name) for name in sequence]
         self.assertEqual(positions, sorted(positions))
 
+    def test_observer_render_normalization_boundary(self):
+        guard = (OBS / "check-storage.py").read_text()
+
+        self.assertIn(
+            'get("create_host_path", False) is not False',
+            guard,
+        )
+        self.assertIn(
+            "prometheus_source.count(required) != 1",
+            guard,
+        )
+        self.assertIn(
+            "Observer source must explicitly prohibit "
+            "host-path creation",
+            guard,
+        )
+
+        for mutation in ("enabled", "omitted"):
+            with self.subTest(mutation=mutation):
+                bad = copy.deepcopy(self.config)
+                observer = next(
+                    v for v in bad["services"]["prometheus"]["volumes"]
+                    if v["target"] == "/run/secrets/platform-observer"
+                )
+
+                if mutation == "enabled":
+                    observer["bind"]["create_host_path"] = True
+                else:
+                    del observer["bind"]["create_host_path"]
+
+                with self.assertRaises(ValueError):
+                    validate_prometheus(bad)
+
     def test_systemd_and_ansible_guard_boundary(self):
         unit = (OBS / "prometheus.service").read_text()
 

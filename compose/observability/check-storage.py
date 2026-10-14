@@ -175,9 +175,33 @@ if (
     or observer_mount[0].get("source") != str(AUTH)
     or observer_mount[0].get("type") != "bind"
     or observer_mount[0].get("read_only") is not True
-    or observer_mount[0].get("bind", {}).get("create_host_path") is not False
+    or observer_mount[0].get("bind", {}).get("create_host_path", False) is not False
 ):
     fail("Unsafe observer credential bind mount")
+
+# Compose can erase explicit false values when rendering JSON.
+# Enforce the original, exact long-form mount declaration too.
+# Keep this deliberately strict: changes in source shape must be
+# reviewed rather than silently relaxing the no-create invariant.
+source_text = COMPOSE.read_text(encoding="utf-8")
+marker = "\n  prometheus:\n"
+required = (
+    "      - type: bind\n"
+    "        source: ${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/prometheus-auth\n"
+    "        target: /run/secrets/platform-observer\n"
+    "        read_only: true\n"
+    "        bind:\n"
+    "          create_host_path: false\n"
+)
+
+if source_text.count(marker) != 1:
+    fail("Cannot locate unique Prometheus source declaration")
+
+prometheus_source = source_text.split(marker, 1)[1]
+
+if prometheus_source.count(required) != 1:
+    fail("Observer source must explicitly prohibit host-path creation")
+
 ports = service.get("ports", [])
 
 if (
