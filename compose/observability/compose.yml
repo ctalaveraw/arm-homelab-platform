@@ -70,6 +70,7 @@ services:
     restart: "no"
 
     user: "65534:65534"
+    group_add: ["29012"]
 
     security_opt:
       - "no-new-privileges:true"
@@ -104,6 +105,13 @@ services:
       - type: bind
         source: ./prometheus.yml
         target: /etc/prometheus/prometheus.yml
+        read_only: true
+        bind:
+          create_host_path: false
+
+      - type: bind
+        source: ${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/prometheus-auth
+        target: /run/secrets/platform-observer
         read_only: true
         bind:
           create_host_path: false

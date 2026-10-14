@@ -29,3 +29,45 @@ scrape_configs:
         labels:
           node: ci-controller-04
           role: worker
+
+  - job_name: kubernetes-apiserver
+    scheme: https
+    scrape_interval: 60s
+    scrape_timeout: 20s
+    metrics_path: /metrics
+    sample_limit: 5000
+    tls_config: &observer_tls
+      ca_file: /run/secrets/platform-observer/ca.crt
+      cert_file: /run/secrets/platform-observer/client.crt
+      key_file: /run/secrets/platform-observer/client.key
+    static_configs:
+      - targets: [10.0.0.5:6443]
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        action: keep
+        regex: 'apiserver_request_(total|duration_seconds_(sum|count))|apiserver_current_inflight_requests'
+
+  - job_name: flux-source-controller
+    scheme: https
+    scrape_interval: 60s
+    scrape_timeout: 20s
+    metrics_path: /api/v1/namespaces/flux-system/services/http:flux-source-metrics:metrics/proxy/metrics
+    sample_limit: 1500
+    tls_config: *observer_tls
+    static_configs:
+      - targets: [10.0.0.5:6443]
+    metric_relabel_configs: &flux_keep
+      - source_labels: [__name__]
+        action: keep
+        regex: 'gotk_.*|controller_runtime_reconcile_(total|errors_total)|workqueue_depth|go_goroutines'
+
+  - job_name: flux-kustomize-controller
+    scheme: https
+    scrape_interval: 60s
+    scrape_timeout: 20s
+    metrics_path: /api/v1/namespaces/flux-system/services/http:flux-kustomize-metrics:metrics/proxy/metrics
+    sample_limit: 1500
+    tls_config: *observer_tls
+    static_configs:
+      - targets: [10.0.0.5:6443]
+    metric_relabel_configs: *flux_keep

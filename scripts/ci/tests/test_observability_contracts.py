@@ -11,6 +11,8 @@ from test_compose_contracts import SERVICES
 ROOT = Path(__file__).resolve().parents[3]
 OBS = ROOT / "compose/observability"
 STATE = "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/prometheus"
+AUTH = "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/prometheus-auth"
+CREDENTIALS = "/run/secrets/platform-observer"
 
 
 def require(condition, message):
@@ -34,6 +36,7 @@ def validate_prometheus(config):
     for key, expected in {
         "restart": "no",
         "user": "65534:65534",
+        "group_add": ["29012"],
         "read_only": True,
         "cap_drop": ["ALL"],
         "security_opt": ["no-new-privileges:true"],
@@ -54,18 +57,19 @@ def validate_prometheus(config):
     )
 
     bindings = service.get("volumes", [])
-    require(len(bindings) == 2, "Unexpected volume count")
+    require(len(bindings) == 3, "Unexpected volume count")
 
     by_target = {
         volume["target"]: volume
         for volume in bindings
     }
 
-    require(len(by_target) == 2, "Duplicate volume target")
+    require(len(by_target) == 3, "Duplicate volume target")
     require(
         set(by_target) == {
             "/prometheus",
             "/etc/prometheus/prometheus.yml",
+            CREDENTIALS,
         },
         "Unexpected volume targets",
     )
@@ -73,6 +77,7 @@ def validate_prometheus(config):
     for target, source in {
         "/prometheus": STATE,
         "/etc/prometheus/prometheus.yml": "./prometheus.yml",
+        CREDENTIALS: AUTH,
     }.items():
         binding = by_target[target]
 
@@ -96,6 +101,10 @@ def validate_prometheus(config):
         "Config must be read-only",
     )
 
+    require(
+        by_target[CREDENTIALS].get("read_only") is True,
+        "Observer mount must be read-only",
+    )
     args = set(service.get("command", []))
 
     require(
@@ -133,6 +142,8 @@ class ObservabilityContractTests(unittest.TestCase):
         changes = {
             "docker restart bypass": ("restart", "always"),
             "root process": ("user", "0:0"),
+            "missing observer group": ("group_add", []),
+            "wrong observer group": ("group_add", ["65534"]),
             "privileged runtime": ("privileged", True),
             "lost capability restriction": ("cap_drop", []),
             "lost read-only root": ("read_only", False),
@@ -159,6 +170,9 @@ class ObservabilityContractTests(unittest.TestCase):
                 "read_only",
                 False,
             ),
+            (CREDENTIALS, "read_only", False),
+            (CREDENTIALS, "source", "/tmp/untrusted"),
+            (CREDENTIALS, "bind", {}),
         ]:
             with self.subTest(target=target, field=field):
                 bad = copy.deepcopy(self.config)
@@ -173,6 +187,99 @@ class ObservabilityContractTests(unittest.TestCase):
 
                 with self.assertRaises(ValueError):
                     validate_prometheus(bad)
+
+    def test_observer_scrape_contract(self):
+        jobs = yaml.safe_load((OBS / "prometheus.yml").read_text())["scrape_configs"]
+        by_name = {job["job_name"]: job for job in jobs}
+        paths = {
+            "kubernetes-apiserver": "/metrics",
+            "flux-source-controller": (
+                "/api/v1/namespaces/flux-system/services/"
+                "http:flux-source-metrics:metrics/proxy/metrics"
+            ),
+            "flux-kustomize-controller": (
+                "/api/v1/namespaces/flux-system/services/"
+                "http:flux-kustomize-metrics:metrics/proxy/metrics"
+            ),
+        }
+        self.assertEqual(set(by_name), {
+            "prometheus", "r5c", "pi-nodes", *paths,
+        })
+        for name, path in paths.items():
+            with self.subTest(job=name):
+                job = by_name[name]
+                self.assertEqual(job["scheme"], "https")
+                self.assertEqual(job["metrics_path"], path)
+                self.assertEqual(job["scrape_interval"], "60s")
+                self.assertEqual(job["scrape_timeout"], "20s")
+                self.assertLessEqual(job["sample_limit"], 5000)
+                self.assertEqual(job["static_configs"], [{"targets": ["10.0.0.5:6443"]}])
+                self.assertEqual(job["tls_config"], {
+                    "ca_file": CREDENTIALS + "/ca.crt",
+                    "cert_file": CREDENTIALS + "/client.crt",
+                    "key_file": CREDENTIALS + "/client.key",
+                })
+                self.assertEqual(len(job["metric_relabel_configs"]), 1)
+                rule = job["metric_relabel_configs"][0]
+                self.assertEqual(rule["action"], "keep")
+                self.assertEqual(rule["source_labels"], ["__name__"])
+                self.assertIsNone(re.fullmatch(rule["regex"], "suspicious_metric"))
+                if name == "kubernetes-apiserver":
+                    self.assertIsNone(re.fullmatch(
+                        rule["regex"], "apiserver_request_duration_seconds_bucket"
+                    ))
+                else:
+                    self.assertIsNotNone(re.fullmatch(
+                        rule["regex"], "gotk_reconcile_duration_seconds_bucket"
+                    ))
+
+    def test_observer_guard_and_provisioning_contract(self):
+        guard = (OBS / "check-storage.py").read_text()
+        for expected in ("AUTH_GID = 29012", "0o640", "0o750", "sslclient",
+                         '"-checkend", "86400"', '"/run/secrets/platform-observer"'):
+            self.assertIn(expected, guard)
+        playbook = yaml.safe_load((ROOT / "ansible/playbooks/07-prometheus.yml").read_text())
+        tasks = playbook[1]["tasks"]
+        self.assertTrue(any(t.get("ansible.builtin.group", {}).get("gid") == 29012
+                            for t in tasks))
+        copies = [t for t in tasks if t.get("name") == "Install protected observer runtime copies"]
+        self.assertEqual(len(copies), 1)
+        task = copies[0]
+        self.assertTrue(task["no_log"])
+        self.assertEqual(task["ansible.builtin.copy"]["mode"], "0640")
+        self.assertTrue(task["ansible.builtin.copy"]["remote_src"])
+
+    def test_prometheus_handler_ordering(self):
+        playbook = yaml.safe_load(
+            (ROOT / "ansible/playbooks/07-prometheus.yml").read_text()
+        )
+        tasks = playbook[1]["tasks"]
+        names = [task.get("name") for task in tasks]
+
+        def position(name):
+            return names.index(name)
+
+        self.assertEqual(
+            sum(
+                t.get("ansible.builtin.meta") == "flush_handlers"
+                for t in tasks
+            ),
+            1,
+        )
+
+        sequence = [
+            "Install protected observer runtime copies",
+            "Install Prometheus storage guard",
+            "Verify runtime observer credentials with storage guard",
+            "Track Prometheus scrape configuration",
+            "Track Prometheus Compose deployment configuration",
+            "Apply pending Prometheus restart",
+            "Enable and start guarded Prometheus",
+            "Verify Prometheus HTTP readiness",
+        ]
+
+        positions = [position(name) for name in sequence]
+        self.assertEqual(positions, sorted(positions))
 
     def test_systemd_and_ansible_guard_boundary(self):
         unit = (OBS / "prometheus.service").read_text()
