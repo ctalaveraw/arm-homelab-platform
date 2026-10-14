@@ -90,6 +90,8 @@ for filename in (
     SOURCE / "dashboards/platform-overview.json",
     SOURCE / "dashboards/r5c-host.json",
     SOURCE / "dashboards/pi-nodes.json",
+    SOURCE / "dashboards/kubernetes-api.json",
+    SOURCE / "dashboards/flux-reconciliation.json",
 ):
     if filename.is_symlink() or not filename.is_file():
         fail(f"Missing or unsafe provisioning file: {filename}")

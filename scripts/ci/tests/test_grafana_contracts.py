@@ -174,6 +174,45 @@ class GrafanaContractTests(unittest.TestCase):
         )
 
 
+    def test_kubernetes_flux_dashboards(self):
+        expected = {
+            "kubernetes-api.json": ("arm-kubernetes-api", 9),
+            "flux-reconciliation.json": ("arm-flux-reconciliation", 10),
+        }
+        guard = (BASE / "grafana-check-storage.py").read_text()
+        playbook = (
+            ROOT / "ansible/playbooks/08-grafana.yml"
+        ).read_text()
+
+        for filename, (uid, count) in expected.items():
+            with self.subTest(dashboard=filename):
+                doc = json.loads(
+                    (BASE / "grafana/dashboards" / filename).read_text()
+                )
+                self.assertEqual(doc["uid"], uid)
+                self.assertEqual(doc["refresh"], "1m")
+                self.assertEqual(len(doc["panels"]), count)
+                self.assertEqual(
+                    len({p["id"] for p in doc["panels"]}), count
+                )
+                self.assertIn(filename, guard)
+                self.assertEqual(playbook.count(
+                    "/grafana/dashboards/" + filename
+                ), 2)
+
+                for panel in doc["panels"]:
+                    self.assertEqual(
+                        panel["datasource"]["uid"], "prometheus"
+                    )
+                    self.assertEqual(len(panel["targets"]), 1)
+                    expression = panel["targets"][0]["expr"]
+                    self.assertIn("job=", expression)
+                    self.assertLessEqual(
+                        panel["gridPos"]["x"]
+                        + panel["gridPos"]["w"], 24
+                    )
+                    self.assertNotIn("cluster-admin", expression)
+
     def test_home_dashboard_configuration(self):
         environment = self.service["environment"]
         self.assertEqual(
