@@ -112,6 +112,39 @@
         creates: /srv/storage/state/services/grafana-auth/admin-password
       no_log: true
 
+    - name: Inspect Grafana bind-mounted configuration directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+      loop:
+        - /srv/platform/compose/observability/grafana/provisioning
+        - /srv/platform/compose/observability/grafana/provisioning/dashboards
+        - /srv/platform/compose/observability/grafana/provisioning/datasources
+        - /srv/platform/compose/observability/grafana/dashboards
+      register: grafana_config_directories
+
+    - name: Reject missing or symlinked Grafana configuration directories
+      ansible.builtin.assert:
+        that:
+          - item.stat.isdir | default(false)
+          - not (item.stat.islnk | default(false))
+      loop: "{{ grafana_config_directories.results }}"
+
+    - name: Enforce Grafana configuration directory traversal
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        follow: false
+        owner: runner
+        group: runner
+        mode: '0755'
+      loop:
+        - /srv/platform/compose/observability/grafana/provisioning
+        - /srv/platform/compose/observability/grafana/provisioning/dashboards
+        - /srv/platform/compose/observability/grafana/provisioning/datasources
+        - /srv/platform/compose/observability/grafana/dashboards
+      notify: Restart Grafana
+
     - name: Inspect Grafana provisioning files without following links
       ansible.builtin.stat:
         path: "{{ item }}"

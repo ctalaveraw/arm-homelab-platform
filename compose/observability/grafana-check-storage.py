@@ -84,6 +84,24 @@ if (
 ):
     fail("Admin secret ownership, permissions or length is unsafe")
 
+def verify_grafana_source_directory(directory):
+    """Require safe traversal for UID 472 inside a bind-mounted tree."""
+    try:
+        info = directory.lstat()
+    except OSError:
+        fail(f"Missing Grafana config directory: {directory}")
+    if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o755:
+        fail(f"Grafana config directory must be 0755: {directory}")
+
+
+for directory in (
+    SOURCE / "provisioning",
+    SOURCE / "provisioning/dashboards",
+    SOURCE / "provisioning/datasources",
+    SOURCE / "dashboards",
+):
+    verify_grafana_source_directory(directory)
+
 for filename in (
     SOURCE / "provisioning/datasources/prometheus.yml",
     SOURCE / "provisioning/dashboards/platform.yml",
