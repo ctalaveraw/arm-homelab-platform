@@ -1,7 +1,7 @@
 # Platform Architecture Overview
 
-**Updated:** 2026-10-11
-**Scope:** Current architecture after PLAT-012 R5C and Raspberry Pi host-metrics foundation; Kubernetes/Flux controller telemetry remains pending.
+**Updated:** 2026-10-16
+**Scope:** Current architecture after PLAT-012 host metrics plus scoped Kubernetes API server and Flux controller telemetry; workloads, alerts and recovery hardening remain incomplete.
 
 ## Design intent
 
@@ -100,6 +100,7 @@ flowchart TB
     GITEA -.->|"consistent state backup"| RESTIC
     GITEAOCI -.->|"package state backup"| RESTIC
     PIEXP -->|"R5C scrapes TCP/9100"| PROM
+    CP -->|"read-only TLS API / Flux metrics proxy"| PROM
     GH -->|"anonymous desired-state pull"| FLUX
     FLUX -->|"scoped reconcile"| K8S
 ```
@@ -278,11 +279,17 @@ The independent R5C runs Prometheus v3.15.0 and Grafana 13.2.2 under Ansible-own
 
 The R5C and all Pi targets passed live Prometheus acceptance; Pi and management Ansible playbooks passed a repeated execution with `changed=0`. The host exporters use unauthenticated management-LAN HTTP; network access restrictions have not yet been independently demonstrated. See the [host metrics runbook](../runbooks/observability-host-metrics.md) and [Sprint 13 evidence](../sprints/13-observability-host-foundation.md).
 
+## Implemented Kubernetes and Flux telemetry (PLAT-012 extension)
+
+Prometheus remains out-of-cluster on the R5C, using the control-plane API at `10.0.0.5:6443` for its own metrics and API-mediated proxying of the two Flux metrics Services. A dedicated `CN=platform-observer` certificate and bounded RBAC are independent from the cluster-admin/deployer credentials and ordinary Flux application authority. Bootstrap remains explicitly approved outside application GitOps. Existing Pi host metrics use the separate Node Exporter access path.
+
+G4 verified eight healthy/fresh targets (3 Pi, 1 R5C, 1 Prometheus, 1 Kubernetes API, 2 Flux), non-root monitoring containers, limits, two zero-change Ansible convergences, anonymous Grafana catalog denial and an authenticated five-dashboard catalog. These snapshots do not demonstrate a production outage, exporter VLAN isolation or reboot recovery. Grafana memory snapshots and Prometheus process RSS use different accounting methods and are not directly comparable. See [ADR-0014](../adr/0014-kubernetes-telemetry-observer.md), the [Kubernetes/Flux telemetry runbook](../runbooks/kubernetes-flux-telemetry.md), and [Sprint 14](../sprints/14-kubernetes-flux-telemetry.md).
+
 ## Remaining architecture gaps
 
 - shared trusted HTTPS for management endpoints;
 - off-device Restic backup/restore validation;
 - full fresh-host rebuild;
-- Kubernetes control-plane, workload-state, Flux controller and management-service telemetry;
+- Kubernetes workload-state exporters and comprehensive management-service dependency telemetry;
 - runtime alerting for GitOps reconciliation failures and end-to-end failure exercises;
 - independently verified network restrictions on exporter TCP/9100.

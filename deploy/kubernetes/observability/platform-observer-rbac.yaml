@@ -1,0 +1,53 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-observer-api-metrics
+rules:
+  - nonResourceURLs:
+      - /metrics
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-observer-api-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-observer-api-metrics
+subjects:
+  - kind: User
+    name: platform-observer
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: platform-observer-flux-metrics
+  namespace: flux-system
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services/proxy
+    resourceNames:
+      - "http:flux-source-metrics:metrics"
+      - "http:flux-kustomize-metrics:metrics"
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: platform-observer-flux-metrics
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: platform-observer-flux-metrics
+subjects:
+  - kind: User
+    name: platform-observer
+    apiGroup: rbac.authorization.k8s.io

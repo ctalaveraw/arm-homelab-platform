@@ -174,6 +174,118 @@ class GrafanaContractTests(unittest.TestCase):
         )
 
 
+    def test_kubernetes_flux_dashboards(self):
+        expected = {
+            "kubernetes-api.json": ("arm-kubernetes-api", 9),
+            "flux-reconciliation.json": ("arm-flux-reconciliation", 10),
+        }
+        guard = (BASE / "grafana-check-storage.py").read_text()
+        playbook = (
+            ROOT / "ansible/playbooks/08-grafana.yml"
+        ).read_text()
+
+        for filename, (uid, count) in expected.items():
+            with self.subTest(dashboard=filename):
+                doc = json.loads(
+                    (BASE / "grafana/dashboards" / filename).read_text()
+                )
+                self.assertEqual(doc["uid"], uid)
+                self.assertEqual(doc["refresh"], "1m")
+                self.assertEqual(len(doc["panels"]), count)
+                self.assertEqual(
+                    len({p["id"] for p in doc["panels"]}), count
+                )
+                self.assertIn(filename, guard)
+                self.assertEqual(playbook.count(
+                    "/grafana/dashboards/" + filename
+                ), 2)
+
+                for panel in doc["panels"]:
+                    self.assertEqual(
+                        panel["datasource"]["uid"], "prometheus"
+                    )
+                    self.assertEqual(len(panel["targets"]), 1)
+                    expression = panel["targets"][0]["expr"]
+                    self.assertIn("job=", expression)
+                    self.assertLessEqual(
+                        panel["gridPos"]["x"]
+                        + panel["gridPos"]["w"], 24
+                    )
+                    self.assertNotIn("cluster-admin", expression)
+
+    def test_bind_mount_directory_traversal_contract(self):
+        import ast
+        import runpy
+        from tempfile import TemporaryDirectory
+
+        playbook = yaml.safe_load(
+            (ROOT / "ansible/playbooks/08-grafana.yml").read_text()
+        )
+        tasks = playbook[1]["tasks"]
+        task_names = [task["name"] for task in tasks]
+        name = "Enforce Grafana configuration directory traversal"
+
+        self.assertLess(
+            task_names.index(name),
+            task_names.index("Install Grafana storage guard"),
+        )
+
+        task = next(task for task in tasks if task["name"] == name)
+        module = task["ansible.builtin.file"]
+
+        self.assertEqual(module["mode"], "0755")
+        self.assertEqual(module["owner"], "runner")
+        self.assertEqual(module["group"], "runner")
+        self.assertEqual(task["notify"], "Restart Grafana")
+
+        self.assertEqual(set(task["loop"]), {
+            "/srv/platform/compose/observability/grafana/provisioning",
+            "/srv/platform/compose/observability/grafana/provisioning/dashboards",
+            "/srv/platform/compose/observability/grafana/provisioning/datasources",
+            "/srv/platform/compose/observability/grafana/dashboards",
+        })
+
+        source = (BASE / "grafana-check-storage.py").read_text()
+        tree = ast.parse(source)
+
+        function = next(
+            node for node in tree.body
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "verify_grafana_source_directory"
+        )
+
+        with TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            extracted = ast.get_source_segment(source, function)
+            self.assertIsNotNone(extracted)
+            helper = root / "grafana-directory-validator.py"
+            helper.write_text(
+                "import stat\n\n"
+                "def fail(message):\n    raise ValueError(message)\n\n"
+                + extracted + "\n",
+                encoding="utf-8",
+            )
+            verify = runpy.run_path(str(helper))[
+                "verify_grafana_source_directory"
+            ]
+            directory = root / "config"
+            directory.mkdir()
+            directory.chmod(0o755)
+            verify(directory)
+
+            for mode in (0o700, 0o750):
+                with self.subTest(mode=oct(mode)):
+                    directory.chmod(mode)
+                    with self.assertRaises(ValueError):
+                        verify(directory)
+
+            directory.chmod(0o755)
+            link = root / "symlink"
+            link.symlink_to(directory, target_is_directory=True)
+
+            with self.assertRaises(ValueError):
+                verify(link)
+
     def test_home_dashboard_configuration(self):
         environment = self.service["environment"]
         self.assertEqual(

@@ -23,6 +23,57 @@
         group: '65534'
         mode: '0750'
 
+    - name: Ensure dedicated monitoring runtime group
+      ansible.builtin.group:
+        name: prometheus-observer
+        gid: 29012
+        system: true
+
+    - name: Inspect protected observer originals
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+      loop:
+        - /home/runner/.kube/platform-observer/client.key
+        - /home/runner/.kube/platform-observer/client.crt
+        - /home/runner/.kube/platform-observer/ca.crt
+      register: observer_sources
+      no_log: true
+
+    - name: Reject unsafe original monitoring credentials
+      ansible.builtin.assert:
+        that:
+          - item.stat.isreg | default(false)
+          - not (item.stat.islnk | default(false))
+          - item.stat.pw_name == 'runner'
+          - item.stat.mode == '0600'
+      loop: "{{ observer_sources.results }}"
+      no_log: true
+
+    - name: Create isolated observer runtime credential directory
+      ansible.builtin.file:
+        path: /srv/storage/state/services/prometheus-auth
+        state: directory
+        follow: false
+        owner: root
+        group: prometheus-observer
+        mode: '0750'
+
+    - name: Install protected observer runtime copies
+      ansible.builtin.copy:
+        src: "/home/runner/.kube/platform-observer/{{ item }}"
+        dest: "/srv/storage/state/services/prometheus-auth/{{ item }}"
+        remote_src: true
+        owner: root
+        group: prometheus-observer
+        mode: '0640'
+      loop:
+        - client.key
+        - client.crt
+        - ca.crt
+      no_log: true
+      notify: Restart Prometheus
+
     - name: Install Prometheus storage guard
       ansible.builtin.copy:
         src: "{{ playbook_dir | dirname | dirname }}/compose/observability/check-storage.py"
@@ -30,6 +81,7 @@
         owner: root
         group: root
         mode: '0755'
+      notify: Restart Prometheus
 
     - name: Install Prometheus systemd unit
       ansible.builtin.copy:
@@ -39,9 +91,6 @@
         group: root
         mode: '0644'
       notify: Reload systemd
-
-    - name: Apply pending systemd changes
-      ansible.builtin.meta: flush_handlers
 
     - name: Validate Prometheus Compose configuration
       ansible.builtin.command:
@@ -79,11 +128,11 @@
         mode: '0644'
       notify: Restart Prometheus
 
-    - name: Enable and start guarded Prometheus
-      ansible.builtin.systemd_service:
-        name: prometheus.service
-        enabled: true
-        state: started
+    - name: Verify runtime observer credentials with storage guard
+      ansible.builtin.command:
+        argv:
+          - /usr/local/sbin/prometheus-check-storage
+      changed_when: false
 
     - name: Track Prometheus scrape configuration
       ansible.builtin.copy:
@@ -97,8 +146,26 @@
         mode: '0644'
       notify: Restart Prometheus
 
+    - name: Track Prometheus Compose deployment configuration
+      ansible.builtin.copy:
+        dest: /etc/observability-prometheus-compose.sha256
+        content: >-
+          {{ lookup('file',
+          (playbook_dir | dirname | dirname) ~
+          '/compose/observability/compose.yml') | hash('sha256') }}
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Prometheus
+
     - name: Apply pending Prometheus restart
       ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start guarded Prometheus
+      ansible.builtin.systemd_service:
+        name: prometheus.service
+        enabled: true
+        state: started
 
     - name: Verify Prometheus HTTP readiness
       ansible.builtin.uri:

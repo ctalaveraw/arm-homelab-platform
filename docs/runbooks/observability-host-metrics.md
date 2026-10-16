@@ -1,6 +1,6 @@
 # Host Telemetry — Operation and Troubleshooting
 
-Scope: PLAT-012 physical R5C + three Pi Node Exporters. This runbook does **not** cover Kubernetes/Flux controller metrics or Gotify alert routing.
+Scope: PLAT-012 physical R5C + three Pi Node Exporters. Kubernetes API/Flux controller metrics are covered separately in the [Kubernetes/Flux telemetry runbook](kubernetes-flux-telemetry.md). Gotify alert routing remains PLAT-013.
 
 ## Hosts and access
 
@@ -64,5 +64,5 @@ The bounded native exporter services can be stopped on one Pi at a time using `s
 
 - Independently test firewall/VLAN reachability to every TCP/9100 endpoint from both trusted and untrusted sources; restrict unwanted clients before claiming network isolation.
 - Prove scrape-outage detection and restoration, retention/cardinality and resource budgets under load; document reboot/mount recovery.
-- Extend metrics to Kubernetes control plane, workloads, Flux reconciliation and management-service dependencies in subsequent PLAT-012 PRs.
+- Kubernetes API and Flux controller scrape jobs are deployed; see the [Kubernetes/Flux runbook](kubernetes-flux-telemetry.md). Workload object-state metrics and expanded management-service dependency coverage remain deferred.
 - Add deduplicated, recovery-aware runtime alerts to Gotify under PLAT-013.

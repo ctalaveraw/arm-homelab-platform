@@ -112,6 +112,39 @@
         creates: /srv/storage/state/services/grafana-auth/admin-password
       no_log: true
 
+    - name: Inspect Grafana bind-mounted configuration directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+      loop:
+        - /srv/platform/compose/observability/grafana/provisioning
+        - /srv/platform/compose/observability/grafana/provisioning/dashboards
+        - /srv/platform/compose/observability/grafana/provisioning/datasources
+        - /srv/platform/compose/observability/grafana/dashboards
+      register: grafana_config_directories
+
+    - name: Reject missing or symlinked Grafana configuration directories
+      ansible.builtin.assert:
+        that:
+          - item.stat.isdir | default(false)
+          - not (item.stat.islnk | default(false))
+      loop: "{{ grafana_config_directories.results }}"
+
+    - name: Enforce Grafana configuration directory traversal
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        follow: false
+        owner: runner
+        group: runner
+        mode: '0755'
+      loop:
+        - /srv/platform/compose/observability/grafana/provisioning
+        - /srv/platform/compose/observability/grafana/provisioning/dashboards
+        - /srv/platform/compose/observability/grafana/provisioning/datasources
+        - /srv/platform/compose/observability/grafana/dashboards
+      notify: Restart Grafana
+
     - name: Inspect Grafana provisioning files without following links
       ansible.builtin.stat:
         path: "{{ item }}"
@@ -122,6 +155,8 @@
         - /srv/platform/compose/observability/grafana/dashboards/platform-overview.json
         - /srv/platform/compose/observability/grafana/dashboards/r5c-host.json
         - /srv/platform/compose/observability/grafana/dashboards/pi-nodes.json
+        - /srv/platform/compose/observability/grafana/dashboards/kubernetes-api.json
+        - /srv/platform/compose/observability/grafana/dashboards/flux-reconciliation.json
       register: grafana_provisioning
 
     - name: Reject missing or symlinked provisioning files
@@ -145,6 +180,8 @@
         - /srv/platform/compose/observability/grafana/dashboards/platform-overview.json
         - /srv/platform/compose/observability/grafana/dashboards/r5c-host.json
         - /srv/platform/compose/observability/grafana/dashboards/pi-nodes.json
+        - /srv/platform/compose/observability/grafana/dashboards/kubernetes-api.json
+        - /srv/platform/compose/observability/grafana/dashboards/flux-reconciliation.json
       notify: Restart Grafana
 
     - name: Install Grafana storage guard

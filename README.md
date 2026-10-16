@@ -2,7 +2,7 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-11):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven. The independent R5C now runs bounded Prometheus and Grafana services; native exporters report CPU, memory, network and filesystem metrics for the R5C and all three physical Kubernetes hosts. Kubernetes object-state/Flux controller metrics, comprehensive service telemetry and runtime alerting remain planned.
+**Status (2026-10-16):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven. The independent R5C now runs bounded Prometheus and Grafana services; native exporters report CPU, memory, network and filesystem metrics for the R5C and all three physical Kubernetes hosts. Kubernetes API server and Flux controller metrics now flow through a dedicated read-only TLS observer, with 8 healthy Prometheus targets and 5 provisioned Grafana dashboards. Kubernetes workload object-state coverage, comprehensive service telemetry, network isolation tests, reboot-safe recovery and runtime alerting remain future work.
 
 This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
 
@@ -32,7 +32,7 @@ flowchart LR
         KUMA["Uptime Kuma"]
         ACNG["APT-Cacher-NG"]
         PROM["Prometheus<br/>48h / 512MB retention"]
-        GRAF["Grafana<br/>provisioned host dashboards"]
+        GRAF["Grafana<br/>5 provisioned dashboards"]
         R5CEXP["Node Exporter<br/>R5C host"]
         PROM --> GRAF
         R5CEXP -->|"scrape"| PROM
@@ -75,6 +75,7 @@ flowchart LR
     GHCR -->|"verified artifact replication"| GREG
     GHCR -->|"digest pull"| COMPUTE
     PIEXP -->|"metrics scrape from R5C"| PROM
+    CP -->|"TLS API + Flux proxy metrics"| PROM
     GH -->|"desired-state pull"| FLUX
     FLUX -->|"scoped reconcile"| COMPUTE
     GREG -.->|"future local Kubernetes pull"| COMPUTE
@@ -98,6 +99,7 @@ Ansible owns the host baseline plus guarded systemd/Compose lifecycles for:
 - APT-Cacher-NG
 - Prometheus and Grafana (bounded, SD-backed, guarded and Ansible/systemd-managed)
 - a native non-root Node Exporter on the R5C; three additional exporters on physical Pi nodes
+- read-only HTTPS Kubernetes API/Flux scrape jobs authenticated by a separate observer X.509 identity and constrained RBAC
 
 Stateful services use SD-backed persistent storage under `/srv/storage/state/services/<service>`. Startup guards verify the actual ext4 filesystem, reject unsafe path redirection, validate rendered Compose bindings, and fail closed instead of silently writing state to eMMC.
 
@@ -258,6 +260,9 @@ Service playbooks install their systemd units, reload systemd when required, val
 - [PLAT-011 Flux GitOps sprint](docs/sprints/12-flux-gitops.md)
 - [PLAT-012 host observability foundation](docs/sprints/13-observability-host-foundation.md)
 - [Host metrics operations runbook](docs/runbooks/observability-host-metrics.md)
+- [Kubernetes/Flux telemetry sprint](docs/sprints/14-kubernetes-flux-telemetry.md)
+- [Kubernetes/Flux telemetry operations](docs/runbooks/kubernetes-flux-telemetry.md)
+- [ADR-0014 — Read-only telemetry observer](docs/adr/0014-kubernetes-telemetry-observer.md)
 - [ADR-0007 — Digest-pinned Kubernetes image pulls](docs/adr/0007-digest-pinned-kubernetes-image-pulls.md)
 - [ADR-0008 — External Kubernetes deployer identity](docs/adr/0008-external-kubernetes-deployer-identity.md)
 - [ADR-0009 — Flux GitOps trust boundary](docs/adr/0009-flux-gitops-trust-boundary.md)

@@ -1,0 +1,405 @@
+{
+  "uid": "arm-flux-reconciliation",
+  "title": "Flux — GitOps Reconciliation",
+  "tags": [
+    "platform",
+    "observability",
+    "flux",
+    "gitops"
+  ],
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Flux source-controller UP",
+      "description": "Successful source-controller metric scrape.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"flux-source-controller\"}",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Flux kustomize-controller UP",
+      "description": "Successful kustomize-controller metric scrape.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"flux-kustomize-controller\"}",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Retained Flux scrape samples",
+      "description": "Combined retained samples; not resource readiness.",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(scrape_samples_post_metric_relabeling{job=~\"flux-(source|kustomize)-controller\"})",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Flux resources reporting Ready=True",
+      "description": "Empty means unknown/unexported, not zero resources.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job, kind) (gotk_reconcile_condition{job=~\"flux-(source|kustomize)-controller\",type=\"Ready\",status=\"True\"})",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Flux resources reporting Ready=False",
+      "description": "Empty is not proof of health.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job, kind) (gotk_reconcile_condition{job=~\"flux-(source|kustomize)-controller\",type=\"Ready\",status=\"False\"})",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Flux reconciliations / second",
+      "description": "Observed reconcile count rate over five minutes.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job) (rate(gotk_reconcile_duration_seconds_count{job=~\"flux-(source|kustomize)-controller\"}[5m]))",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Mean Flux reconciliation duration",
+      "description": "Average reconcile duration; not tail latency.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job) (rate(gotk_reconcile_duration_seconds_sum{job=~\"flux-(source|kustomize)-controller\"}[5m]))/ clamp_min(sum by (job) (rate(gotk_reconcile_duration_seconds_count{job=~\"flux-(source|kustomize)-controller\"}[5m])), 1e-9)",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Controller reconcile errors / second",
+      "description": "Errors reported by controller-runtime, when exported.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job) (rate(controller_runtime_reconcile_errors_total{job=~\"flux-(source|kustomize)-controller\"}[5m]))",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Controller workqueue depth",
+      "description": "Queue backlog if exported by the controller.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 26,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (job) (workqueue_depth{job=~\"flux-(source|kustomize)-controller\"})",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Flux scrape duration",
+      "description": "Scrape cost through the Kubernetes API service proxy.",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "scrape_duration_seconds{job=~\"flux-(source|kustomize)-controller\"}",
+          "legendFormat": "{{job}} {{kind}} {{verb}} {{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}
