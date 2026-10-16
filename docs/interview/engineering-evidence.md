@@ -782,3 +782,32 @@ Evidence:
 - `docs/sprints/13-observability-host-foundation.md`
 - `docs/runbooks/observability-host-metrics.md`
 - Commits `dfa33e4`, `2b5a1e6`, `9b19672`, `bf0c5aa`, `8a46ceb`.
+
+## EVIDENCE-019: Read-Only Kubernetes API and Flux Telemetry
+
+Date: 2026-10-14 to 2026-10-16
+
+Problem: the independent R5C cannot access Kubernetes Pod/Service CIDRs directly, yet must monitor control-plane and Flux reconciliation without giving Prometheus administrator or mutation rights.
+
+Implementation:
+- Isolated metrics-only Flux Services and six administrator-approved monitoring RBAC/bootstrap resources outside application Flux reconciliation.
+- A distinct `CN=platform-observer` Kubernetes client X.509 identity; CA/key verification, positive and negative real-identity authorization tests, immediate capture after an earlier approved CSR disappeared before its certificate was retrieved.
+- Three R5C Prometheus HTTPS scrape jobs through the API endpoint; guarded read-only observer credentials with supplemental GID `29012`, container UID/GID `65534:65534` and a 384 MiB limit.
+- Kubernetes API and Flux dashboards (9 + 10 panels), with Grafana bind-directory traversal fixed declaratively and validated as UID/GID `472:472`.
+
+Verification:
+- Eight Prometheus targets healthy/fresh (Kubernetes API 1, Flux 2, physical Pi 3, R5C 1, Prometheus 1) with retained samples confirmed.
+- Live observer auth denied Secrets, Nodes, arbitrary Services, Pod proxy and workload/RBAC mutations; Grafana anonymous catalog denied, authenticated five-dashboard catalog passed.
+- Prometheus/Grafana Ansible second-run convergence `changed=0`, monitoring containers preserved, CI tests passed, no Git or Kubernetes mutation during G4 acceptance.
+- G4 snapshot: 6,590 TSDB series, 11,317 chunks, Prometheus Docker memory 88.89/384 MiB, Grafana 397.7/768 MiB. These are snapshots, not sustained load tests.
+
+Limits:
+- Two Flux Ready-condition panels lacked matching series; absence of metrics does not prove health.
+- No induced target outage, external-zone exporter isolation or independent reboot recovery was accepted in this phase. Long-term capacity, workload-state telemetry, alerts and automatic observer certificate rotation are deferred.
+- Observer certificate expires 2027-01-12 03:15:36 UTC. The R5C boot-order/permissions defect has a separate permanent-repair PR planned.
+
+Evidence:
+- [Sprint 14](../sprints/14-kubernetes-flux-telemetry.md)
+- [ADR-0014](../adr/0014-kubernetes-telemetry-observer.md)
+- [Observer operations runbook](../runbooks/kubernetes-flux-telemetry.md)
+- Local commits `66e25b3`, `5a4d4f3`, `917eff4`, `fb193e5`, `059e7d9` (verify complete history before PR).
