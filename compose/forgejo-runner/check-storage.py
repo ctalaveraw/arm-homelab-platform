@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed unless the Gitea runner uses its registered SD-backed identity."""
+"""Fail closed unless the Forgejo runner uses its registered SD-backed identity."""
 
 import json
 import stat
@@ -7,14 +7,14 @@ import subprocess
 from pathlib import Path
 
 MOUNT = Path("/srv/storage/state")
-DATA = MOUNT / "services/gitea-runner"
-IDENTITY = DATA / ".runner"
-COMPOSE = Path("/srv/platform/compose/gitea-runner")
+DATA = MOUNT / "services/forgejo-runner"
+IDENTITY = DATA / "runner.yml"
+COMPOSE = Path("/srv/platform/compose/forgejo-runner")
 EXPECTED_LABEL = "storage_sdcard"
 
 
 def fail(message):
-    raise SystemExit(f"Gitea runner storage FAILED: {message}")
+    raise SystemExit(f"Forgejo runner storage FAILED: {message}")
 
 
 def run(argv):
@@ -67,6 +67,12 @@ if (
 if IDENTITY.is_symlink() or not IDENTITY.is_file():
     fail("Registered runner identity is missing or redirected")
 
+if IDENTITY.stat().st_size == 0:
+    fail("Runner configuration is empty")
+
+if b"REPLACE_WITH_" in IDENTITY.read_bytes():
+    fail("Replace example runner identity with a new repository-scoped identity")
+
 identity = IDENTITY.stat()
 if (
     identity.st_uid != 10001
@@ -101,4 +107,4 @@ if (
 if service.get("privileged") or service.get("ports"):
     fail("Runner exposes unexpected host privileges or ports")
 
-print("Gitea runner storage preflight PASSED.")
+print("Forgejo runner storage preflight PASSED.")

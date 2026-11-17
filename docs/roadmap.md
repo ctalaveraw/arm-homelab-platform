@@ -1,5 +1,7 @@
 # Platform Engineering Roadmap
 
+**2026-11-17 transition:** Forgejo 15.0.11 LTS replaces Gitea in the deployment configuration. Historical completion below was measured on Gitea. Migration and first-domain HTTPS acceptance remain pending; see the [runbook](runbooks/gitea-to-forgejo.md).
+
 ## Current objective
 
 Mature the proven ARM64 delivery/GitOps foundation into a portable, recoverable DevSecOps platform: observability and alerting first, then fresh-node bootstrap, controlled secrets, verified restore, policy-enforced supply-chain promotion and approved operations. See the [platform charter](vision/platform-charter.md), [design gates](planning/design-gates.md) and [93-objective register](planning/objectives.md).
@@ -164,7 +166,7 @@ than operator-driven application of manifests.
 2. **PLAT-013 — Gotify runtime alerting:** meaningful alert thresholds, routing, deduplication, recovery and missing-signal tests (OBS-002, OPS-012).
 3. **PLAT-014/015 — fourth Pi and reproducible join:** pin/lint Ansible, optional approved APT cache, day-zero versus host-convergence distinction, role/network/SD failure tests (CI-002, OPS-010/011, DR-001..003).
 4. **PLAT-016 — OpenBao and identity:** define independent encryption/PKI recovery first; short-lived routine credentials and renewal/revocation. **OPS-007 shared trusted HTTPS is a prerequisite for production-like management API/secret integrations**, not an excuse to delay monitoring (OPS-013/014, DR-004/005/011).
-5. **PLAT-017/018 — encrypted off-device backups and isolated disaster recovery:** consistent Gitea/OCI/config recovery, standalone reconstruction without live forge/vault/R5C, time-bound exercise and truthfully measured targets (DR-004..012).
+5. **PLAT-017/018 — encrypted off-device backups and isolated disaster recovery:** consistent Forgejo/OCI/config recovery, standalone reconstruction without live forge/vault/R5C, time-bound exercise and truthfully measured targets (DR-004..012).
 
 **Design targets:** recovery time objective **4 hours** and recovery point objective **1 hour** for a classified *critical* scope, **not achieved guarantees**. Define data/services covered, incident timing, spare hardware availability, restore-key redundancy, consistency, backup frequency and multiple isolated drills before claiming either goal.
 
@@ -178,7 +180,7 @@ Key tickets: SEC-001 and SEC-002..031; REL-001..006; CI-003..011. Tools are sele
 
 ## M8 — Independent trusted local operations (planned)
 
-Build a *separate* approval-gated Gitea operations runner after trust, baseline recovery and service visibility prerequisites. Workflows authorize approved operations, Ansible converges R5C hosts, tested Bash/Python helpers perform pre/post checks, and Flux remains the sole routine reconciler of selected Kubernetes application resources. No privileged credentials for the existing validation runner; no dependence on live Gitea to restore Gitea.
+Build a *separate* approval-gated Forgejo operations runner after trust, baseline recovery and service visibility prerequisites. Workflows authorize approved operations, Ansible converges R5C hosts, tested Bash/Python helpers perform pre/post checks, and Flux remains the sole routine reconciler of selected Kubernetes application resources. No privileged credentials for the existing validation runner; no dependence on live Forgejo to restore Forgejo.
 
 Key tickets: OPS-008/009/015, ENG-001..005, CI-006/009. Existing manual recovery remains operational throughout.
 

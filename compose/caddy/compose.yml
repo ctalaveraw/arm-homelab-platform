@@ -1,0 +1,51 @@
+---
+name: caddy
+
+services:
+  server:
+    image: caddy:2.11.9-alpine
+    restart: "no"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      FORGEJO_FQDN: "${FORGEJO_FQDN:?Set FORGEJO_FQDN}"
+      ACME_EMAIL: "${ACME_EMAIL:?Set ACME_EMAIL}"
+    ports:
+      - "${PROXY_BIND_IP:?Set PROXY_BIND_IP}:80:80/tcp"
+      - "${PROXY_BIND_IP:?Set PROXY_BIND_IP}:443:443/tcp"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/caddy/data"
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/caddy/config"
+        target: /config
+        bind:
+          create_host_path: false
+    tmpfs: [/tmp]
+    networks:
+      ingress:
+        ipv4_address: "${PROXY_CONTAINER_IP:?Set PROXY_CONTAINER_IP}"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  ingress:
+    external: true
+    name: platform_ingress

@@ -2,12 +2,20 @@
 
 This directory separates **current-state documentation** from **historical evidence**. Historical sprint, incident, and benchmark records are intentionally not rewritten to pretend later capabilities existed at the time.
 
+## Deployment transition
+
+Forgejo is the selected local forge. Configuration is prepared; the last verified host baseline ran Gitea. No live migration or public route is implied by a repository change.
+
+- [Gitea to Forgejo migration](runbooks/gitea-to-forgejo.md) — backup, separate storage, mirror, registry, runner, acceptance and rollback.
+- [Domain and HTTPS ingress](runbooks/domain-ingress.md) — Caddy placement, DNS, router boundaries and verification.
+- [ADR-0015 — Forgejo and controller ingress](adr/0015-forgejo-and-controller-ingress.md) — selected migration and proxy design.
+
 ## Current state
 
 - [Architecture overview](architecture/overview.md) — current implemented and planned component relationships.
 - [Roadmap](roadmap.md) — milestone-level progress toward application delivery.
 - [Backlog](backlog.md) — active and queued work items.
-- [CI, mirroring and OCI publication](ci.md) — GitHub/Gitea CI behavior, validation contracts, artifact handoff, and GHCR publication.
+- [CI, mirroring and OCI publication](ci.md) — GitHub/Forgejo CI configuration and historical Gitea evidence, validation contracts, artifact handoff, and GHCR publication.
 - [Engineering evidence ledger](interview/engineering-evidence.md) — interview-oriented proof of implementation and verification.
 - [R5C baseline](architecture/r5c-baseline.md) — original brownfield snapshot plus a current-state delta.
 - [Host telemetry operations](runbooks/observability-host-metrics.md) — dashboards, deployment, verification, rollback and security limits.
@@ -66,7 +74,7 @@ This directory separates **current-state documentation** from **historical evide
 - [OPS-005 screenshots](evidence/ops-005/)
 - [PLAT-006 screenshots](evidence/plat-006/)
 
-## Current convergence point
+## Last verified baseline before migration
 
 As of 2026-10-16:
 

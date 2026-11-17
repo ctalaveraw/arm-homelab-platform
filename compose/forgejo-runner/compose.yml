@@ -1,15 +1,15 @@
 ---
-name: gitea-runner
+name: forgejo-runner
 
 services:
   runner:
-    image: localhost/platform-gitea-runner:dev
+    image: localhost/platform-forgejo-runner:dev
     pull_policy: never
     restart: "no"
 
     user: "10001:10001"
     working_dir: /data
-    command: ["daemon"]
+    command: ["daemon", "--config", "/data/runner.yml"]
 
     security_opt:
       - "no-new-privileges:true"
@@ -19,15 +19,15 @@ services:
 
     volumes:
       - type: bind
-        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/gitea-runner"
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/forgejo-runner"
         target: /data
         bind:
           create_host_path: false
 
     networks:
-      - gitea_internal
+      - forgejo_internal
 
 networks:
-  gitea_internal:
+  forgejo_internal:
     external: true
-    name: gitea_default
+    name: forgejo_default

@@ -10,7 +10,7 @@
 - **Dependency:** planning predecessor or existing milestone, **not** proof of completion. A proposed item is closed only with code/config, negative cases, operational verification and evidence in its stated tier. Existing historical sprint evidence is not rewritten.
 - **Security scope:** controls are selected according to a threat model, not by maximizing installed products. Maintain exceptions with owner, reason, evidence, expiry, and compensating controls.
 
-The user-approved target is **ARM-first portable**, **separate approval-gated operations authority**, **approved Ansible convergence**, **independent encrypted recovery root with OpenBao for routine use**, **risk-staged security gates**, and **RTO 4h/RPO 1h goals not currently achieved**. Forgejo, Backstage and Terraform secondary targets remain optional evaluations, not requirements for PLAT-012.
+The user-approved target is **ARM-first portable**, **separate approval-gated operations authority**, **approved Ansible convergence**, **independent encrypted recovery root with OpenBao for routine use**, **risk-staged security gates**, and **RTO 4h/RPO 1h goals not currently achieved**. Forgejo is now the selected local forge; its separate-instance migration is defined in the [runbook](../runbooks/gitea-to-forgejo.md). Backstage and Terraform secondary targets remain optional evaluations.
 
 ## Existing workstreams that remain authoritative
 
@@ -52,12 +52,12 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **OPS-009 — Approval-gated Ansible operations** | Planned | Allowlisted signed/reviewed scripts/playbooks; actor approval, concurrency lock, dry-run/rollback evidence and bounded privileges. | OPS-008, ENG-003 | H |
 | **OPS-010 — Negative SD/systemd/Compose contracts** | Planned | Tests simulate wrong/missing filesystem, label, symlink and bind; startup refuses unsafe state. | CI-007 | P/H |
 | **OPS-011 — Optional APT cache clients** | Planned | Finish OPS-006 ACL checks; test real Pi cold/warm install and bypass on cache outage. | OPS-006, PLAT-014 | H |
-| **OPS-012 — Idempotent service integration seeding** | Planned | Gitea/monitor/notification config reconciliation is repeatable, non-secret in Git and restore-safe. | OPS-013, PLAT-013 | S/H |
+| **OPS-012 — Idempotent service integration seeding** | Planned | Forgejo/monitor/notification config reconciliation is repeatable, non-secret in Git and restore-safe. | OPS-013, PLAT-013 | S/H |
 | **OPS-013 — Environment and configuration contract** | Planned | Classify vars, .env.example, file injection and restricted config; ensure cleartext secrets never enter Git/logs. | ADR-0011 | P/H |
 | **OPS-014 — HTTPS PKI and trust deployment** | Planned | Close OPS-007 with certificate renewal, trusted CA deployment, client validation and failure exercise. | OPS-007, DR-005 | H |
 | **OPS-015 — Audited operations job lifecycle** | Planned | Approval, scheduler, retention, execution identity, timeout, replay resistance and incident log proved. | OPS-009 | H |
 | **OPS-016 — Patch and OS upgrade lifecycle** | Planned | Version matrix, staging, rollback/reboot safety, maintenance windows and host recovery checks. | ENG-003, DR-003 | H |
-| **OPS-017 — Cross-service dependency health** | Planned | Monitor Gitea, OCI, runner, Gotify, Kuma, APT, DNS and storage; broken dependency detected accurately. | PLAT-012, PLAT-013 | H |
+| **OPS-017 — Cross-service dependency health** | Planned | Monitor Forgejo, OCI, runner, Gotify, Kuma, APT, DNS and storage; broken dependency detected accurately. | PLAT-012, PLAT-013 | H |
 | **OPS-018 — Capacity and wear management** | Planned | ARM CPU/memory, SD health/writes, cache limits and storage growth alert thresholds measured. | PLAT-012 | H |
 | **OPS-019 — Service boot-order failure drills** | Planned | Network/DNS/SD/Docker outage at boot proves systemd startup ownership; documented recovery path. | OPS-010, DR-003 | H |
 
@@ -104,7 +104,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **SEC-016 — Pod and container runtime hardening** | Planned | Non-root, readonly fs, seccomp, cap drop, bounded resources and ServiceAccounts test positive/negative. | SEC-015 | S/H |
 | **SEC-017 — Network segmentation and egress policy** | Planned | Default-deny where supported; allowed DNS/registry/monitor paths work, forbidden paths fail. | SEC-015, PORT-001 | H |
 | **SEC-018 — ARM runtime detection evaluation** | Evaluate | Measure Falco/Tetragon/alternative feasibility, CPU budget and signal fidelity; only adopt justified option. | PLAT-012, SEC-016 | H |
-| **SEC-019 — Audit log capture and retention** | Planned | Git, Gitea, runner, Ansible, API and K8s security events centrally correlated and access-controlled. | OBS-003 | H |
+| **SEC-019 — Audit log capture and retention** | Planned | Git, Forgejo, runner, Ansible, API and K8s security events centrally correlated and access-controlled. | OBS-003 | H |
 | **SEC-020 — Incident containment and response** | Planned | Simulate compromised CI identity/registry/K8s token; detect, revoke, recover and document outcomes. | SEC-019, DR-005 | H |
 | **SEC-021 — Security policy as code and exceptions** | Planned | Reviewable ownership/severity decisions; expires bounded exception; unwarranted waiver fails CI. | SEC-002, SEC-013 | P/S |
 | **SEC-022 — DAST and API authorization checks** | Planned | Scoped sandbox HTTP/API tests including denied identity paths; no unsafe broad production scans. | CI-007 | S/H |
@@ -125,13 +125,13 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **DR-001 — Blank-device bootstrap** | Planned | From documented off-device media/source provision OS, operator, SSH/trust, Python/Ansible and supported architecture. | ADR-0011 | H |
 | **DR-002 — Network and storage reconstruction** | Planned | Restore interfaces/DNS, SD partition/UUID/label, mount/automount and safety contract from blank host. | DR-001 | H |
 | **DR-003 — Host/service convergence** | Planned | Freshly rebuilt machine safely installs Docker/systemd units and recreates service lifecycles from Git. | DR-002, ENG-003 | H |
-| **DR-004 — Mutable state and configuration restoration** | Planned | Restore consistent Gitea/OCI/monitor service configs with independent encrypted material; no unknown manual steps. | PLAT-017, OPS-013 | H |
+| **DR-004 — Mutable state and configuration restoration** | Planned | Restore consistent Forgejo/OCI/monitor service configs with independent encrypted material; no unknown manual steps. | PLAT-017, OPS-013 | H |
 | **DR-005 — PKI and certificate recovery** | Planned | Reissue/rotate/revoke break-glass X.509/CA trust and tokens after expiration/compromise, preserving scoped access. | DR-001 | H |
-| **DR-006 — Gitea, registry and runner reconstruction** | Planned | Restore repositories/packages/mirror/jobs identity; runner can be safely re-registered, without forge dependency. | PLAT-017, DR-004 | H |
+| **DR-006 — Forgejo, registry and runner reconstruction** | Planned | Restore repositories/packages/mirror/jobs identity; runner can be safely re-registered, without forge dependency. | PLAT-017, DR-004 | H |
 | **DR-007 — Kubernetes bootstrap trust recovery** | Planned | Rebuild namespace/RBAC/Flux CRDs/controllers/sources and scoped credentials without relying on a live R5C. | DR-005, PLAT-015 | H |
 | **DR-008 — etcd and cluster control-plane recovery** | Planned | Consistent snapshot capture/restore and fresh cluster versus same-cluster migration delineated and tested. | DR-007 | H |
 | **DR-009 — Off-device backup design and verification** | Planned | Encrypted/versioned independent backups, integrity and consistency tests, measured 1h RPO target within classified scope. | PLAT-017, DR-004 | H |
-| **DR-010 — Timed isolated disaster-recovery drill** | Planned | Loss of R5C/Gitea/SD (and separate cluster scenario) measured toward 4h RTO and 1h RPO; report gaps. | DR-009, DR-003 | H |
+| **DR-010 — Timed isolated disaster-recovery drill** | Planned | Loss of R5C/Forgejo/SD (and separate cluster scenario) measured toward 4h RTO and 1h RPO; report gaps. | DR-009, DR-003 | H |
 | **DR-011 — Recovery key escrow and rotation** | Planned | At least two documented independent authorized paths to decryption; revoke/rekey, compromised and lost key exercises. | DR-004, DR-005 | H |
 | **DR-012 — Failure dependency matrix** | Planned | DNS, network, power, clock, external Git, TLS CA, storage, OpenBao and registry outage order documented/tested. | DR-001, SEC-002 | P/H |
 
@@ -141,7 +141,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 |---|---|---|---|---|
 | **PORT-001 — Environment contracts and capability matrix** | Planned | ARM primary and second target declare inventory, OS/arch, DNS, storage, K8s, secret and test requirements. | ENG-003 | P |
 | **PORT-002 — Proxmox Terraform reference lab** | Evaluate | Terraform provisions isolated test VMs/network; Ansible configures OS; Flux app authority unchanged. | PORT-001, DR-001 | S |
-| **PORT-003 — Forgejo isolated migration evaluation** | Evaluate | Backup/export/import feasibility, DB/OCI/actions/identity compatibility and tested rollback; no in-place assumption. | DR-006 | S |
+| **PORT-003 — Forgejo migration** | In progress (configuration) | Backup/export/import feasibility, DB/OCI/actions/identity compatibility and tested rollback; no in-place assumption. | DR-006 | S |
 | **PORT-004 — IaC state and provider trust** | Planned | Remote/local state protection, locking, secret handling, drift and destruction guardrails tested. | PORT-002 | S |
 | **PORT-005 — Scale-out and multi-site test** | Evaluate | Multiple worker/site targets without cross-environment secret, runner or GitOps ownership bleed. | PORT-001, REL-003 | S/H |
 
@@ -173,8 +173,8 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 - **Observability first:** PLAT-012 and PLAT-013 before runtime detection, SLOs, operations automation and the next recovery fire drills.
 - **Reconstruction:** PLAT-014/015 plus DR-001/002/003 establish day-zero host and worker capabilities; these must not be confused with actual backup restore.
 - **Secrets and recovery:** OPS-007 before trusting management APIs; PLAT-016 plus DR-004/005/011, PLAT-017/018 plus DR-006..010. High-confidence restore is required before citing RTO/RPO achievements.
-- **Post-core-maturity:** privileged ops runner, Forgejo migration rehearsal, Terraform second target and Backstage assessment, unless a specific dependency drives an earlier isolated prototype.
-- **Do not do:** convert all scripts to Python, give existing Gitea validation runner privileged credentials, let CI and Flux both apply the same app desired state, require Gitea/OpenBao to resurrect themselves, expose host Docker socket to generic PR jobs, interpret a passing scan as provenance, or treat proposed targets as service guarantees.
+- **Post-core-maturity:** privileged ops runner, Terraform second target and Backstage assessment, unless a specific dependency drives an earlier isolated prototype.
+- **Do not do:** convert all scripts to Python, give existing Forgejo validation runner privileged credentials, let CI and Flux both apply the same app desired state, require Forgejo/OpenBao to resurrect themselves, expose host Docker socket to generic PR jobs, interpret a passing scan as provenance, or treat proposed targets as service guarantees.
 
 ## Acceptance/evidence template for implementing a ticket
 

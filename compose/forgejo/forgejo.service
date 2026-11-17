@@ -1,0 +1,30 @@
+[Unit]
+Description=Forgejo - SD-backed Docker Compose service
+Documentation=https://forgejo.org/docs/v15.0/
+
+# Runtime prerequisites.
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+# Request the actual application storage mount before startup.
+RequiresMountsFor=/srv/storage/state/services/forgejo
+
+[Service]
+# Compose runs detached; systemd retains application lifecycle ownership.
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/forgejo
+
+# Fail closed when SD storage or the Compose bind source is incorrect.
+ExecStartPre=/usr/local/sbin/forgejo-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/forgejo/.env -f /srv/platform/compose/forgejo/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/forgejo/.env -f /srv/platform/compose/forgejo/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

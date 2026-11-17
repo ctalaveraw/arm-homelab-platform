@@ -132,7 +132,7 @@ class ObservabilityContractTests(unittest.TestCase):
 
         self.assertEqual(
             discovered,
-            set(SERVICES) | {"observability"},
+            set(SERVICES) | {"observability", "caddy"},
         )
 
     def test_prometheus_contract(self):

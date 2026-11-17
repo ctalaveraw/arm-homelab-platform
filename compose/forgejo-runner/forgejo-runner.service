@@ -1,0 +1,26 @@
+[Unit]
+Description=Forgejo Actions Runner - SD-backed ARM64 validation worker
+
+Requires=docker.service forgejo.service
+Wants=network-online.target
+After=docker.service forgejo.service network-online.target
+
+RequiresMountsFor=/srv/storage/state/services/forgejo-runner
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/srv/platform/compose/forgejo-runner
+
+ExecStartPre=/usr/local/sbin/forgejo-runner-check-storage
+
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/forgejo-runner/.env -f /srv/platform/compose/forgejo-runner/compose.yml up -d
+
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/forgejo-runner/.env -f /srv/platform/compose/forgejo-runner/compose.yml down
+
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

@@ -2,271 +2,79 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-**Status (2026-10-16):** The out-of-cluster ARM64 management plane is operational and configuration-managed. GitHub-hosted ARM64 CI builds, tests, scans and publishes one verified application artifact to GHCR, and the same immutable artifact is replicated to Gitea OCI. The CI-qualified digest runs in the Raspberry Pi kubeadm cluster and is now continuously reconciled from canonical Git by a hardened Flux installation using namespace-scoped application authority. Controlled rollout failure, rollback, GitOps drift correction, Git-driven desired-state changes, and reconciliation suspend/resume behavior have all been proven. The independent R5C now runs bounded Prometheus and Grafana services; native exporters report CPU, memory, network and filesystem metrics for the R5C and all three physical Kubernetes hosts. Kubernetes API server and Flux controller metrics now flow through a dedicated read-only TLS observer, with 8 healthy Prometheus targets and 5 provisioned Grafana dashboards. Kubernetes workload object-state coverage, comprehensive service telemetry, network isolation tests, reboot-safe recovery and runtime alerting remain future work.
+A platform engineering lab for reproducible infrastructure, ARM64 application delivery, observability and recovery.
 
-This repository is a platform-engineering lab focused on reproducible infrastructure, application delivery, recovery, and operational evidence on ARM64 hardware.
+**Deployment transition — 2026-11-17:** This repository targets Forgejo 15.0.11 LTS, Forgejo Runner and Caddy on the independent NanoPi R5C (`gitops-controller-01`). The last verified host baseline used Gitea 1.27.3. Migration, Forgejo runner acceptance, certificates and domain routing require host-side deployment and verification. The [migration runbook](docs/runbooks/gitea-to-forgejo.md) defines the cutover and rollback.
 
-**Future direction (planning only):** grow the proven ARM64 platform into an [ARM-first, portable DevSecOps reference architecture](docs/vision/platform-charter.md) with independently recoverable trust, risk-gated software supply-chain promotion, approved local operations, expanded observability and a rehearsed recovery goal of **4h RTO / 1h RPO** (targets, not achieved guarantees). The [93-objective backlog register](docs/planning/objectives.md) and [phased roadmap](docs/roadmap.md) explicitly distinguish completed work from future evaluation. [Approved design gates](docs/planning/design-gates.md) capture the decisions; the planning PR changes no infrastructure.
+| Component | Repository configuration | Last recorded runtime evidence |
+| --- | --- | --- |
+| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | Gitea 1.27.3; private GitHub pull mirror and OCI registry |
+| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Gitea runner; ARM64 validation and mirror push trigger |
+| HTTPS ingress | Caddy 2.11.9 on the R5C | Management services used LAN HTTP |
+| Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |
+| Observability | Prometheus, Grafana, native exporters and read-only Kubernetes observer | Eight Prometheus targets and five dashboards |
 
-## Current architecture
+## Architecture
 
-Solid arrows are implemented. Dashed arrows are planned.
+GitHub remains the canonical source and external recovery copy. Forgejo provides a private one-way pull mirror, local validation and an OCI distribution endpoint. Promoted artifacts retain their tested registry digest; Kubernetes runs the GHCR digest and Flux reconciles application desired state from GitHub.
 
-```mermaid
-flowchart LR
-    DEV["Developer / operator"]
-    GH["GitHub<br/>canonical source"]
-    GHCI["GitHub Actions<br/>hosted ARM64"]
-    VALIDATE["Repository validation<br/>ShellCheck + Ruff + yamllint + actionlint<br/>Ansible + Compose contracts"]
-    BUILD["platform-hello<br/>build once"]
-    TEST["Runtime acceptance<br/>ARM64 + UID 10001 + HTTP"]
-    SCAN["Trivy<br/>vuln + secret scan"]
-    XFER["Verified job handoff<br/>archive checksum + image ID"]
-    PUB["Publisher job<br/>packages: write only"]
-    GHCR["GHCR<br/>canonical OCI distribution"]
+The R5C remains outside the Kubernetes cluster. Ansible manages the host baseline and guarded systemd/Compose services. Persistent service state lives under `/srv/storage/state/services`; startup guards require the actual `storage_sdcard` ext4 filesystem and reject redirected or incorrect bind sources. Docker's own data root remains on eMMC.
 
-    subgraph MGMT["Out-of-cluster management plane — NanoPi R5C"]
-        GITEA["Gitea 1.27.3<br/>private pull mirror"]
-        RUNNER["Gitea Actions runner<br/>repo-scoped, non-root"]
-        GOTIFY["Gotify"]
-        KUMA["Uptime Kuma"]
-        ACNG["APT-Cacher-NG"]
-        PROM["Prometheus<br/>48h / 512MB retention"]
-        GRAF["Grafana<br/>5 provisioned dashboards"]
-        R5CEXP["Node Exporter<br/>R5C host"]
-        PROM --> GRAF
-        R5CEXP -->|"scrape"| PROM
-        SD["SD-backed state<br/>/srv/storage/state"]
-        GITEA --> SD
-        RUNNER --> SD
-        GOTIFY --> SD
-        KUMA --> SD
-        ACNG --> SD
-        KUMA --> GITEA
-        KUMA --> GOTIFY
-        KUMA --> ACNG
-        KUMA -->|"alerts"| GOTIFY
-    end
+Caddy terminates HTTPS on the controller and forwards only the configured Git hostname to Forgejo. OUTER owns WAN access and forwarding; INNER owns LAN routing, firewall policy and DNS. See [domain ingress](docs/runbooks/domain-ingress.md) for public and private access requirements.
 
-    subgraph COMPUTE["Existing kubeadm Raspberry Pi cluster"]
-        CP["1 control-plane"]
-        WK["2 workers"]
-        PIEXP["3 native Node Exporters"]
-    end
+## Forgejo migration
 
-    GREG["Gitea OCI registry<br/>local distribution"]
-    FLUX["Flux<br/>source + kustomize controllers"]
-    BACKUP["Restic off-device backup<br/>planned"]
+Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo uses a new `/srv/storage/state/services/forgejo` directory and temporary HTTP/SSH ports `3001`/`2223`. Existing Gitea state, credentials and runner identity must not be copied into it.
 
-    DEV --> GH
-    GH -->|"push / PR"| GHCI
-    GHCI --> VALIDATE
-    VALIDATE --> BUILD
-    BUILD --> TEST
-    TEST --> SCAN
-    SCAN --> XFER
-    XFER --> PUB
-    PUB --> GHCR
+Follow the [migration runbook](docs/runbooks/gitea-to-forgejo.md) to:
 
-    GH -->|"native pull mirror"| GITEA
-    GITEA -->|"push event after sync"| RUNNER
-    RUNNER --> VALIDATE
+1. Capture a consistent backup and inventory local-only data.
+2. Start Forgejo beside the legacy instance.
+3. Recreate the GitHub mirror, transfer required metadata, and replicate OCI artifacts without rebuilding.
+4. Register a new restricted runner and verify native validation.
+5. Add the registered hostname and HTTPS, then update clients and monitoring.
+6. Retire the old services after acceptance; retain their backup and rollback manifests.
 
-    GHCR -->|"verified artifact replication"| GREG
-    GHCR -->|"digest pull"| COMPUTE
-    PIEXP -->|"metrics scrape from R5C"| PROM
-    CP -->|"TLS API + Flux proxy metrics"| PROM
-    GH -->|"desired-state pull"| FLUX
-    FLUX -->|"scoped reconcile"| COMPUTE
-    GREG -.->|"future local Kubernetes pull"| COMPUTE
-    GITEA -.->|"state backup"| BACKUP
-```
+Historical sprint reports, incidents and screenshots retain their original Gitea names. They establish the prior baseline and do not prove Forgejo acceptance.
 
-See [docs/architecture/overview.md](docs/architecture/overview.md) for the implementation boundaries and planned delivery path.
+## Configuration and lifecycle
 
-## What is implemented
+Copy the relevant `.env.example` files to local `.env` files. Local credentials, runner configuration and private keys are excluded from Git. Ansible playbooks run from the controller checkout at `/srv/platform`.
 
-### Management plane
+| Playbook | Responsibility |
+| --- | --- |
+| `00-preflight.yml` | ARM64, SD mount and filesystem baseline |
+| `01-management.yml` | Host tools, Docker, Kubernetes and Flux clients |
+| `02-forgejo.yml` | Forgejo storage guard and service |
+| `03-forgejo-runner.yml` | Registered validation runner lifecycle |
+| `04-gotify.yml` | Notifications |
+| `05-uptime-kuma.yml` | Availability monitoring |
+| `06-apt-cacher-ng.yml` | Optional package cache |
+| `07-prometheus.yml`, `08-grafana.yml` | Bounded management observability |
+| `09-node-exporter.yml`, `10-pi-exporters.yml` | Host and Pi exporters |
+| `11-caddy.yml` | HTTPS ingress and persistent certificate state |
 
-The NanoPi R5C runs Armbian/Debian Trixie and remains independent of the Kubernetes compute plane.
+Systemd owns startup; Compose restart policies cannot bypass storage guards. Apply configuration changes with explicit restarts after reviewing them. Running a playbook with `state: started` does not recreate an already running container automatically.
 
-Ansible owns the host baseline plus guarded systemd/Compose lifecycles for:
-
-- Gitea
-- Gitea Actions runner
-- Gotify
-- Uptime Kuma
-- APT-Cacher-NG
-- Prometheus and Grafana (bounded, SD-backed, guarded and Ansible/systemd-managed)
-- a native non-root Node Exporter on the R5C; three additional exporters on physical Pi nodes
-- read-only HTTPS Kubernetes API/Flux scrape jobs authenticated by a separate observer X.509 identity and constrained RBAC
-
-Stateful services use SD-backed persistent storage under `/srv/storage/state/services/<service>`. Startup guards verify the actual ext4 filesystem, reject unsafe path redirection, validate rendered Compose bindings, and fail closed instead of silently writing state to eMMC.
-
-### Source and CI
-
-- GitHub is the public canonical source and recovery copy.
-- `main` is protected and changes flow through pull requests plus CI.
-- Gitea is a private one-way pull mirror, not a second push target.
-- The R5C working copy keeps Gitea as a fetch-only remote and can prove GitHub/Gitea/local-main convergence with `scripts/ops/check-source-parity.sh`.
-- GitHub Actions runs repository validation and the application build/test/scan/publish path on hosted ARM64.
-- Gitea Actions runs repository validation on a physical ARM64 NanoPi R5C.
-- Repository-owned scripts carry validation and image-transfer mechanics so workflow YAML stays focused on orchestration and permission boundaries.
-- The Gitea runner is repository-scoped, non-root, publishes no ports, drops Linux capabilities, and does not receive the production Docker socket.
-
-### First application and OCI publication
-
-`apps/platform-hello` is intentionally small so the delivery mechanics can be learned and defended.
-
-The implemented path is:
-
-```text
-source commit
-  -> repository validation
-  -> Dockerfile check
-  -> build one linux/arm64 image
-  -> runtime acceptance on that exact image
-  -> Trivy vulnerability + secret scan
-  -> export image + record Docker image ID
-  -> upload/download across a separate GitHub job
-  -> verify archive checksum
-  -> verify loaded Docker image ID matches
-  -> authenticate from a publisher with packages: write
-  -> publish the same verified image to GHCR
-```
-
-The first successful publication was produced by GitHub Actions run #27 from commit:
-
-```text
-1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
-```
-
-Published tag:
-
-```text
-ghcr.io/ctalaveraw/platform-hello:1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
-```
-
-Registry digest:
-
-```text
-sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
-```
-
-The commit-derived tag provides traceability; the registry digest is the immutable OCI identity intended for later deployment.
-
-## Delivery objective
-
-The implemented distribution path is:
-
-```text
-verified GHCR artifact
-  -> independently retrieve by immutable digest
-  -> replicate the same OCI artifact into Gitea
-  -> preserve registry manifest digest
-  -> independently retrieve from Gitea by digest
-  -> associate the Gitea package with the mirrored source repository
-```
-
-The Kubernetes delivery path is now implemented:
-
-```text
-known immutable registry digest
-  -> Kubernetes Deployment
-  -> container runtime pull
-  -> Ready Pod
-  -> verify running image identity
-  -> ClusterIP Service + EndpointSlice
-  -> in-cluster HTTP verification
-  -> scoped Flux pull reconciliation from canonical Git
-```
-
-The design goal remains build once, then promote and deploy the same tested/scanned artifact instead of rebuilding independently between stages.
-
-## Kubernetes compute plane
-
-The target compute plane already exists:
-
-- upstream kubeadm-based Kubernetes
-- Raspberry Pi hardware
-- one control-plane node
-- two worker nodes
-- fourth Pi reserved for bootstrap/reconstruction testing
-
-The cluster still contains earlier hand-configured workloads, but `platform-hello` is now repository-defined and deployed from the verified OCI delivery path.
-
-## Operational constraints
-
-- USB archive storage is decommissioned pending hardware investigation.
-- Docker's data root remains on eMMC.
-- Application state is SD-backed and guarded at startup.
-- Management services still use LAN HTTP; shared trusted HTTPS remains pending.
-- TCP/3142 source ACL verification remains pending for APT-Cacher-NG.
-- Fresh-host reconstruction is not yet fully proven.
-- Off-device application backup/restore is not yet proven.
-- Kubernetes object-state, Flux reconciliation, service-level telemetry and automated runtime alerting remain pending. Host-level CPU/memory/network/filesystem metrics are implemented.
-
-## Running repository validation
+## Validation
 
 ```bash
 bash scripts/ci/bootstrap.sh
 bash scripts/ci/validate.sh
 ```
 
-Local application build and acceptance:
-
-```bash
-IMAGE=platform-hello:local
-bash scripts/ci/build-hello.sh "$IMAGE"
-bash scripts/ci/test-hello.sh "$IMAGE"
-```
-
-## Ansible playbooks
-
-```text
-00-preflight.yml
-01-management.yml
-02-gitea.yml
-03-gitea-runner.yml
-04-gotify.yml
-05-uptime-kuma.yml
-06-apt-cacher-ng.yml
-07-prometheus.yml
-08-grafana.yml
-09-node-exporter.yml
-10-pi-exporters.yml  # dedicated Pi SSH-alias inventory
-```
-
-The management baseline also includes the `kubernetes_client` and `flux_client` roles, which install and verify pinned ARM64 Kubernetes and Flux clients used by the R5C.
-
-Service playbooks install their systemd units, reload systemd when required, validate configuration, and declaratively enable/start the service.
+GitHub-hosted ARM64 CI also validates the Caddyfile with the pinned Caddy image and builds/smoke-tests the Forgejo runner image. Those checks do not prove home DNS, WAN routing, certificate issuance, data migration or application recovery.
 
 ## Documentation
 
 - [Documentation index](docs/README.md)
-- [Platform charter and target architecture](docs/vision/platform-charter.md)
-- [DevSecOps and recovery objective register](docs/planning/objectives.md)
-- [Approved decisions and implementation gates](docs/planning/design-gates.md)
-- [Current architecture](docs/architecture/overview.md)
-- [Roadmap](docs/roadmap.md)
-- [Engineering backlog](docs/backlog.md)
-- [CI, mirroring and OCI publication](docs/ci.md)
+- [Architecture and trust boundaries](docs/architecture/overview.md)
+- [CI, mirroring and OCI distribution](docs/ci.md)
+- [Forgejo migration and rollback](docs/runbooks/gitea-to-forgejo.md)
+- [Domain and HTTPS ingress](docs/runbooks/domain-ingress.md)
+- [Forgejo and controller ingress decision](docs/adr/0015-forgejo-and-controller-ingress.md)
 - [Engineering evidence ledger](docs/interview/engineering-evidence.md)
-- [PLAT-006 native Gitea CI sprint](docs/sprints/07-native-gitea-ci.md)
-- [PLAT-007 application delivery sprint](docs/sprints/08-application-delivery-foundation.md)
-- [PLAT-008 dual OCI distribution sprint](docs/sprints/09-dual-oci-distribution.md)
-- [PLAT-009 Kubernetes delivery sprint](docs/sprints/10-kubernetes-delivery.md)
-- [PLAT-010 failure and rollback sprint](docs/sprints/11-deployment-failure-rollback.md)
-- [PLAT-011 Flux GitOps sprint](docs/sprints/12-flux-gitops.md)
-- [PLAT-012 host observability foundation](docs/sprints/13-observability-host-foundation.md)
-- [Host metrics operations runbook](docs/runbooks/observability-host-metrics.md)
-- [Kubernetes/Flux telemetry sprint](docs/sprints/14-kubernetes-flux-telemetry.md)
-- [Kubernetes/Flux telemetry operations](docs/runbooks/kubernetes-flux-telemetry.md)
-- [ADR-0014 — Read-only telemetry observer](docs/adr/0014-kubernetes-telemetry-observer.md)
-- [ADR-0007 — Digest-pinned Kubernetes image pulls](docs/adr/0007-digest-pinned-kubernetes-image-pulls.md)
-- [ADR-0008 — External Kubernetes deployer identity](docs/adr/0008-external-kubernetes-deployer-identity.md)
-- [ADR-0009 — Flux GitOps trust boundary](docs/adr/0009-flux-gitops-trust-boundary.md)
-- [ADR-0006 — Build-once OCI promotion](docs/adr/0006-build-once-oci-promotion.md)
-- [Architecture decisions](docs/adr/)
-- [Incident records](docs/incidents/)
-- [Evidence screenshots](docs/evidence/)
+- [Platform charter](docs/vision/platform-charter.md)
+- [Objective register](docs/planning/objectives.md), [roadmap](docs/roadmap.md) and [backlog](docs/backlog.md)
+
+Off-device restore, blank-host reconstruction, wider service telemetry, runtime alerting and remaining management HTTPS routes still require acceptance. The recovery targets of four hours RTO and one hour RPO remain goals.

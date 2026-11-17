@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Link an already-published Gitea package to a Gitea repository.
+# Link an already-published Forgejo package to a Forgejo repository.
 #
-# This changes Gitea package metadata only. It does not alter the OCI artifact.
+# This changes Forgejo package metadata only. It does not alter the OCI artifact.
 #
 # Authentication:
-#   GITEA_TOKEN must be supplied by the caller.
+#   FORGEJO_TOKEN must be supplied by the caller.
 #
 # Usage:
-#   link-gitea-package.sh \
-#       GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME
+#   link-forgejo-package.sh \
+#       FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME
 
-GITEA_BASE_URL="${1:?Usage: link-gitea-package.sh GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
-OWNER="${2:?Usage: link-gitea-package.sh GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
-PACKAGE_TYPE="${3:?Usage: link-gitea-package.sh GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
-PACKAGE_NAME="${4:?Usage: link-gitea-package.sh GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
-REPOSITORY_NAME="${5:?Usage: link-gitea-package.sh GITEA_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
+FORGEJO_BASE_URL="${1:?Usage: link-forgejo-package.sh FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
+OWNER="${2:?Usage: link-forgejo-package.sh FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
+PACKAGE_TYPE="${3:?Usage: link-forgejo-package.sh FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
+PACKAGE_NAME="${4:?Usage: link-forgejo-package.sh FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
+REPOSITORY_NAME="${5:?Usage: link-forgejo-package.sh FORGEJO_BASE_URL OWNER PACKAGE_TYPE PACKAGE_NAME REPOSITORY_NAME}"
 
-GITEA_TOKEN="${GITEA_TOKEN:-}"
+FORGEJO_TOKEN="${FORGEJO_TOKEN:-}"
 
 fail() {
     echo "FAIL: $*" >&2
@@ -31,14 +31,14 @@ command -v curl >/dev/null 2>&1 ||
 command -v python3 >/dev/null 2>&1 ||
     fail "python3 is required"
 
-[[ -n "$GITEA_TOKEN" ]] ||
-    fail "GITEA_TOKEN is not set"
+[[ -n "$FORGEJO_TOKEN" ]] ||
+    fail "FORGEJO_TOKEN is not set"
 
-case "$GITEA_BASE_URL" in
+case "$FORGEJO_BASE_URL" in
     http://*|https://*)
         ;;
     *)
-        fail "GITEA_BASE_URL must begin with http:// or https://"
+        fail "FORGEJO_BASE_URL must begin with http:// or https://"
         ;;
 esac
 
@@ -67,12 +67,12 @@ trap cleanup EXIT
 umask 077
 
 printf 'header = "Authorization: token %s"\n' \
-    "$GITEA_TOKEN" \
+    "$FORGEJO_TOKEN" \
     > "$CURL_CONFIG"
 
 PACKAGE_URL="$(
     printf '%s/api/v1/packages/%s/%s/%s' \
-        "${GITEA_BASE_URL%/}" \
+        "${FORGEJO_BASE_URL%/}" \
         "$OWNER" \
         "$PACKAGE_TYPE" \
         "$PACKAGE_NAME"
@@ -84,7 +84,7 @@ LINK_URL="$(
         "$REPOSITORY_NAME"
 )"
 
-echo "=== LINK GITEA PACKAGE ==="
+echo "=== LINK FORGEJO PACKAGE ==="
 echo "Package    : ${OWNER}/${PACKAGE_TYPE}/${PACKAGE_NAME}"
 echo "Repository : ${OWNER}/${REPOSITORY_NAME}"
 
@@ -100,7 +100,7 @@ STATUS="$(
         --output "$RESPONSE_BODY" \
         --write-out '%{http_code}' \
         "$PACKAGE_URL"
-)" || fail "Gitea package-state request failed"
+)" || fail "Forgejo package-state request failed"
 
 [[ "$STATUS" == "200" ]] ||
     fail "Expected HTTP 200 while reading package state; received HTTP $STATUS"
@@ -158,7 +158,7 @@ elif repositories == {target}:
 else:
     print("mismatch:" + ",".join(sorted(repositories)))
 PY_STATE
-)" || fail "Unable to interpret Gitea package metadata"
+)" || fail "Unable to interpret Forgejo package metadata"
 
 case "$LINK_STATE" in
     linked)
@@ -188,13 +188,13 @@ STATUS="$(
         --output "$RESPONSE_BODY" \
         --write-out '%{http_code}' \
         "$LINK_URL"
-)" || fail "Gitea package-link request failed"
+)" || fail "Forgejo package-link request failed"
 
 if [[ "$STATUS" != "201" ]]; then
-    echo "Gitea response:" >&2
+    echo "Forgejo response:" >&2
     cat "$RESPONSE_BODY" >&2
     fail "Expected HTTP 201, received HTTP $STATUS"
 fi
 
 echo
-echo "PASS: Gitea package linked to repository."
+echo "PASS: Forgejo package linked to repository."

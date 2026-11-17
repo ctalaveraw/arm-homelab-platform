@@ -10,6 +10,16 @@
 - Historical sprint/incident records remain historical.
 - Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
+## Forgejo and HTTPS transition — 2026-11-17
+
+Repository configuration targets Forgejo 15.0.11 LTS and Caddy on the R5C.
+Host deployment, data transfer, runner acceptance and domain routing are pending.
+Completed Gitea entries below remain historical acceptance, not Forgejo acceptance.
+See the [migration runbook](runbooks/gitea-to-forgejo.md).
+
+- [ ] PORT-003: Complete the separate-instance Forgejo migration and rollback check
+- [ ] OPS-007: Deploy and verify the first HTTPS route; other management routes remain pending
+
 ## COMPLETE — Core delivery
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
@@ -85,7 +95,7 @@
   - [ ] preserve the independent X.509 bootstrap/recovery path
   - [ ] define R5C-to-OpenBao machine authentication
   - [ ] verify credential TTL, renewal/reissue and revocation behavior
-- [ ] PLAT-017: Restic-backed Gitea/package-state backup and restore validation
+- [ ] PLAT-017: Restic-backed Forgejo/package-state backup and restore validation
 - [ ] PLAT-018: Management-plane disaster-recovery exercise
 
 ## FUTURE — Independent projects
@@ -203,7 +213,7 @@ The [platform charter](vision/platform-charter.md) and [93-objective register](p
 - [ ] DR-003: Host/service convergence ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
 - [ ] DR-004: Mutable state and configuration restoration ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
 - [ ] DR-005: PKI and certificate recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
-- [ ] DR-006: Gitea, registry and runner reconstruction ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
+- [ ] DR-006: Forgejo, registry and runner reconstruction ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
 - [ ] DR-007: Kubernetes bootstrap trust recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
 - [ ] DR-008: etcd and cluster control-plane recovery ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))
 - [ ] DR-009: Off-device backup design and verification ([acceptance](planning/objectives.md#dr--day-zero-bootstrap-state-recovery-and-disaster-recovery))

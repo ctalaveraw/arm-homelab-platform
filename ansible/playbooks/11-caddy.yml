@@ -1,0 +1,48 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Configure management HTTPS ingress
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Prepare persistent certificate storage
+      ansible.builtin.file:
+        path: "/srv/storage/state/services/caddy/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+      loop: ['', data, config]
+
+    - name: Install certificate storage guard
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/caddy/check-storage.py"
+        dest: /usr/local/sbin/caddy-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install HTTPS lifecycle unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/caddy/caddy.service"
+        dest: /etc/systemd/system/caddy.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Apply pending unit changes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start HTTPS ingress
+      ansible.builtin.systemd_service:
+        name: caddy.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

@@ -33,3 +33,7 @@ __pycache__/
 
 # Local CI dependencies
 .ci-venv/
+
+# Local-only legacy rollback manifests retained during the Forgejo cutover.
+/compose/gitea/
+/compose/gitea-runner/
