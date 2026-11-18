@@ -4,14 +4,15 @@ Status: repository configuration prepared; real account setup and live acceptanc
 are pending. No token, real hostname, tunnel/account identifier, backend address,
 local network inventory or runtime diagnostic output belongs in this repository.
 
-The controller's `caddy-public` Compose project contains two containers:
+The base ingress manifest contains two containers. The selected controller
+profile adds Zulip and four dependencies using `compose/zulip/compose.yaml`:
 
 | Component | Responsibility |
 | --- | --- |
 | Cloudflare edge | Public DNS and browser-facing HTTPS |
 | `cloudflared:2026.11.1` | Outbound-only, remotely managed connector; image pinned by multi-arch digest |
 | Caddy | Internal HTTP listener and exact-host reverse proxy |
-| Application host | Zulip and its database/cache/queue stack |
+| Controller application containers | Zulip and its own database/cache/queue stack |
 
 Traffic is Cloudflare → cloudflared → Caddy → Zulip. The two containers share a
 private Docker network with fixed, locally selected peer addresses. They have
@@ -21,14 +22,15 @@ TCP 80/443 forwarding or Caddy ACME/DNS-01 credential is required for this path.
 
 Cloudflare terminates browser HTTPS, and its connector transport is encrypted.
 HTTP between the two controller containers stays on their private Docker bridge.
-Restrict Caddy-to-application HTTP to a protected network; use verified upstream
-TLS if that connection crosses an untrusted network. The tunnel does not create
-an independently encrypted Caddy-to-application connection.
+Caddy-to-Zulip HTTP stays on a second internal Docker bridge. Zulip trusts
+only Caddy's fixed address there. Follow [Zulip on the controller](zulip-controller.md)
+for application credentials, initialization and resource checks.
 
 ## 1. Prepare local configuration
 
 Copy `compose/caddy-public/.env.example` to `.env` in that directory and set mode
-0600. Fill the exact chat hostname and restricted upstream endpoint locally.
+0600. Fill the exact chat hostname and the controller application settings
+from [the Zulip guide](zulip-controller.md). Its upstream is `http://zulip:80`.
 Choose a Docker subnet that does not overlap host, LAN, VPN or existing Docker
 routes. Set Caddy and cloudflared to different usable addresses in that subnet;
 exclude the subnet's network, broadcast and first/gateway addresses. Use the same
@@ -54,8 +56,11 @@ changing an existing deployment.
 
 ## 3. Create a remotely managed tunnel and install its token
 
-In your Cloudflare account, create a remotely managed Cloudflare Tunnel for this
-connector. Use its named-tunnel token; a Quick Tunnel is not this deployment.
+In the [Cloudflare dashboard](https://dash.cloudflare.com/), go to
+**Networking → Tunnels** and create a dedicated remotely managed tunnel. Choose
+Docker in the connector setup. For an existing tunnel, select it and choose
+**Add a replica**. The long `eyJ…` value after `--token` in the generated command
+is the token to paste into the helper; do not run the generated command. Use its named-tunnel token; a Quick Tunnel is not this deployment.
 Copy the token from the dashboard's connector installation instructions without
 running or saving its token-bearing Docker command.
 
@@ -122,7 +127,7 @@ or INNER. Keep the old direct-web DNAT examples disabled; this path replaces
 their role. Existing WireGuard ingress and its DDNS remain independent.
 
 After reviewing the tunnel's published hostname, local configuration, original
-Zulip backend and token file:
+Zulip initialization and token file:
 
 ```bash
 ansible-playbook ansible/playbooks/caddy-public.yml --ask-become-pass \
@@ -130,15 +135,15 @@ ansible-playbook ansible/playbooks/caddy-public.yml --ask-become-pass \
 ```
 
 Systemd validates SD state, token permissions, peer addresses and the rendered
-Compose contract. It validates Caddy, starts both containers and waits for the
-connector's `/ready` health check. A failed start removes partial containers;
+Compose contract. It validates Caddy, starts the combined seven-container project and waits for the
+connector's `/ready` and Zulip's inherited `/health` probes. A failed start removes partial containers;
 application state and the secret remain on disk. This is the only activation
 profile for this tunnel; do not start a second manual Docker connector with a
 token in its arguments.
 
 ## Verification and proxy headers
 
-Use `systemctl status caddy-public` and the project's `docker-compose ps` first.
+Use `systemctl status caddy-public` and `sudo /usr/local/sbin/zulip-compose ps` first.
 The connector's readiness probe uses its own loopback metrics endpoint; neither
 metrics nor Caddy's administration interface is published. Readiness proves a
 tunnel connection, not successful Zulip initialization or authentication.
@@ -165,7 +170,8 @@ sudo /usr/local/sbin/cloudflared-install-token --replace
 sudo systemctl restart caddy-public
 ```
 
-Recreating the container is required after an atomic secret replacement because
+This unit restart also restarts the colocated Zulip stack. Recreating the
+connector is required after an atomic secret replacement because
 an existing bind mount can retain the old inode. Do not reset unrelated Cloudflare
 API keys or copy in account-wide certificates. Update the image tag deliberately
 through Git; autoupdate is disabled.
@@ -177,7 +183,7 @@ Warning-level logging and disabled management diagnostics reduce output; do not
 commit or paste unreviewed logs, `docker inspect` or rendered real configuration.
 Use sanitized summaries when recording deployment evidence.
 
-Stopping `caddy-public.service` removes both containers and their networks while
+Stopping `caddy-public.service` removes all seven containers and their networks while
 preserving SD state and Forgejo. Remove/disable the published application in
 Cloudflare if withdrawing the service. No router port-forward rollback is needed
 for this tunnel path. Systemd's guarded oneshot lifecycle does not automatically

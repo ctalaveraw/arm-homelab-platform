@@ -1,21 +1,21 @@
 [Unit]
-Description=Cloudflare Tunnel and Caddy - controller public application ingress
+Description=Controller Zulip, Caddy and Cloudflare Tunnel
 Documentation=https://developers.cloudflare.com/tunnel/
 Requires=docker.service
 Wants=network-online.target
 After=docker.service network-online.target
-RequiresMountsFor=/srv/storage/state/services/caddy-public /srv/storage/state/services/cloudflared
+RequiresMountsFor=/srv/storage/state/services/caddy-public /srv/storage/state/services/cloudflared /srv/storage/state/services/zulip
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/srv/platform/compose/caddy-public
 ExecStartPre=/usr/local/sbin/caddy-public-check-storage
-ExecStartPre=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml run --rm --no-deps server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml up -d --wait --wait-timeout 180
-ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml down
-ExecStopPost=-/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml down
-TimeoutStartSec=300
+ExecStartPre=/usr/local/sbin/zulip-compose run --rm --no-deps server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecStart=/usr/local/sbin/zulip-compose up -d --wait --wait-timeout 900
+ExecStop=/usr/local/sbin/zulip-compose down
+ExecStopPost=-/usr/local/sbin/zulip-compose down
+TimeoutStartSec=1200
 TimeoutStopSec=90
 
 [Install]

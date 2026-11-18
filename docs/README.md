@@ -10,7 +10,8 @@ Forgejo initial setup and sign-in as `ctalaveraw` are confirmed at `http://forge
 - [Forgejo names, paths and client cutover](runbooks/forgejo-reference-map.md) — current owner, staging/final URLs, renamed files and intentional legacy references.
 - [Domain and HTTPS ingress](runbooks/domain-ingress.md) — public tunnel and private Forgejo boundaries.
 - [Cloudflare Tunnel in Docker](runbooks/cloudflared.md) — protected token setup, containers, DNS, egress, activation and rollback.
-- [Controller public ingress](runbooks/controller-public-ingress.md) — Caddy placement and the separate application backend.
+- [Controller public ingress](runbooks/controller-public-ingress.md) — Caddy placement and isolated controller application networks.
+- [Zulip on the controller](runbooks/zulip-controller.md) — local configuration, credentials, initialization and recovery.
 - [ADR-0015 — Forgejo and controller ingress](adr/0015-forgejo-and-controller-ingress.md) — selected migration and proxy design.
 
 ## Current state
