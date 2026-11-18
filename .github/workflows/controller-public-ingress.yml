@@ -5,11 +5,13 @@ on:
   push:
     paths:
       - 'compose/caddy-public/**'
+      - 'scripts/cloudflared/**'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
       - '.github/workflows/controller-public-ingress.yml'
   pull_request:
     paths:
       - 'compose/caddy-public/**'
+      - 'scripts/cloudflared/**'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
       - '.github/workflows/controller-public-ingress.yml'
 
@@ -18,7 +20,14 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
+    env:
+      STATE_SERVICES_ROOT: /tmp/caddy-public-ci-state
+      ZULIP_FQDN: chat.example.com
+      ZULIP_UPSTREAM: http://192.0.2.10:8080
+      PUBLIC_INGRESS_SUBNET: 192.0.2.0/28
+      CLOUDFLARED_CONTAINER_IP: 192.0.2.2
+      CADDY_TUNNEL_IP: 192.0.2.3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,19 +37,29 @@ jobs:
       - run: >-
           python -m unittest discover -s scripts/ci/tests
           -p test_controller_public_ingress.py -v
-      - name: Render isolated public profile
-        env:
-          STATE_SERVICES_ROOT: /tmp/caddy-public-ci-state
-          PROXY_BIND_IP: 127.0.0.1
-          ACME_EMAIL: operator@example.com
-          ZULIP_FQDN: chat.example.com
-          ZULIP_UPSTREAM: http://192.0.2.10:8080
+      - name: Prepare noncredential CI fixture
         run: |
           mkdir -p \
             "$STATE_SERVICES_ROOT/caddy-public/data" \
-            "$STATE_SERVICES_ROOT/caddy-public/config"
+            "$STATE_SERVICES_ROOT/caddy-public/config" \
+            "$STATE_SERVICES_ROOT/cloudflared"
+          printf '%s' ci-not-a-real-token > "$STATE_SERVICES_ROOT/cloudflared/tunnel-token"
+          chmod 0444 "$STATE_SERVICES_ROOT/cloudflared/tunnel-token"
+      - name: Validate pinned container configurations
+        run: |
           docker compose --env-file /dev/null \
             -f compose/caddy-public/compose.yaml config --quiet
           docker compose --env-file /dev/null \
             -f compose/caddy-public/compose.yaml run --rm --no-deps \
             server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml run --rm --no-deps cloudflared version
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml run --rm --no-deps \
+            cloudflared tunnel run --help | grep -- --token-file
+      - name: Exercise Caddy proxy headers and isolation
+        run: |
+          docker create --name caddy-binary caddy:2.11.9-alpine
+          docker cp caddy-binary:/usr/bin/caddy "$RUNNER_TEMP/caddy"
+          docker rm caddy-binary
+          python scripts/cloudflared/smoke-proxy.py --caddy "$RUNNER_TEMP/caddy"

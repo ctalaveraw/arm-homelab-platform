@@ -1,89 +1,41 @@
-# Shared public Caddy on the GitOps controller
+# Shared public ingress on the controller
 
-Decision: run the shared public Caddy instance on `gitops-controller-01`.
-No new VM or router application installation is required. This profile is a
-deployment candidate; public hostname, upstream host, DNS and live router rules
-still need to be supplied and accepted.
+Selected deployment: Dockerized cloudflared and Caddy on the GitOps controller.
+No new VM or router application installation is required. Deployment and live
+acceptance remain pending; configuration examples contain no local deployment
+addresses, real domains, tunnel identifiers or credentials.
 
-| System | Responsibility |
+Follow [Cloudflare Tunnel in Docker](cloudflared.md) for preparation, protected
+token installation, Cloudflare published-hostname setup, activation and rollback.
+
+| Component | Responsibility |
 | --- | --- |
-| OUTER | Existing WAN firewall/WireGuard; forward TCP 80/443 inward |
-| INNER | Existing routing/firewall, Cloudflare DDNS and local DNS |
-| `gitops-controller-01` | Shared public Caddy; initially Zulip hostname only |
-| Zulip application host | Compose application/database stack; location still pending |
-| Forgejo | Private LAN/WireGuard access on its migration/final application port |
+| OUTER/INNER | Existing firewall/routing, WireGuard, DNS and DDNS |
+| cloudflared | Outbound-only connector to Cloudflare |
+| Caddy | Internal exact-host routing; no published host web ports |
+| Zulip host | Application/database stack; placement still pending |
+| Forgejo | Existing private LAN/WireGuard service |
 
-The controller's last supplied LAN address was `10.0.0.50`. Verify it before
-using it. INNER's disabled draft redirects now target the controller, not a
-Zulip VM. The existing transit-DNAT candidate remains conditional on the actual
-route/NAT inventory; no live network change is made by this document.
+This supersedes the earlier direct TCP 80/443 forwarding plan. Do not activate
+its router DNAT rules or its chat-to-controller local DNS override for this
+profile. Cloudflare's tunnel-managed DNS replaces residential DDNS for the chat
+hostname; unrelated DDNS/WireGuard configuration stays in place.
 
-## Public and private routing
+Public Caddy has no Forgejo route, no Docker socket and no membership in Forgejo's
+private Docker network. The existing `compose/caddy` private-ingress candidate
+and public tunnel profile use separate networks and state. Because the tunnel
+profile publishes no host ports, it can coexist with a separately reviewed
+private listener without taking over that listener or exposing it through WAN.
+Never publish the legacy Forgejo proxy as a Cloudflare application service.
 
-Use `compose/caddy-public/compose.yaml` for public ingress. It has one exact
-public hostname, no wildcard/catch-all, no Forgejo route, no Docker socket and
-no membership in Forgejo's `platform_ingress` network. Its certificate state is
-separate and guarded on the SD filesystem. Systemd owns startup.
+## Application profile from the earlier bundle
 
-The existing `compose/caddy` / `11-caddy.yml` profile routes to Forgejo. Do not
-use that profile as the public listener or run it on the same address/ports as
-this profile. Merely omitting a public Git DNS record does not make a routable
-Forgejo virtual host private: external clients can supply its hostname.
-
-This stage leaves Forgejo on its existing private HTTP port while migration
-continues. Private Forgejo HTTPS is a separate listener/policy decision; adding
-its hostname to public Caddy would violate the selected access boundary. Once
-WAN forwarding is active, never replace the public profile with the legacy
-Forgejo profile on the forwarded listener. Disable the WAN redirects first if
-changing listener ownership. The new playbook and storage guard reject an
-active legacy `caddy.service`; they do not modify or stop it automatically.
-
-All new source paths are additive. No migration runbook, Forgejo manifest,
-existing Caddy profile, root README or shared CI script is edited by this change.
-
-## Configure the controller
-
-Confirm SD storage, actual LAN address, free TCP 80/443 and nonoverlapping Docker
-routes. Verify `/usr/bin/docker-compose` is the modern Compose CLI used by this
-host. The manifest uses an independent Docker bridge, not host networking.
-
-```bash
-cd /srv/platform
-ss -lntup
-ip -4 route show table all
-docker network ls
-cp -n compose/caddy-public/.env.example compose/caddy-public/.env
-chmod 600 compose/caddy-public/.env
-```
-
-Set `PROXY_BIND_IP` to the controller LAN address, `ZULIP_FQDN` to the chosen
-public hostname, `ACME_EMAIL` to your contact and `ZULIP_UPSTREAM` to the actual
-restricted application endpoint. Never use the public chat URL as its own
-upstream. Add more public hostname blocks deliberately when another service is
-approved; additional hosts share these same public web ports.
-
-After backend preparation, hostname/DNS selection and router review, deploy:
-
-```bash
-ansible-playbook ansible/playbooks/caddy-public.yml --ask-become-pass
-```
-
-The unit validates Caddy before starting. Automatic public certificate issuance
-requires the chosen hostname and reachable ACME validation path; config
-validation alone does not prove it. Router redirects remain disabled until the
-public-only configuration and its listener ownership are confirmed.
-
-## Adapt the earlier Zulip source bundle
-
-The original `homelab-zulip-v0.1.0.zip` colocated Caddy with the application.
-That placement is superseded. A new VM is not required for the application;
-choose an existing machine with sufficient RAM/storage and review isolation.
-
-For a separate application host, copy `zulip-upstream.override.yaml` from this
-directory next to that bundle's `compose.yaml`. Keep the bundle's `.env` and add
-`CONTROLLER_PROXY_IPV4` with the exact proxy source observed at the application
-(normally the controller LAN address for a remote backend). All application
-lifecycle commands must use both manifests:
+The original Zulip source bundle colocated Caddy with the application. That
+placement is superseded. For a separate existing application host, copy
+`compose/caddy-public/zulip-upstream.override.yaml` next to the bundle's
+`compose.yaml`. Keep real settings local. Add `CONTROLLER_PROXY_IPV4` for the
+exact proxy source observed at Zulip, normally the controller's address for a
+remote backend. Use both manifests for every application lifecycle operation:
 
 ```bash
 docker compose -f compose.yaml -f zulip-upstream.override.yaml config --quiet
@@ -91,42 +43,24 @@ docker compose -f compose.yaml -f zulip-upstream.override.yaml run --rm zulip ap
 docker compose -f compose.yaml -f zulip-upstream.override.yaml up -d --wait zulip
 ```
 
-The override profiles the bundle's local Caddy out of default startup, publishes
-only Zulip HTTP on the selected backend IPv4/TCP 8080, and trusts the controller
-instead of the bundle's old Caddy container IP. Do not explicitly start the
-`legacy-collocated-ingress` profile. If it was previously started, remove that
-old Caddy container before switching; changing profiles does not remove existing
-containers. Do not execute the bundle's old unqualified Caddy/backup instructions
-without adapting them to the two-host layout and both manifests.
+The override excludes the bundle's old Caddy from default startup, publishes
+only backend HTTP on the selected application IPv4/TCP 8080, and limits proxy
+trust to the configured controller source. If the old Caddy container already
+exists, stop/remove it before switching; changing profiles does not remove an
+existing container. Adapt old backup commands to use both manifests and back
+up the controller's tunnel configuration/secret separately.
 
-Only the controller may connect to backend TCP 8080. Use a routed services zone
-plus the explicit INNER rule, or enforce this in the backend host's container
-forwarding firewall if the machines share L2. Router rules cannot filter traffic
-that never crosses the router. An IPv4 bind alone is not source filtering.
-Use verified upstream HTTPS if the path crosses an untrusted network. Verify
-real client IPs and HTTPS links; never trust all private addresses or the entire
-Docker gateway range. Caddy and app container DNS aliases do not cross hosts.
+Only the controller may reach backend TCP 8080. Enforce that in INNER for a
+routed services segment or in the backend host's container-forwarding firewall
+when both machines share L2. A private IPv4 bind alone is not a source allowlist.
+Use verified upstream TLS for an untrusted path. For cohosting on the controller,
+review RAM/storage and use an unpublished dedicated shared Docker backend network;
+that application-placement profile is not assumed or implemented here.
 
-If Zulip is also placed on the controller, review memory/storage headroom and
-use a dedicated shared Docker backend network instead of exposing a host HTTP
-port. That cohosted profile is not supplied here; the application location has
-not been selected. Do not guess which proxy source the app will see.
+## Acceptance boundary
 
-## DNS and acceptance
-
-Cloudflare: initially use a DNS-only chat record through the existing IPv4 DDNS
-name. INNER's exact chat hostname override points to the controller, not the
-application host. LAN/WireGuard clients use the same controller HTTPS endpoint.
-Keep Forgejo's private DNS/service endpoint independent. Publish no AAAA route
-until IPv6 ingress policy has been reviewed. TCP 443 leaves WireGuard UDP 443
-unchanged; HTTP/3 is disabled in this profile.
-
-Before inviting users, verify LAN and cellular HTTPS, hostname-matching trusted
-certificate, login/messages/uploads/email, actual client IP, restricted backend
-reachability, continued private Forgejo access and failed WAN access to Forgejo.
-Test the private Git hostname explicitly from outside with a forced Host/SNI
-mapping to the public IP; absence of public DNS is not a privacy test.
-
-Back up `services/caddy-public/data`, its configuration and the application
-state separately. Disabling OUTER's two public redirects closes public ingress
-without stopping Forgejo or deleting Caddy/application state.
+Repository validation and synthetic proxy tests do not prove a connected real
+tunnel, correct published hostname, working mail or app recovery. Accept the
+service only after public/LAN HTTPS, client IP, login/messages/uploads/email,
+backend source restrictions, private Forgejo access and backup/restore have
+been verified. Record sanitized results, not local route/configuration dumps.

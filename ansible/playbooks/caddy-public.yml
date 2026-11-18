@@ -1,36 +1,32 @@
 ---
 - import_playbook: 00-preflight.yml
 
-- name: Configure controller public application ingress
+- name: Prepare controller Cloudflare Tunnel and Caddy
   hosts: management
   gather_facts: false
   become: true
 
   tasks:
-    - name: Inspect legacy Forgejo ingress unit
-      ansible.builtin.command:
-        argv: [/usr/bin/systemctl, is-active, caddy.service]
-      register: private_caddy
-      changed_when: false
-      failed_when: false
-      check_mode: false
-
-    - name: Require explicit listener ownership
-      ansible.builtin.assert:
-        that:
-          - private_caddy.stdout | trim not in ['active', 'activating', 'reloading']
-        fail_msg: >-
-          caddy.service uses a Forgejo routing profile. Resolve listener ownership
-          before activating public Caddy; never forward WAN to the Forgejo profile.
-
-    - name: Prepare public certificate storage
+    - name: Prepare public ingress and credential storage
       ansible.builtin.file:
-        path: "/srv/storage/state/services/caddy-public/{{ item }}"
+        path: "/srv/storage/state/services/{{ item }}"
         state: directory
         owner: root
         group: root
         mode: '0700'
-      loop: ['', data, config]
+      loop:
+        - caddy-public
+        - caddy-public/data
+        - caddy-public/config
+        - cloudflared
+
+    - name: Install hidden-input token helper
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/scripts/cloudflared/install-token.py"
+        dest: /usr/local/sbin/cloudflared-install-token
+        owner: root
+        group: root
+        mode: '0755'
 
     - name: Install public ingress storage guard
       ansible.builtin.copy:
@@ -52,11 +48,12 @@
     - name: Apply pending unit changes
       ansible.builtin.meta: flush_handlers
 
-    - name: Enable and start controller public ingress
+    - name: Enable and start reviewed public tunnel
       ansible.builtin.systemd_service:
         name: caddy-public.service
         enabled: true
         state: started
+      when: public_ingress_activate | default(false) | bool
 
   handlers:
     - name: Reload systemd

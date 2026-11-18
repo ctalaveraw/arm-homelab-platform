@@ -8,7 +8,9 @@ Forgejo initial setup and sign-in as `ctalaveraw` are confirmed at `http://forge
 
 - [Gitea to Forgejo migration](runbooks/gitea-to-forgejo.md) — backup, separate storage, mirror, registry, runner, acceptance and rollback.
 - [Forgejo names, paths and client cutover](runbooks/forgejo-reference-map.md) — current owner, staging/final URLs, renamed files and intentional legacy references.
-- [Domain and HTTPS ingress](runbooks/domain-ingress.md) — Caddy placement, DNS, router boundaries and verification.
+- [Domain and HTTPS ingress](runbooks/domain-ingress.md) — public tunnel and private Forgejo boundaries.
+- [Cloudflare Tunnel in Docker](runbooks/cloudflared.md) — protected token setup, containers, DNS, egress, activation and rollback.
+- [Controller public ingress](runbooks/controller-public-ingress.md) — Caddy placement and the separate application backend.
 - [ADR-0015 — Forgejo and controller ingress](adr/0015-forgejo-and-controller-ingress.md) — selected migration and proxy design.
 
 ## Current state

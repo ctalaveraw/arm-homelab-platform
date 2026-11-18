@@ -76,3 +76,13 @@ Use destination owner `ctalaveraw`, including `forgejo.lab.home.arpa:3002/ctalav
 ## Acceptance and records
 
 Follow [migration and rollback](runbooks/gitea-to-forgejo.md) and [domain ingress](runbooks/domain-ingress.md). Update Kuma, OCI clients and the fetch-only remote only after successful checks. Historical proof remains in [native Gitea CI](sprints/07-native-gitea-ci.md), [dual distribution](sprints/09-dual-oci-distribution.md) and the [engineering evidence ledger](interview/engineering-evidence.md).
+
+## Controller tunnel validation
+
+The dedicated controller public-ingress workflow validates the pinned Caddy and
+cloudflared images on ARM64 without authenticating a real tunnel. It renders
+only synthetic settings and a deliberately invalid CI file-secret fixture,
+checks the token-file CLI, and runs a loopback-only proxy smoke test.
+Regression tests protect unpublished ports, exact proxy trust, private Forgejo
+isolation, canonical SD credentials and non-echoing atomic token installation.
+No real deployment configuration, diagnostics or credentials are CI inputs.
