@@ -24,7 +24,7 @@
     - name: Inspect Zulip data directories without changing service ownership
       ansible.builtin.stat:
         path: "/srv/storage/state/services/zulip/{{ item }}"
-      loop: [data, postgresql, rabbitmq, redis]
+      loop: [postgresql, rabbitmq, redis]
       register: zulip_directories
 
     - name: Create missing Zulip data directories
@@ -38,6 +38,14 @@
       loop_control:
         label: "{{ item.item }}"
       when: not item.stat.exists
+
+    - name: Allow the Zulip user to traverse the application data mount
+      ansible.builtin.file:
+        path: /srv/storage/state/services/zulip/data
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
 
     - name: Install controller Zulip operator helpers
       ansible.builtin.copy:
