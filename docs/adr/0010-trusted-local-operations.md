@@ -15,7 +15,7 @@ Create a **separate, restricted local operations execution boundary** when autom
 
 - Forgejo Actions: approved trigger, bounded job graph, audit and results.
 - Ansible: desired-state host/package/systemd/Compose convergence with idempotence and explicit inventory.
-- Repository scripts/Python: validation, API-specific commands, pre/post checks, safe retry and evidence capture.
+- Repository helpers: validation, API commands, pre/post checks, safe retry and evidence capture.
 - Flux: sole routine reconciler of its Kubernetes application inventory.
 - Privileged cluster bootstrap: separate, explicitly authorized admin recovery procedure; not a GitOps self-management loophole.
 

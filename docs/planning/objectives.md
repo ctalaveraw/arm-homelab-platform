@@ -49,7 +49,7 @@ The platform runs on ARM64 with GitHub source, a Forgejo mirror and restricted v
 | Objective | Mode | Acceptance / failure evidence | Dependency | Tier |
 |---|---|---|---|---|
 | **OPS-008 — Dedicated trusted operations runner** | Planned | Distinct identity/execution boundary from existing validation runner; untrusted PR cannot obtain privileged access. | SEC-004, DR-001 | S/H |
-| **OPS-009 — Approval-gated Ansible operations** | Planned | Allowlisted signed/reviewed scripts/playbooks; actor approval, concurrency lock, dry-run/rollback evidence and bounded privileges. | OPS-008, ENG-003 | H |
+| **OPS-009 — Approval-gated Ansible operations** | Planned | Allowlisted scripts and playbooks from signed or reviewed revisions; actor approval, concurrency locks, dry-run/rollback evidence and limited privileges. | OPS-008, ENG-003 | H |
 | **OPS-010 — Negative SD/systemd/Compose contracts** | Planned | Tests simulate wrong/missing filesystem, label, symlink and bind; startup refuses unsafe state. | CI-007 | P/H |
 | **OPS-011 — Optional APT cache clients** | Planned | Finish OPS-006 ACL checks; test real Pi cold/warm install and bypass on cache outage. | OPS-006, PLAT-014 | H |
 | **OPS-012 — Idempotent service integration seeding** | Planned | Forgejo/monitor/notification config reconciliation is repeatable, non-secret in Git and restore-safe. | OPS-013, PLAT-013 | S/H |
