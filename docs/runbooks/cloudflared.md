@@ -77,6 +77,10 @@ owned by root with numeric group 65532 and mode 0440. Its parent is root-owned
 0700. The official container runs as 65532:65532 and receives only that file at
 `/run/secrets/tunnel_token`.
 
+The token installer stores the credential; it does not start a connector. A new
+tunnel can still show Inactive and zero active replicas until the activation
+step. Saving a published application route does not start the connector either.
+
 Local Compose secrets are bind-mounted files, not encrypted Swarm secrets.
 Their source ownership/mode must allow the nonroot container to read them;
 Compose's uid/gid/mode overrides are not relied on. Back up this private file
@@ -95,9 +99,15 @@ Configure the tunnel's published application hostname in Cloudflare with:
 | Field | Value |
 | --- | --- |
 | Public hostname | Your chosen chat name, kept in local `.env` |
-| Service type | HTTP |
-| Service URL | `server:8080` (`http://server:8080`) |
+| Service URL | `http://server:8080` (include the protocol) |
 | Path | All paths for this hostname |
+
+The dashboard's single Service URL field requires the full URL, including
+`http://`; entering only `server:8080` fails validation. Older dashboard layouts
+with separate protocol/address fields use HTTP and `server:8080` respectively.
+Set the Subdomain field to the intended chat label; leaving it blank selects
+the domain apex. Leave Path empty to include all application paths. Additional
+application settings can remain at their defaults.
 
 The hostname must match `ZULIP_FQDN`. Preserve the public Host header; if an
 origin Host override is needed, set it to that same hostname in Cloudflare.
