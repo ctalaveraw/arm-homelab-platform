@@ -1,6 +1,6 @@
 # Forgejo Names, Paths and Client Cutover
 
-Updated 2026-11-18. Forgejo is healthy at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw`, SSH/2223 and an active repository-scoped runner. Mirror/main parity, SSH read, OCI digest parity, complete retrieval and package association passed during staging. Legacy Gitea units are stopped and disabled. Final client and monitoring checks at the new address remain.
+Updated 2026-11-18. Forgejo is healthy at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw`, SSH/2223 and an active repository-scoped runner. Mirror/main parity, SSH read, OCI digest parity, complete retrieval and package association passed during staging. Legacy Gitea units are stopped and disabled. Post-cutover source parity and full OCI retrieval passed; native manual/push Actions runs are green and Kuma reports the final root URL Up. Remaining review is tracked in the migration checklist.
 
 ## Service and account identity
 
@@ -81,7 +81,7 @@ AUTHFILE="$HOME/.config/containers/forgejo-auth.json" TLS_VERIFY=false \
 
 The explicit TLS flag is for this trusted LAN HTTP registry. Keep normal verification for GHCR and HTTPS endpoints. The package association was already verified; a port change does not require re-copying or re-linking it.
 
-Update Uptime Kuma's monitor name to Forgejo and its URL to `http://git.lab.home.arpa:3000/api/healthz`, expecting HTTP 200 and JSON `status: pass`. Keep its existing notification channel if appropriate. Update bookmarks, Git credential entries, clone URLs, hooks, deploy keys and integrations to the new endpoint and owner as applicable. Check generated clone/package URLs and confirm the native workflow's final success from the Actions page.
+Uptime Kuma's monitor is now named Forgejo and reports `http://git.lab.home.arpa:3000/` Up. Prefer `http://git.lab.home.arpa:3000/api/healthz` for application health, expecting HTTP 200 and JSON `status: pass`; this endpoint change is not yet evidenced. Keep its existing notification channel if appropriate and verify delivery separately. Update bookmarks, Git credential entries, clone URLs, hooks, deploy keys and integrations to the new endpoint and owner as applicable. Check generated clone/package URLs. The Actions page already records successful manual and push-triggered native runs.
 
 The runner registration remains `http://forgejo:3000/` internally after host-port cutover. Public GitHub URLs, GHCR images, Kubernetes digest references and Flux sources keep their existing canonical identities.
 

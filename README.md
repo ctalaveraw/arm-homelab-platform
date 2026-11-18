@@ -4,12 +4,12 @@
 
 A platform engineering lab for reproducible infrastructure, ARM64 application delivery, observability and recovery.
 
-**Deployment status — 2026-11-18:** Forgejo is healthy on the independent NanoPi R5C (`gitops-controller-01`) at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw` and SSH on `2223`. The GitHub mirror and linked `platform-hello` package were transferred and verified during staging; the repository-scoped runner is active. Legacy Gitea units are stopped and disabled, with separate state retained for rollback. Final client and monitoring checks at the new address remain. See the [migration record](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md).
+**Deployment status — 2026-11-18:** Forgejo is healthy on the independent NanoPi R5C (`gitops-controller-01`) at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw` and SSH on `2223`. The GitHub mirror and linked `platform-hello` package were transferred and verified during staging; the repository-scoped runner is active. Legacy Gitea units are stopped and disabled, with separate state retained for rollback. Post-cutover source parity, full OCI retrieval, native Actions and Kuma availability now pass. Remaining retirement and permission/metadata review are tracked in the migration checklist. See the [migration record](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md).
 
 | Component | Repository configuration | Last recorded runtime evidence |
 | --- | --- | --- |
 | Local forge | Forgejo 15.0.11 LTS; new SD-backed state | LAN HTTP/3000 health passed; mirror parity, SSH read and complete OCI retrieval passed during staging |
-| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Ansible deployment passed; native workflow exercised; service active after cutover |
+| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Manual and push-triggered native runs succeeded; service active after cutover |
 | Public app ingress | cloudflared 2026.11.1 → internal Caddy 2.11.9; no host ports | Configuration prepared; tunnel/app acceptance pending |
 | Chat application | Controller Zulip 13.2-0; private database/queue/caches | Placement selected; initialization and live acceptance pending |
 | Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |

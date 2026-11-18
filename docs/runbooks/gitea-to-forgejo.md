@@ -1,6 +1,6 @@
 # Gitea to Forgejo Migration
 
-Status: Forgejo LAN HTTP/3000 cutover, Git source parity and final-address OCI retrieval passed; SSH remains on TCP/2223 and the runner is active. Monitoring and remaining acceptance checks are still open.
+Status: Forgejo operational LAN cutover verified: HTTP/3000 health, SSH/2223, post-cutover source parity, full OCI retrieval, native Actions and Kuma availability passed. Legacy state is retained for rollback; remaining review is listed in section 9.
 Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 
 ## Recorded progress — 2026-11-18
@@ -20,9 +20,11 @@ Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 - [x] Port-change rollback checkpoint retained at `/srv/backups/forgejo-port3000-retry-fEuVxI`. Initial connection refusals during startup were followed by a passing health check.
 - [x] Final-address OCI login and full retrieval passed at `git.lab.home.arpa:3000` for the same qualified digest; no artifact rebuild or re-copy was needed.
 - [x] Post-cutover source parity passed: local `main`, local HEAD, GitHub and Forgejo all matched `44d3d82ba9919c39407031ded42abd4ff49b2128` using the fetch-only Forgejo remote.
-- [ ] Generated URLs and monitoring confirmed; native workflow's final successful conclusion recorded.
+- [x] Native Actions screenshots confirm run #1 (manual, commit `eb84e2ec9c`, 2m47s) and run #2 (push, commit `44d3d82ba9`, 2m32s) succeeded.
+- [x] Kuma screenshot shows monitor `Forgejo` Up at `http://git.lab.home.arpa:3000/`. The monitor checks the root URL; changing it to `/api/healthz` remains a recommended improvement.
+- [ ] Generated URLs, destination permissions and remaining metadata reviewed before retiring the legacy state.
 
-The record distinguishes staging results from post-cutover checks. Final-address HTTP health, service activation, Git source parity and complete OCI retrieval have now passed. Use the [consumer checks](forgejo-reference-map.md#update-consumers-after-transfer) to finish at the new address. The steps below remain the reusable migration/rollback procedure; this controller has already completed the port change and should keep its existing local `.env` and separate state.
+The record distinguishes staging results from post-cutover checks. Final-address HTTP health, service activation, Git source parity, complete OCI retrieval, native workflow success and Kuma availability have now passed. The [consumer checks](forgejo-reference-map.md#update-consumers-after-transfer) remain a reusable reference. The steps below remain the reusable migration/rollback procedure; this controller has already completed the port change and should keep its existing local `.env` and separate state.
 
 ## Migration method
 
@@ -211,10 +213,13 @@ Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domai
 - [x] Final-address OCI retrieval passed at LAN TCP/3000 with the preserved digest.
 - [x] Post-cutover source parity passed across controller-local, GitHub and Forgejo `main`.
 - [ ] Generated root/clone/package URLs agree with the final address.
-- [ ] Native Forgejo validation has a recorded final successful result.
-- [ ] Availability checks and alerts now target Forgejo accurately.
+- [x] Native Forgejo validation succeeded in manual and push-triggered runs.
+- [x] Kuma availability check targets Forgejo at the final root URL and reports Up.
+- [ ] Notification delivery for the Forgejo monitor verified independently.
 - [ ] Both new service lifecycles and guarded storage behavior checked on the host.
 - [ ] Rollback routing and the preserved legacy instance checked before final retirement.
+
+The Kuma screenshot establishes current root-URL availability, not alert delivery or use of the JSON health endpoint. Its historical uptime percentages include the existing monitor's earlier history and are not a Forgejo-only availability measurement.
 
 The old Gitea units stay disabled after the port cutover. Retain their state, images, private checkpoint and local rollback manifests for an agreed retention period. Do not remove them automatically.
 
