@@ -5,13 +5,14 @@ The architecture, CI and runbooks describe current operation. Sprint, incident a
 ## Current operation
 
 - [Architecture](architecture/overview.md): hosts, source ownership, storage, ingress and deployment.
+- [Deployment standards and service map](architecture/deployment-standards.md): names, manifest/overlay rules, playbooks, lifecycle owners and documented gaps.
 - [CI and OCI distribution](ci.md): workflows, runner permissions, mirroring, publication and registry helpers.
 - [Forgejo names, paths and clients](runbooks/forgejo-reference-map.md): current URLs, account owner, files and retained legacy references.
 - [Gitea to Forgejo migration](runbooks/gitea-to-forgejo.md): accepted migration results, reusable procedure and rollback.
 - [Domain ingress](runbooks/domain-ingress.md): public chat and private Forgejo access.
 - [Cloudflare Tunnel](runbooks/cloudflared.md): token setup, DNS, activation and withdrawal.
 - [Controller public ingress](runbooks/controller-public-ingress.md): Caddy, tunnel and application networks.
-- [Controller Zulip](runbooks/zulip-controller.md): configuration, initialization and recovery.
+- [Controller Zulip](runbooks/zulip-controller.md): accepted/pending checks, routine operations, diagnostics, configuration and recovery.
 - [Host metrics](runbooks/observability-host-metrics.md): exporter and dashboard operations.
 - [Kubernetes and Flux telemetry](runbooks/kubernetes-flux-telemetry.md): observer credentials, API-proxy scraping and failure handling.
 - [Application deployment and rollback](runbooks/kubernetes-deployment-rollback.md): the scoped deployment helper and recovery procedure.
@@ -28,7 +29,12 @@ Forgejo is live at `http://git.lab.home.arpa:3000/` with SSH/2223. Source parity
 - [Engineering evidence ledger](interview/engineering-evidence.md): dated implementation and test results.
 - [Initial R5C baseline](architecture/r5c-baseline.md): the 2026-10-01 host snapshot.
 
-Private HTTPS, runtime alerts, restore, fresh-host reconstruction and wider workload metrics remain open. Public Zulip live acceptance is tracked in its runbook.
+Public Zulip is deployed: the operator confirmed healthy containers, HTTPS,
+organization creation and owner login on 2026-11-18. Its runbook tracks mail
+delivery, messages/uploads, external/native clients and recovery as pending.
+Prometheus and Grafana were stopped in the latest inventory; their earlier
+eight-target/five-dashboard results are historical. Private HTTPS, runtime alerts,
+restore, fresh-host reconstruction and wider workload metrics remain open.
 
 ## Architecture decisions
 

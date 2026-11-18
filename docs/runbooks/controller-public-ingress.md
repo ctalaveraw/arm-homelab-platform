@@ -1,9 +1,11 @@
 # Controller Zulip and public ingress
 
-Selected deployment: Zulip, PostgreSQL, RabbitMQ, Redis, Memcached, Caddy and
+Deployed on the controller: Zulip, PostgreSQL, RabbitMQ, Redis, Memcached, Caddy and
 cloudflared run in separate containers on the GitOps controller. No new VM or
-router application installation is required. Live deployment and acceptance
-remain pending; examples contain no real deployment settings or credentials.
+router application installation is required. On 2026-11-18 the operator confirmed
+healthy app/connector containers, public HTTPS, organization creation and owner
+login. Remaining checks are recorded in the
+[operator acceptance table](zulip-controller.md#accepted-and-pending-checks).
 
 | Component | Responsibility |
 | --- | --- |
@@ -27,13 +29,16 @@ application maintenance operation in this profile.
 
 The tunnel and Caddy share only their internal tunnel bridge. Caddy and Zulip
 share a different internal bridge with fixed peer addresses; Zulip trusts only
-Caddy's address there. Only Zulip joins its private dependency bridge. The
+Caddy's address there. Only Zulip and its four dependencies join the dependency
+bridge; ingress containers stay off it. The
 connector and application have separate outbound networks. No service in this
 project publishes a host port, uses the Docker socket, joins Forgejo's network,
 or uses Forgejo's database/Redis. Unknown public hostnames return 404.
 
-The earlier separate-host bundle and `zulip-upstream.override.yaml` are retained alternatives; this guide uses the controller overlay. Do not combine that
-bundle or its Caddy with this project. Application HTTP stays inside Docker;
+The earlier separate-host bundle and `zulip-upstream.override.yaml` are inactive
+compatibility material, not controller deployment entry points. This guide uses
+the controller overlay; do not combine that bundle or its Caddy with this project.
+Application HTTP stays inside Docker;
 no controller-to-remote-backend firewall rule or public web DNAT is required.
 
 For additional public services, add an explicit hostname route and a reviewed
@@ -49,6 +54,8 @@ Startup checks require memory/swap headroom and 10 GiB free SD state storage;
 these checks do not prove that the current management workload and Zulip will
 fit under sustained load. Monitor memory, swap and SD latency during acceptance.
 
-Live acceptance must check tunnel connectivity, SMTP, login, messages, uploads and recovery. Verify those from LAN and cellular, confirm real
-client IP handling and private Forgejo access, and test an off-device backup.
+Startup, tunnel readiness and browser login have passed. SMTP authentication also
+passed from the host; invitation delivery is still unverified. Complete messaging,
+uploads, cellular/native clients, real client-IP and private Forgejo checks, then
+an off-device backup and isolated restore.
 Record sanitized pass/fail summaries; keep settings, logs and credentials local.

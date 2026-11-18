@@ -800,3 +800,66 @@ Evidence:
 - [ADR-0014](../adr/0014-kubernetes-telemetry-observer.md)
 - [Observer operations runbook](../runbooks/kubernetes-flux-telemetry.md)
 - Local commits `66e25b3`, `5a4d4f3`, `917eff4`, `fb193e5`, `059e7d9` (recorded local revisions).
+
+## EVIDENCE-020: Controller-hosted Zulip through an outbound tunnel
+
+Date: 2026-11-18
+
+Implementation:
+- Seven controller containers: Zulip, PostgreSQL, RabbitMQ, Redis, Memcached,
+  internal Caddy and cloudflared; separate state and networks from Forgejo.
+- One guarded `caddy-public.service` lifecycle and `zulip-compose` interface for
+  the ingress base plus application overlay. No host port is published.
+- Cloudflare-managed public DNS/HTTPS, exact-host Caddy routing, separate proxy
+  bridges and explicit peer trust. No router application install or inbound web
+  forwarding was introduced.
+- File-based tunnel and application credentials, hidden-input installers,
+  image-managed dependency ownership and a stable RabbitMQ hostname.
+
+Portable and hosted verification:
+- Source contracts cover storage, credential preservation, isolation, host-port
+  rejection, proxy trust and cold-start capacity refusal.
+- ARM64 CI initialized the official application and passed its health check.
+- The fixture was corrected to apply actual Ansible file/stat tasks. It now
+  reproduces the old root-owned 0700 application mount and checkout-owned 0600
+  Caddyfile before proving preparation repairs both.
+
+Physical/site results reported by the operator:
+- Database migrations completed and initialization reached its end marker.
+- Repeat preparation/activation reported `ok=14 changed=0 failed=0`.
+- The unit reported success and all seven containers were running; Zulip and
+  cloudflared reported healthy, including a four-hour inventory snapshot.
+- Host-side Gmail connection, TLS certificate verification and authentication passed.
+- Public DNS and the configured hostname initially differed. Correcting the local
+  hostname and restarting updated both proxy routing and generated application URLs.
+- Public HTTPS, organization creation and owner login were confirmed in the browser.
+
+Failure-driven repairs:
+- A root-owned 0700 application mount blocked the `zulip` user's traversal to its
+  generated configuration. Preparation now converges only that directory to 0755.
+- A checkout-owned 0600 Caddyfile was unreadable with all container capabilities
+  dropped. Preparation now sets the template to 0644 while preserving its owner.
+- Quiet synchronous systemd restarts were distinguished from failure by checking
+  the journal, container health and the expected successful `active/exited` state.
+
+Limits:
+- SMTP authentication is not invitation delivery. Invitation-only policy,
+  invitation arrival, user-posted messages/uploads, real-time updates and
+  cellular/native-client access still need explicit acceptance.
+- Actual client-IP handling, private-service rejection, post-deployment Forgejo
+  checks, sustained capacity, off-device backup, isolated restore and reboot
+  recovery remain unverified.
+- The same operator inventory showed Prometheus and Grafana stopped. Their prior
+  telemetry acceptance is not evidence of current monitoring for this workload.
+- No production hostname, network values, account identifiers, credentials,
+  single-use link, screenshot or raw runtime log is included in this record.
+
+Evidence:
+- [PR #25 — Container tunnel profile](https://github.com/ctalaveraw/arm-homelab-platform/pull/25)
+- [PR #26 — Controller Zulip overlay](https://github.com/ctalaveraw/arm-homelab-platform/pull/26)
+- [PR #27 — Tunnel Service URL documentation](https://github.com/ctalaveraw/arm-homelab-platform/pull/27)
+- [PR #32 — Application data traversal](https://github.com/ctalaveraw/arm-homelab-platform/pull/32)
+- [PR #33 — Caddyfile readability](https://github.com/ctalaveraw/arm-homelab-platform/pull/33)
+- [Operator acceptance and procedures](../runbooks/zulip-controller.md)
+- [Deployment standards and service map](../architecture/deployment-standards.md)
+- [ADR-0015](../adr/0015-forgejo-and-controller-ingress.md), OPS-020.

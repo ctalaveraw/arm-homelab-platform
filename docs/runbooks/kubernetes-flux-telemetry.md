@@ -2,6 +2,11 @@
 
 Scope: PLAT-012 Kubernetes API server and Flux controller scrape jobs from the out-of-cluster NanoPi R5C. Physical Pi Node Exporter troubleshooting remains in the [host telemetry runbook](observability-host-metrics.md); runtime Gotify alerting is a **separate PLAT-013** concern.
 
+The operator's 2026-11-18 inventory showed Prometheus and Grafana containers stopped.
+The G4 results below remain dated acceptance, not current scrape-health evidence.
+Review controller capacity before restarting monitoring, then rerun the read-only
+checks before relying on its dashboards or alerts.
+
 ## Data path and security
 
 R5C Prometheus -> `https://10.0.0.5:6443` -> (a) authenticated API server `/metrics`, (b) API-server Service proxy to metrics-only Flux source-controller and kustomize-controller Services in `flux-system`. R5C cannot directly reach the Pod CIDR or Kubernetes Service VIP in the measured setup. All three API-mediated jobs may fail together if the API server is unavailable.

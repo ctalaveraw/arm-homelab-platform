@@ -2,6 +2,11 @@
 
 Scope: PLAT-012 physical R5C + three Pi Node Exporters. Kubernetes API/Flux controller metrics are covered separately in the [Kubernetes/Flux telemetry runbook](kubernetes-flux-telemetry.md). Gotify alert routing remains PLAT-013.
 
+Latest operator inventory, 2026-11-18: Prometheus and Grafana containers were
+stopped. Earlier scrape/dashboard acceptance is historical; current collection,
+exporter health and alerting are not inferred from it. Review combined controller
+capacity before using the deployment playbooks below, which start monitoring.
+
 ## Hosts and access
 
 | Target | Access from R5C | Exporter | Purpose |
