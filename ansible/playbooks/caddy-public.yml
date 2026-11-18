@@ -47,6 +47,12 @@
         group: root
         mode: '0755'
 
+    - name: Make the public Caddyfile readable inside the container
+      ansible.builtin.file:
+        path: /srv/platform/compose/caddy-public/Caddyfile
+        state: file
+        mode: '0644'
+
     - name: Install controller Zulip operator helpers
       ansible.builtin.copy:
         src: "{{ playbook_dir | dirname | dirname }}/scripts/zulip/{{ item.source }}"
