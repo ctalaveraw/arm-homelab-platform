@@ -1,5 +1,7 @@
 # Sprint 09 — Dual OCI Distribution
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 **Work item:** PLAT-008
 **Completed:** 2026-10-07
 **Status:** Complete — identical verified OCI artifact proven in external and local registries
@@ -173,7 +175,7 @@ PLAT-008 added:
 - `scripts/ops/replicate-oci-image.sh`
 - `scripts/ops/verify-oci-parity.sh`
 - `scripts/ops/verify-oci-retrieval.sh`
-- `scripts/ops/link-gitea-package.sh`
+- [`scripts/ops/link-forgejo-package.sh`](../../scripts/ops/link-forgejo-package.sh) — current successor to the sprint's `link-gitea-package.sh`
 
 Responsibilities remain separated.
 
@@ -193,10 +195,13 @@ differ.
 Copies the referenced artifact into a fresh temporary OCI layout to prove that
 the registry can serve the manifest, configuration and layers.
 
-### link-gitea-package.sh
+### Package link helper
 
-Manages Gitea-specific package/repository metadata independently of OCI
-artifact replication.
+The original `link-gitea-package.sh` managed Gitea-specific package/repository
+metadata independently of OCI artifact replication. The current
+[`link-forgejo-package.sh`](../../scripts/ops/link-forgejo-package.sh) targets
+Forgejo with `FORGEJO_TOKEN` and destination owner `ctalaveraw`. The live results
+in this sprint remain Gitea measurements.
 
 Authentication is supplied by the caller.
 

@@ -30,9 +30,13 @@ GitHub remains the canonical source repository.
 
 Flux reads the public GitHub repository over HTTPS without Git credentials.
 
-Gitea remains a private one-way mirror and is not the initial Flux source.
+Forgejo is the selected private one-way mirror and is not the Flux source.
 This avoids coupling Kubernetes reconciliation to availability of the
 out-of-cluster R5C management plane.
+
+This naming amendment follows [ADR-0015](0015-forgejo-and-controller-ingress.md).
+Use [current mirror paths](../runbooks/forgejo-reference-map.md); Forgejo mirror
+acceptance remains pending and does not alter the original Flux measurements.
 
 The initial Flux installation includes only:
 

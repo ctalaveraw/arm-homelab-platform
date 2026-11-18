@@ -19,4 +19,4 @@ Second target running the same build-once/digest verification and policy contrac
 
 ## Consequences
 
-Portability has a maintenance cost, so it remains an **opt-in target**, not a requirement to generalize every ARM-specific implementation now. Existing Kubernetes, Gitea and R5C remain primary proven environments.
+Portability has a maintenance cost, so it remains an **opt-in target**, not a requirement to generalize every ARM-specific implementation now. Existing Kubernetes and R5C remain the primary environments; Forgejo replaces the local forge with separate acceptance. Use the [current source, runner and registry paths](../runbooks/forgejo-reference-map.md).

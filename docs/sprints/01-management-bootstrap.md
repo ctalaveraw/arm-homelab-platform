@@ -1,5 +1,7 @@
 # Sprint 1 — Management Plane Bootstrap
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 ## PLAT-002.1 — Ansible Preflight
 
 Status: Complete

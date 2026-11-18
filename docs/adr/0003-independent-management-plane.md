@@ -14,10 +14,10 @@ would introduce bootstrap and recovery dependencies.
 ## Decision
 
 - Keep the R5C management plane outside Kubernetes.
-- Host Gitea and supporting services independently.
+- Host Forgejo and supporting services independently.
 - Keep the public GitHub repository as an external
   bootstrap and recovery source.
-- Do not require the self-hosted Gitea instance to
+- Do not require the self-hosted Forgejo instance to
   reconstruct the management plane.
 - Preserve local host-specific secrets outside public Git.
 
@@ -34,12 +34,12 @@ restore remain separate, unverified acceptance criteria.
 
 ## Implementation update — 2026-10-04
 
-Gitea now has a native, private pull mirror of this public GitHub repository.
-GitHub remains the upstream source of truth; no bidirectional or dual-push
-workflow is configured. GitHub-hosted ARM64 CI works independently of the
+At this checkpoint, Gitea had a native, private pull mirror of this public GitHub repository.
+GitHub remained the upstream source of truth; no bidirectional or dual-push
+workflow was configured. GitHub-hosted ARM64 CI worked independently of the
 R5C and Gitea.
 
-A repository-scoped Gitea Actions runner now runs on the R5C while GitHub-hosted ARM64 Actions continues to operate independently.
+A repository-scoped Gitea Actions runner ran on the R5C while GitHub-hosted ARM64 Actions continued to operate independently.
 
 This preserves the original recovery decision:
 
@@ -50,12 +50,12 @@ This preserves the original recovery decision:
 
 ## Implementation update — 2026-10-05
 
-The controller working copy now has two intentionally asymmetric remotes:
+At this checkpoint, the controller working copy had two intentionally asymmetric remotes:
 
 - GitHub: fetch + normal push destination;
 - Gitea: fetch-only mirror inspection.
 
-`scripts/ops/check-source-parity.sh` fetches both and compares local `main`, GitHub `main`, and Gitea `main`.
+The original `scripts/ops/check-source-parity.sh` fetched both and compared local `main`, GitHub `main`, and Gitea `main`. Its current Forgejo invocation is documented in the amendment below.
 
 This makes source convergence measurable without promoting Gitea into a second source of truth.
 
@@ -100,3 +100,9 @@ PLAT-009 will establish a separately scoped deployment identity for direct
 R5C-to-Kubernetes API access. The authentication mechanism and associated
 least-privilege policy are evaluated separately from this management-plane
 bootstrap decision.
+
+## Forgejo amendment — 2026-11-17
+
+The independence decision now applies to Forgejo under [ADR-0015](0015-forgejo-and-controller-ingress.md). Its private pull mirror will be `ctalaveraw/arm-homelab-platform`; mirror and runner acceptance remain pending. The controller's canonical remote is `github`, and the new fetch-only remote is `forgejo`. `scripts/ops/check-source-parity.sh github forgejo` checks convergence after mirror population. Keep GitHub/GHCR and Flux independent of local forge availability.
+
+The dated implementation updates above record Gitea measurements. Current lifecycle files, owner URLs and state paths are listed in the [Forgejo reference map](../runbooks/forgejo-reference-map.md).

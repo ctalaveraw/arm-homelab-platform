@@ -1,5 +1,7 @@
 # Engineering Evidence Ledger
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 Purpose: Record verifiable engineering work and
 preserve the reasoning behind implementation.
 
@@ -462,7 +464,7 @@ Failure-driven evidence:
   mismatched states.
 
 Trade-offs:
-- Gitea currently uses LAN HTTP, so registry operations explicitly disable TLS
+- At this checkpoint, Gitea used LAN HTTP, so registry operations explicitly disabled TLS
   verification for that local endpoint rather than changing global Docker
   daemon trust.
 - Registry redundancy is not off-device backup.
@@ -475,7 +477,7 @@ Evidence:
 - `scripts/ops/replicate-oci-image.sh`
 - `scripts/ops/verify-oci-parity.sh`
 - `scripts/ops/verify-oci-retrieval.sh`
-- `scripts/ops/link-gitea-package.sh`
+- [`scripts/ops/link-forgejo-package.sh`](../../scripts/ops/link-forgejo-package.sh) — current successor to the recorded `link-gitea-package.sh`
 - `docs/sprints/09-dual-oci-distribution.md`
 
 What I learned:

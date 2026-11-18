@@ -4,17 +4,17 @@ Updated 2026-11-17. Configuration now targets Forgejo. Prior Gitea runner and re
 
 ## Source ownership
 
-GitHub is canonical. Forgejo is a private one-way pull mirror with repository-scoped validation. Do not push routine changes to both forges. GitHub remains available for controller recovery when the local forge is unavailable.
+GitHub is canonical. Forgejo's intended role is a private one-way pull mirror with repository-scoped validation. Initial setup as `ctalaveraw` is complete; mirror population and runner acceptance remain pending. Do not push routine changes to both forges. GitHub remains available for controller recovery when the local forge is unavailable.
 
-The controller keeps a fetch-only `forgejo` remote:
+After the mirror exists and has synchronized, add a fetch-only `forgejo` remote (or update the existing remote's fetch URL):
 
 ```bash
-git remote add forgejo http://forgejo.lab.home.arpa:3002/OWNER/arm-homelab-platform.git
+git remote add forgejo http://forgejo.lab.home.arpa:3002/ctalaveraw/arm-homelab-platform.git
 git remote set-url --push forgejo DISABLED
-bash scripts/ops/check-source-parity.sh origin forgejo
+bash scripts/ops/check-source-parity.sh github forgejo
 ```
 
-Use the final HTTPS URL after domain acceptance. The parity helper compares local `main`, canonical GitHub `main` and the mirrored branch. A pending mirror synchronization may legitimately cause temporary divergence; do not force-push either side to conceal it.
+The controller's canonical remote is `github`; another checkout may pass `origin` explicitly. After LAN port cutover, use `http://git.lab.home.arpa:3000/ctalaveraw/arm-homelab-platform.git`. See the [reference map](runbooks/forgejo-reference-map.md) for repeatable remote updates and SSH/registry URLs. The parity helper compares local `main`, canonical GitHub `main` and the mirrored branch. A pending mirror synchronization may legitimately cause temporary divergence; do not force-push either side to conceal it.
 
 ## Workflows and authority
 
@@ -70,6 +70,8 @@ The repository-owned helpers remain registry-independent except for the Forgejo 
 Use normal TLS verification for the final domain. `DEST_TLS_VERIFY=false` and `TLS_VERIFY=false` are restricted to the temporary trusted LAN HTTP endpoint during migration. This does not authorize disabling verification for public HTTPS.
 
 Re-publish required OCI artifacts from GHCR or the old registry without rebuilding, then verify parity and full retrieval. Package association, credentials and ownership must be established on Forgejo; they are not transferred by Skopeo. Existing Kubernetes GHCR references remain unchanged.
+
+Use destination owner `ctalaveraw`, including `forgejo.lab.home.arpa:3002/ctalaveraw/platform-hello` during staging and `git.lab.home.arpa:3000/ctalaveraw/platform-hello` after cutover. The old source owner `admin` is reserved in Forgejo. Re-authenticate OCI clients when the registry hostname or port changes. LAN HTTP still needs the explicit local-only TLS flags until private HTTPS is deployed.
 
 ## Acceptance and records
 

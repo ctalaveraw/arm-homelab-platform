@@ -1,6 +1,6 @@
 # Platform Engineering Roadmap
 
-**2026-11-17 transition:** Forgejo 15.0.11 LTS replaces Gitea in the deployment configuration. Historical completion below was measured on Gitea. Migration and first-domain HTTPS acceptance remain pending; see the [runbook](runbooks/gitea-to-forgejo.md).
+**2026-11-17 transition:** Forgejo 15.0.11 LTS replaces Gitea in the deployment configuration. Initial setup and sign-in as `ctalaveraw` are confirmed on LAN TCP/3002. Data/OCI transfer, runner and final LAN TCP/3000 acceptance remain pending. Historical completion below was measured on Gitea; use the [migration runbook](runbooks/gitea-to-forgejo.md) and [current reference map](runbooks/forgejo-reference-map.md). Private HTTPS is separate follow-up work.
 
 ## Current objective
 
@@ -31,7 +31,7 @@ Exit criteria met:
 
 ## M2 — Development infrastructure
 
-**Status: Complete for the current lab scope.**
+**Status: Original Gitea baseline complete; Forgejo mirror and runner reacceptance pending.**
 
 Implemented:
 
@@ -45,7 +45,7 @@ Implemented:
 - Ansible-owned enable/start lifecycle for all five services;
 - SD-backed guarded state.
 
-Remaining operational work such as HTTPS, backup/restore, and full fresh-host reconstruction is tracked under later maturity milestones rather than blocking M2.
+Current configuration targets Forgejo and Forgejo Runner with new state and owner `ctalaveraw`; do not treat the original acceptance above as new-service verification. Remaining work such as private HTTPS, backup/restore and fresh-host reconstruction is tracked separately.
 
 ## M3 — Application delivery
 
@@ -187,7 +187,6 @@ Key tickets: OPS-008/009/015, ENG-001..005, CI-006/009. Existing manual recovery
 ## M9 — Portability, development experience and portfolio capstone (future/evaluate)
 
 - Demonstrate a secondary target with explicit ARM-first platform contracts; optionally Terraform-provisioned Proxmox VMs, Ansible convergence and independent Flux reconciliation (PORT-001/002/004/005).
-- Rehearse Forgejo migration **in isolation** with proven compatibility/export/rollback; no immediate switch or assumed drop-in image migration (PORT-003).
 - Evaluate Backstage only with multiple services/personas and a justified self-service golden-path experiment (IDP-001/002).
 - Maintain off-lab contributions using portable, simulated and physical validation tiers (DX-001..003).
 - Human-edit and reorganize documentation for cold readers/evaluators; credible evidence and explicit current-vs-target labels (DOC-001/002).

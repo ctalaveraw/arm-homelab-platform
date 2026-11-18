@@ -1,5 +1,7 @@
 # Sprint 0 — Brownfield Discovery
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 Status: Complete — external recovery established.
 
 ## Completed

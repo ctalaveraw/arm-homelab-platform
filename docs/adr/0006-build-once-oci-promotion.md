@@ -121,7 +121,7 @@ GitHub Actions run #27 successfully proved:
 ## Follow-on work
 
 - prove independent pull from GHCR by digest;
-- validate Gitea OCI;
+- validate Forgejo OCI after the separate-instance migration;
 - replicate the same verified OCI artifact without rebuilding;
 - prove retrieval from both registries;
 - deploy to Kubernetes by immutable digest;

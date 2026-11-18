@@ -4,9 +4,10 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Deployment transition
 
-Forgejo is the selected local forge. Configuration is prepared; the last verified host baseline ran Gitea. No live migration or public route is implied by a repository change.
+Forgejo initial setup and sign-in as `ctalaveraw` are confirmed at `http://forgejo.lab.home.arpa:3002/`. The dashboard shows zero repositories; mirror/data transfer, OCI, runner and final LAN port `3000` acceptance remain pending. Forgejo stays LAN/WireGuard-only.
 
 - [Gitea to Forgejo migration](runbooks/gitea-to-forgejo.md) — backup, separate storage, mirror, registry, runner, acceptance and rollback.
+- [Forgejo names, paths and client cutover](runbooks/forgejo-reference-map.md) — current owner, staging/final URLs, renamed files and intentional legacy references.
 - [Domain and HTTPS ingress](runbooks/domain-ingress.md) — Caddy placement, DNS, router boundaries and verification.
 - [ADR-0015 — Forgejo and controller ingress](adr/0015-forgejo-and-controller-ingress.md) — selected migration and proxy design.
 

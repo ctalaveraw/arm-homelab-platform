@@ -1,5 +1,7 @@
 # Sprint 07 — Native Gitea Actions CI
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 **Work item:** PLAT-006  
 **Date completed:** 2026-10-04  
 **Status:** Complete — functional acceptance and evidence archived  
@@ -52,6 +54,8 @@ Ansible now owns the installation, systemd daemon reload, configuration validati
 | `05-uptime-kuma.yml` | Uptime Kuma |
 | `06-apt-cacher-ng.yml` | APT-Cacher-NG |
 
+The forge playbooks have since moved to [`02-forgejo.yml`](../../ansible/playbooks/02-forgejo.yml) and [`03-forgejo-runner.yml`](../../ansible/playbooks/03-forgejo-runner.yml). The names in the table identify the original implementation, not runnable paths in the current checkout.
+
 Service units are stored in Git and installed into `/etc/systemd/system/`.
 
 The runner playbook was executed twice to verify convergence. The first execution reported `changed=3`; the second reported `changed=0`, with zero failures.
@@ -61,6 +65,8 @@ The runner playbook was executed twice to verify convergence. The first executio
 Created a purpose-built image at:
 
 `images/gitea-runner/Dockerfile`
+
+Its current successor is [`images/forgejo-runner/Dockerfile`](../../images/forgejo-runner/Dockerfile), based on Forgejo Runner 13.1.0. The image behavior and acceptance below describe the original Gitea runner.
 
 The image extends `docker.io/gitea/runner:3` and provisions the validation toolchain, including Python, Node.js, Git, Bash, ShellCheck and Docker Compose CLI.
 
@@ -108,6 +114,8 @@ Ansible deployed and enabled `gitea-runner.service`. The runner container remain
 Created:
 
 `.gitea/workflows/platform-ci.yml`
+
+The current workflow is [`.forgejo/workflows/platform-ci.yml`](../../.forgejo/workflows/platform-ci.yml); the path above is retained as sprint history.
 
 The Gitea workflow targets the self-hosted ARM64 runner and invokes the same validation entrypoints used by GitHub Actions:
 

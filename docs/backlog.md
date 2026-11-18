@@ -13,11 +13,16 @@
 ## Forgejo and HTTPS transition — 2026-11-17
 
 Repository configuration targets Forgejo 15.0.11 LTS and Caddy on the R5C.
-Host deployment, data transfer, runner acceptance and domain routing are pending.
+Forgejo initial setup and sign-in as `ctalaveraw` are confirmed on LAN TCP/3002.
+Data transfer, runner acceptance and final LAN TCP/3000 cutover are pending.
 Completed Gitea entries below remain historical acceptance, not Forgejo acceptance.
-See the [migration runbook](runbooks/gitea-to-forgejo.md).
+See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL map](runbooks/forgejo-reference-map.md).
 
 - [ ] PORT-003: Complete the separate-instance Forgejo migration and rollback check
+  - [x] Consistent legacy checkpoint and off-device archive checksum verified
+  - [x] Separate Forgejo installation and administrator sign-in as `ctalaveraw`
+  - [ ] Private mirror/data transfer, new-owner OCI parity and runner acceptance
+  - [ ] Disable legacy units, move Forgejo to LAN HTTP/3000 and verify updated consumers
 - [ ] OPS-007: Deploy and verify the first HTTPS route; other management routes remain pending
 
 ## COMPLETE — Core delivery
@@ -225,7 +230,7 @@ The [platform charter](vision/platform-charter.md) and [93-objective register](p
 
 - [ ] PORT-001: Environment contracts and capability matrix ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-002: Proxmox Terraform reference lab ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
-- [ ] PORT-003: Forgejo isolated migration evaluation ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-003: Forgejo migration acceptance (active transition above; [acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-004: IaC state and provider trust ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-005: Scale-out and multi-site test ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 

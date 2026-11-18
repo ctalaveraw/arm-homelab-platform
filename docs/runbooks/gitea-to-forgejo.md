@@ -1,7 +1,20 @@
 # Gitea to Forgejo Migration
 
-Status: repository configuration prepared; no host migration acceptance recorded.
+Status: Forgejo initialized on LAN TCP/3002; administrator sign-in confirmed. Data transfer and final cutover pending.
 Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
+
+## Recorded progress — 2026-11-17
+
+- [x] Consistent legacy checkpoint verified at `/srv/backups/gitea-before-forgejo-20261118T002504Z-6vyfHG`; both legacy services restarted.
+- [x] Off-device transfer archive checksum verified: `23b1545d587cef77b8c7cd931aa26b00c830a29d8178153b3693f69de42b7b53` for `gitea-forgejo-transfer-20261118T002504Z.tar.gz`; operator reports it stored in private `homelab-backups-collection`.
+- [x] Ignored legacy Compose directories restored after updating the controller checkout.
+- [x] `git.lab.home.arpa` and `forgejo.lab.home.arpa` resolve to `10.0.0.50`; staging ports selected as HTTP/3002 and SSH/2223.
+- [x] Forgejo installer completed; signed in as `ctalaveraw` at `http://forgejo.lab.home.arpa:3002/`.
+- [ ] Required repositories and metadata transferred; dashboard currently shows zero repositories.
+- [ ] OCI parity/retrieval, fresh runner, source parity and clone/SSH acceptance.
+- [ ] Legacy units disabled; Forgejo moved to LAN HTTP/3000; consumers updated and rollback checked.
+
+Use the existing verified checkpoint rather than repeating steps 1–3 on this controller. The [Forgejo reference map](forgejo-reference-map.md) lists every destination path, account and URL, including intentional legacy paths.
 
 ## Migration method
 
@@ -26,7 +39,7 @@ Run from the old `/srv/platform` checkout while its legacy manifests still exist
 
 ```bash
 cd /srv/platform
-docker-compose --env-file compose/gitea/.env -f compose/gitea/compose.yml exec -T -u git server gitea --version
+docker-compose --env-file compose/gitea/.env -f compose/gitea/compose.yml exec -T -u git server gitea --version </dev/null
 df -h /srv/storage/state /srv/backups
 git status --short
 ```
@@ -46,7 +59,7 @@ sudo systemctl start gitea.service gitea-runner.service
 sudo sha256sum "$checkpoint/gitea-state.tar" | sudo tee "$checkpoint/gitea-state.sha256"
 ```
 
-If snapshot creation fails, restart the original services and resolve it before continuing. This is a local checkpoint, not an off-device backup. Copy it to an independent trusted machine/storage and verify its checksum before retiring Gitea. It contains credentials and private data; never commit it.
+If snapshot creation fails, restart the original services and resolve it before continuing. This is a local checkpoint, not an off-device backup. Copy it to an independent trusted machine/storage and verify its checksum before retiring Gitea. It contains credentials and private data; keep it out of this public repository. The separate private backup collection is not an application-state directory; routine encrypted backup and restore acceptance remain separate work.
 
 ## 2. Update code and retain legacy rollback manifests
 
@@ -71,15 +84,19 @@ chmod 600 compose/forgejo/.env
 Populate the controller LAN bind addresses. Add an INNER DNS record for `forgejo.lab.home.arpa` pointing at the controller, or use an equivalent temporary workstation hosts entry. Keep `FORGEJO_ROOT_URL` consistent with that hostname and `:3002/`.
 
 ```bash
-ansible-playbook ansible/playbooks/02-forgejo.yml --ask-become-pass
+.ci-venv/bin/ansible-playbook ansible/playbooks/02-forgejo.yml --ask-become-pass
 curl --fail --silent --show-error http://forgejo.lab.home.arpa:3002/api/v1/version
 ```
 
-Complete initial installation over the trusted LAN and create the administrator. Self-registration is disabled and anonymous repository viewing requires sign-in. Do not enable WAN forwarding before initialization and acceptance. Verify the UI reports Forgejo and the expected version; check unit/container logs if it does not become ready.
+Complete initial installation over the trusted LAN and create administrator `ctalaveraw`. The installer reserves `admin`; leave that username on the legacy source and use the new owner for Forgejo destinations. Self-registration is disabled and anonymous repository viewing requires sign-in. Forgejo remains LAN/WireGuard-only; do not add a WAN forwarding rule for it. Verify the UI reports Forgejo and the expected version; check unit/container logs if it does not become ready.
+
+The rootful image's default SQLite path `/data/gitea/gitea.db` belongs inside the new Forgejo `/data` mount. Keep this internal path; it is not permission to reuse `/srv/storage/state/services/gitea`.
 
 ## 4. Populate source and application data
 
-Recreate the private one-way pull mirror from canonical GitHub, including required credentials and sync interval. Preserve the owner/repository naming used by consumers where practical. For local-only repository data, use Forgejo's Gitea migration UI with selected metadata and a temporary narrowly scoped token. Check migration results per repository; account identities, authentication providers, secrets and packages require separate handling.
+Recreate the private one-way pull mirror from canonical `https://github.com/ctalaveraw/arm-homelab-platform`, including required credentials and sync interval. Select destination owner `ctalaveraw`, repository name `arm-homelab-platform`, private visibility and pull-mirror mode. Its staging path is `http://forgejo.lab.home.arpa:3002/ctalaveraw/arm-homelab-platform`; the legacy `admin/...` owner path is not the Forgejo destination.
+
+For local-only repository data, use Forgejo's Gitea migration UI with selected metadata and a temporary narrowly scoped source token. Authenticate to Gitea with the source account `admin`, then select `ctalaveraw` as the Forgejo destination owner. Inventory first: a GitHub pull mirror alone does not import Gitea-only issues, wikis, releases or attachments, and a separate full import must not overwrite the same destination name. Choose the import/mirror treatment per repository before creating it. Check migration results; account identities, authentication providers, secrets and packages require separate handling.
 
 Recreate hooks, deploy keys, SSH keys, permissions and integrations deliberately. Tokens and runner identities belong to the new instance. Compare branch/tag refs and review imported issues, wiki pages, releases and attachments before declaring data transfer complete.
 
@@ -87,13 +104,14 @@ For a LAN Gitea import, permit only its exact hostname in Forgejo migration sett
 
 ## 5. Replicate required OCI artifacts
 
-Authenticate interactively with Skopeo into a private authfile outside Git. Use the original owner/package identity and the qualified source digest. For example:
+Authenticate interactively as `ctalaveraw` with a new Forgejo credential using Skopeo and a private authfile outside Git. Use the new owner with the existing package name and qualified source digest:
 
 ```bash
-skopeo login --tls-verify=false --authfile "$HOME/.config/containers/forgejo-auth.json" forgejo.lab.home.arpa:3002
+install -d -m 0700 "$HOME/.config/containers"
+skopeo login --username ctalaveraw --tls-verify=false --authfile "$HOME/.config/containers/forgejo-auth.json" forgejo.lab.home.arpa:3002
 ```
 
-Set `SOURCE_IMAGE` to the qualified `docker://ghcr.io/...@sha256:...` reference and `DEST_IMAGE` to `docker://forgejo.lab.home.arpa:3002/OWNER/PACKAGE:TAG`, then:
+Set `SOURCE_IMAGE` to the qualified `docker://ghcr.io/ctalaveraw/platform-hello@sha256:...` reference and `DEST_IMAGE` to `docker://forgejo.lab.home.arpa:3002/ctalaveraw/platform-hello:TAG`, then:
 
 ```bash
 DEST_AUTHFILE="$HOME/.config/containers/forgejo-auth.json" DEST_TLS_VERIFY=false \
@@ -104,7 +122,7 @@ AUTHFILE="$HOME/.config/containers/forgejo-auth.json" TLS_VERIFY=false \
   bash scripts/ops/verify-oci-retrieval.sh "$DEST_IMAGE"
 ```
 
-The HTTP-only flags apply to this trusted LAN staging endpoint. Use TLS verification after domain cutover. Associate packages with their source repository using `scripts/ops/link-forgejo-package.sh` and a new `FORGEJO_TOKEN`. Do not rebuild images to transfer them. Inventory non-container packages separately; these scripts do not transfer them.
+The HTTP-only flags apply to the trusted LAN endpoint, including final LAN HTTP/3000 until private HTTPS is deployed. Use TLS verification after HTTPS acceptance. Associate packages with `ctalaveraw/arm-homelab-platform` using `scripts/ops/link-forgejo-package.sh`, owner argument `ctalaveraw`, and a new `FORGEJO_TOKEN`. Do not rebuild images to transfer them. Inventory non-container packages separately; these scripts do not transfer them.
 
 ## 6. Register the restricted validation runner
 
@@ -118,7 +136,7 @@ sudo install -o 10001 -g 10001 -m 0600 compose/forgejo-runner/runner.yml.example
 In the mirrored repository, enable Actions and create a new runner under **repository Settings → Actions → Runners**, not instance scope. Put its UUID/token into the private `runner.yml` with a local editor. The internal URL is `http://forgejo:3000/`; the label is `r5c-arm64-validation:host`. See [official registration](https://forgejo.org/docs/latest/admin/actions/registration/).
 
 ```bash
-ansible-playbook ansible/playbooks/03-forgejo-runner.yml --ask-become-pass
+.ci-venv/bin/ansible-playbook ansible/playbooks/03-forgejo-runner.yml --ask-become-pass
 ```
 
 Force mirror synchronization and confirm `.forgejo/workflows/platform-ci.yml` runs successfully on the ARM64 UID-10001 worker with no production Docker socket. Test a subsequent mirrored push as well. The old Gitea `.runner` identity is not valid here.

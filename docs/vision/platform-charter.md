@@ -1,6 +1,6 @@
 # Platform charter — ARM-first, portable DevSecOps platform
 
-**2026-11-17 amendment:** Forgejo is now the selected local forge. The recorded Gitea baseline remains historical; the [migration runbook](../runbooks/gitea-to-forgejo.md) defines the deployment transition.
+**2026-11-17 amendment:** Forgejo is now the selected local forge. Initial setup and sign-in as `ctalaveraw` are confirmed on LAN TCP/3002; transfer and cutover acceptance remain pending. The recorded Gitea baseline remains historical; the [migration runbook](../runbooks/gitea-to-forgejo.md) and [reference map](../runbooks/forgejo-reference-map.md) define current paths, owner URLs and the deployment transition.
 
 **Status:** Approved planning direction (2026-10-10); individual capabilities remain unimplemented until verified.
 **Purpose:** Define the destination without overstating today's evidence.
@@ -38,7 +38,7 @@ This baseline **does not** prove a fresh-metal rebuild, production-like secrets 
 | Stream | Authority | Target evidence |
 |---|---|---|
 | Source governance and developer workflows | Protected GitHub | Enforced approvals, reproducible and policy-checked changes |
-| Portable CI and testing | GitHub Actions; restricted Gitea validation | Unit/integration, security and platform contract checks without the lab |
+| Portable CI and testing | GitHub Actions; restricted Forgejo validation | Unit/integration, security and platform contract checks without the lab |
 | Build and artifact supply chain | Build/publish jobs and registries | SBOM, provenance, digest identity, signatures, verified promotion |
 | Kubernetes applications | Flux plus scoped ServiceAccounts | Drift correction, policy enforcement, readiness and rollback |
 | Host and management plane | Ansible plus systemd | Safe idempotence, startup gates, credential-separated maintenance |

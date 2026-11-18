@@ -43,6 +43,10 @@ benchmark remain outstanding.
 
 ## Status update — 2026-10-04
 
-The Gitea Actions runner is now operational, but the cache has not yet been made a required CI dependency. The next meaningful benchmark should compare complete dependency-install stages only after cache use is explicitly wired into a controlled pipeline path.
+At this checkpoint, the Gitea Actions runner was operational, but the cache had not been made a required CI dependency. The next meaningful benchmark should compare complete dependency-install stages only after cache use is explicitly wired into a controlled pipeline path.
 
 The platform's current application-delivery work is intentionally not blocked on the cache.
+
+## Forgejo amendment — 2026-11-17
+
+Future local validation uses the restricted Forgejo runner described in [CI operations](../ci.md) and the [reference map](../runbooks/forgejo-reference-map.md). The Gitea runner status above is a dated baseline; Forgejo runner acceptance and pipeline-level cache measurements remain pending. Cache availability must remain optional.

@@ -8,8 +8,8 @@ Date: 2026-10-07
 PLAT-009 introduces the first repository-defined Kubernetes deployment of a
 CI-produced application artifact.
 
-The qualified application artifact is already published and independently
-retrievable from both GHCR and Gitea with the registry manifest digest:
+At adoption, the qualified application artifact was published and independently
+retrieved from both GHCR and Gitea with the registry manifest digest:
 
 ```text
 sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
@@ -184,9 +184,10 @@ on an implicit default for an architecture-relevant choice.
 
 The first PLAT-009 deployment uses the public GHCR artifact by digest.
 
-Gitea OCI remains a proven secondary distribution containing the same
-qualified manifest digest, but it currently introduces two additional runtime
-concerns:
+Forgejo OCI is now the secondary distribution target under
+`ctalaveraw/platform-hello`. Prior same-digest proof was measured on Gitea;
+repeat parity and retrieval checks after transfer. Local consumption introduces
+two additional runtime concerns:
 
 - private registry authentication;
 - LAN HTTP registry configuration.
@@ -194,8 +195,11 @@ concerns:
 Those concerns are intentionally separated from the first Kubernetes delivery
 proof so failures can be isolated to the Kubernetes deployment path itself.
 
-A later exercise may prove Kubernetes retrieval from Gitea using the same
+A later exercise may prove Kubernetes retrieval from Forgejo using the same
 immutable digest.
+
+Use the [current registry URLs and owner](../runbooks/forgejo-reference-map.md).
+The initial Kubernetes GHCR reference and digest policy remain unchanged.
 
 ## Consequences
 
@@ -270,7 +274,7 @@ The deployment stage must not rebuild or substitute the qualified artifact.
 - verify the scheduled node and runtime image identity;
 - verify Deployment rollout and Service traffic;
 - establish a scoped deployment identity for the external GitOps controller;
-- later test local Gitea OCI consumption separately from the core deployment
+- later test local Forgejo OCI consumption separately from the core deployment
   path;
 - evaluate admission policy, image signatures and provenance attestations as
   later supply-chain controls.

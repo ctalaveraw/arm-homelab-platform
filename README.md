@@ -4,11 +4,11 @@
 
 A platform engineering lab for reproducible infrastructure, ARM64 application delivery, observability and recovery.
 
-**Deployment transition — 2026-11-17:** This repository targets Forgejo 15.0.11 LTS, Forgejo Runner and Caddy on the independent NanoPi R5C (`gitops-controller-01`). The last verified host baseline used Gitea 1.27.3. Migration, Forgejo runner acceptance, certificates and domain routing require host-side deployment and verification. The [migration runbook](docs/runbooks/gitea-to-forgejo.md) defines the cutover and rollback.
+**Deployment transition — 2026-11-17:** Forgejo is initialized on the independent NanoPi R5C (`gitops-controller-01`) at `http://forgejo.lab.home.arpa:3002/`, with administrator `ctalaveraw`. The dashboard shows zero repositories. Repository transfer, OCI replication, Forgejo runner acceptance and the final LAN port `3000` cutover remain pending. The [migration runbook](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md) define the remaining work and rollback.
 
 | Component | Repository configuration | Last recorded runtime evidence |
 | --- | --- | --- |
-| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | Gitea 1.27.3; private GitHub pull mirror and OCI registry |
+| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | Initial setup and administrator sign-in confirmed; mirror and OCI transfer pending |
 | Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Gitea runner; ARM64 validation and mirror push trigger |
 | HTTPS ingress | Caddy 2.11.9 on the R5C | Management services used LAN HTTP |
 | Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |
@@ -20,7 +20,7 @@ GitHub remains the canonical source and external recovery copy. Forgejo provides
 
 The R5C remains outside the Kubernetes cluster. Ansible manages the host baseline and guarded systemd/Compose services. Persistent service state lives under `/srv/storage/state/services`; startup guards require the actual `storage_sdcard` ext4 filesystem and reject redirected or incorrect bind sources. Docker's own data root remains on eMMC.
 
-Caddy terminates HTTPS on the controller and forwards only the configured Git hostname to Forgejo. OUTER owns WAN access and forwarding; INNER owns LAN routing, firewall policy and DNS. See [domain ingress](docs/runbooks/domain-ingress.md) for public and private access requirements.
+Caddy is prepared for controller HTTPS. Forgejo currently stays on LAN HTTP; no public Forgejo route is authorized. OUTER owns WAN access and forwarding; INNER owns LAN routing, firewall policy and DNS. Private Forgejo HTTPS and public Zulip ingress are separate deployment work. See [domain ingress](docs/runbooks/domain-ingress.md) for access models.
 
 ## Forgejo migration
 
@@ -32,8 +32,10 @@ Follow the [migration runbook](docs/runbooks/gitea-to-forgejo.md) to:
 2. Start Forgejo beside the legacy instance.
 3. Recreate the GitHub mirror, transfer required metadata, and replicate OCI artifacts without rebuilding.
 4. Register a new restricted runner and verify native validation.
-5. Add the registered hostname and HTTPS, then update clients and monitoring.
+5. Stop and disable legacy Gitea, move Forgejo to `http://git.lab.home.arpa:3000/`, and update clients and monitoring using owner `ctalaveraw`.
 6. Retire the old services after acceptance; retain their backup and rollback manifests.
+
+Private HTTPS can follow separately; it is not a prerequisite for this LAN port cutover.
 
 Historical sprint reports, incidents and screenshots retain their original Gitea names. They establish the prior baseline and do not prove Forgejo acceptance.
 
@@ -71,6 +73,7 @@ GitHub-hosted ARM64 CI also validates the Caddyfile with the pinned Caddy image 
 - [Architecture and trust boundaries](docs/architecture/overview.md)
 - [CI, mirroring and OCI distribution](docs/ci.md)
 - [Forgejo migration and rollback](docs/runbooks/gitea-to-forgejo.md)
+- [Forgejo names, paths and consumer URLs](docs/runbooks/forgejo-reference-map.md)
 - [Domain and HTTPS ingress](docs/runbooks/domain-ingress.md)
 - [Forgejo and controller ingress decision](docs/adr/0015-forgejo-and-controller-ingress.md)
 - [Engineering evidence ledger](docs/interview/engineering-evidence.md)

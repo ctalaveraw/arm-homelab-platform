@@ -1,5 +1,7 @@
 # Sprint 08 — Application Delivery Foundation
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 **Work item:** PLAT-007  
 **Started:** 2026-10-04  
 **Completed:** 2026-10-05  
