@@ -1,0 +1,19 @@
+# Copy outside Git to /srv/storage/state/services/forgejo-runner/runner.yml.
+# Owner 10001:10001, mode 0600. Use a NEW repo-scoped Forgejo identity.
+---
+log:
+  level: info
+runner:
+  capacity: 1
+  labels:
+    - r5c-arm64-validation:host
+cache:
+  enabled: false
+host:
+  workdir_parent: /data/workspace
+server:
+  connections:
+    forgejo:
+      url: http://forgejo:3000/
+      uuid: REPLACE_WITH_NEW_FORGEJO_RUNNER_UUID
+      token: REPLACE_WITH_NEW_FORGEJO_RUNNER_TOKEN

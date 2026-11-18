@@ -261,7 +261,7 @@ for path in tracked:
 
     # Parse all tracked YAML, including:
     #   - GitHub Actions
-    #   - Gitea Actions
+    #   - Forgejo Actions
     #   - Ansible
     #   - Compose
     if path.suffix in {".yml", ".yaml"}:
@@ -370,9 +370,9 @@ fi
 # Therefore GitHub workflows receive semantic validation from actionlint.
 #
 # Important:
-#   We deliberately do NOT run actionlint against .gitea/workflows.
-#   Gitea Actions is compatible with much of GitHub Actions syntax, but it is
-#   not identical. Generic YAML validation still covers the Gitea workflow.
+#   We deliberately do NOT run actionlint against .forgejo/workflows.
+#   Forgejo Actions is compatible with much of GitHub Actions syntax, but it is
+#   not identical. Generic YAML validation still covers the Forgejo workflow.
 # -----------------------------------------------------------------------------
 
 section "GITHUB ACTIONS LINT"
@@ -402,7 +402,7 @@ fi
 #   - persistent state uses explicit bind mounts
 #   - create_host_path remains false
 #   - externally reachable services bind explicitly
-#   - the Gitea runner receives no host Docker socket
+#   - the Forgejo runner receives no host Docker socket
 # -----------------------------------------------------------------------------
 
 section "COMPOSE SAFETY CONTRACT TESTS"
@@ -493,8 +493,15 @@ fi
 
 export STATE_SERVICES_ROOT=/srv/storage/state/services
 
-export GITEA_FQDN=gitea.lab.home.arpa
-export GITEA_BIND_IP=127.0.0.1
+export FORGEJO_FQDN=forgejo.lab.home.arpa
+export FORGEJO_BIND_IP=127.0.0.1
+export FORGEJO_SSH_BIND_IP=127.0.0.1
+export FORGEJO_ROOT_URL=http://forgejo.lab.home.arpa:3001/
+export INGRESS_SUBNET=172.30.250.0/28
+export PROXY_CONTAINER_IP=172.30.250.2
+export FORGEJO_CONTAINER_IP=172.30.250.3
+export PROXY_BIND_IP=127.0.0.1
+export ACME_EMAIL=operator@example.com
 
 export GOTIFY_BIND_IP=127.0.0.1
 export GOTIFY_ADMIN_INITIAL_PASSWORD=ci-placeholder-not-real

@@ -1,7 +1,7 @@
 ---
 - import_playbook: 00-preflight.yml
 
-- name: Prepare Gitea Actions runner state
+- name: Prepare Forgejo Actions runner state
   hosts: management
   gather_facts: false
   become: true
@@ -9,7 +9,7 @@
   tasks:
     - name: Ensure runner state directory exists
       ansible.builtin.file:
-        path: /srv/storage/state/services/gitea-runner
+        path: /srv/storage/state/services/forgejo-runner
         state: directory
         owner: '10001'
         group: '10001'
@@ -21,22 +21,22 @@
           - /usr/bin/docker
           - image
           - inspect
-          - localhost/platform-gitea-runner:dev
+          - localhost/platform-forgejo-runner:dev
       changed_when: false
       no_log: true
 
     - name: Install runner storage guard
       ansible.builtin.copy:
-        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea-runner/check-storage.py"
-        dest: /usr/local/sbin/gitea-runner-check-storage
+        src: "{{ playbook_dir | dirname | dirname }}/compose/forgejo-runner/check-storage.py"
+        dest: /usr/local/sbin/forgejo-runner-check-storage
         owner: root
         group: root
         mode: '0755'
 
     - name: Install runner systemd unit
       ansible.builtin.copy:
-        src: "{{ playbook_dir | dirname | dirname }}/compose/gitea-runner/gitea-runner.service"
-        dest: /etc/systemd/system/gitea-runner.service
+        src: "{{ playbook_dir | dirname | dirname }}/compose/forgejo-runner/forgejo-runner.service"
+        dest: /etc/systemd/system/forgejo-runner.service
         owner: root
         group: root
         mode: '0644'
@@ -48,12 +48,12 @@
     - name: Validate registered runner storage and Compose
       ansible.builtin.command:
         argv:
-          - /usr/local/sbin/gitea-runner-check-storage
+          - /usr/local/sbin/forgejo-runner-check-storage
       changed_when: false
 
-    - name: Enable and start Gitea runner
+    - name: Enable and start Forgejo runner
       ansible.builtin.systemd_service:
-        name: gitea-runner.service
+        name: forgejo-runner.service
         enabled: true
         state: started
 

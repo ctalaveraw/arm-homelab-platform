@@ -1,0 +1,21 @@
+[Unit]
+Description=Caddy - management HTTPS ingress
+Documentation=https://caddyserver.com/docs/
+Requires=docker.service forgejo.service
+Wants=network-online.target
+After=docker.service forgejo.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/caddy
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/platform/compose/caddy
+ExecStartPre=/usr/local/sbin/caddy-check-storage
+ExecStartPre=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy/.env -f /srv/platform/compose/caddy/compose.yml run --rm --no-deps server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy/.env -f /srv/platform/compose/caddy/compose.yml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy/.env -f /srv/platform/compose/caddy/compose.yml down
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

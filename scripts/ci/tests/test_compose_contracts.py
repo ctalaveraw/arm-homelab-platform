@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 # Service name -> expected persistent container mount.
 SERVICES = {
-    "gitea": "/data",
-    "gitea-runner": "/data",
+    "forgejo": "/data",
+    "forgejo-runner": "/data",
     "gotify": "/app/data",
     "uptime-kuma": "/app/data",
     "apt-cacher-ng": "/var/cache/apt-cacher-ng",
@@ -26,8 +26,8 @@ class ComposeContractTests(unittest.TestCase):
         config = yaml.safe_load(manifest.read_text())
 
         # The runner has its own service name to avoid colliding with
-        # Gitea's existing 'server' DNS alias on gitea_default.
-        service_name = "runner" if name == "gitea-runner" else "server"
+        # Forgejo's existing 'server' DNS alias on forgejo_default.
+        service_name = "runner" if name == "forgejo-runner" else "server"
 
         return config["services"][service_name]
 
@@ -74,8 +74,8 @@ class ComposeContractTests(unittest.TestCase):
                 service = self.load_service(name)
                 ports = service.get("ports", [])
 
-                if name == "gitea-runner":
-                    # The runner initiates outbound connections to Gitea.
+                if name == "forgejo-runner":
+                    # The runner initiates outbound connections to Forgejo.
                     # It must never publish an inbound host port.
                     self.assertFalse(ports)
                     continue
@@ -89,7 +89,7 @@ class ComposeContractTests(unittest.TestCase):
 
     def test_runner_has_no_host_privileges(self):
         """Keep the trusted validation worker minimally privileged."""
-        service = self.load_service("gitea-runner")
+        service = self.load_service("forgejo-runner")
 
         self.assertEqual(service["user"], "10001:10001")
         self.assertEqual(service["cap_drop"], ["ALL"])

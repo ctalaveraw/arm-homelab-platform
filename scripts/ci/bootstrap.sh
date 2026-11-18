@@ -42,7 +42,7 @@ set -Eeuo pipefail
 #   CI_DEBUG=true bash scripts/ci/bootstrap.sh
 #
 # Useful when Python/pip/package installation behaves differently between
-# local ARM64, GitHub-hosted CI, and the Gitea runner.
+# local ARM64, GitHub-hosted CI, and the Forgejo runner.
 # -----------------------------------------------------------------------------
 
 if [[ "${CI_DEBUG:-false}" == "true" ]]; then
@@ -146,7 +146,7 @@ fi
 # -----------------------------------------------------------------------------
 # Python CI toolchain
 #
-# Keep these versions explicit so local ARM64, GitHub Actions, and Gitea
+# Keep these versions explicit so local ARM64, GitHub Actions, and Forgejo
 # validation do not silently drift onto unrelated tool releases.
 #
 # Every execution checks that the requested package set is satisfied.

@@ -26,6 +26,24 @@ jobs:
       - name: Validate repository
         run: bash scripts/ci/validate.sh
 
+      - name: Validate HTTPS proxy configuration
+        run: |
+          docker run --rm \
+            --entrypoint caddy \
+            -e FORGEJO_FQDN=git.example.com \
+            -e ACME_EMAIL=operator@example.com \
+            -v "$PWD/compose/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.11.9-alpine \
+            validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: Build and verify Forgejo validation runner
+        run: |
+          docker build -t localhost/platform-forgejo-runner:dev images/forgejo-runner
+          docker run --rm localhost/platform-forgejo-runner:dev --version
+          docker run --rm --entrypoint sh \
+            localhost/platform-forgejo-runner:dev \
+            -c 'test "$(id -u)" = 10001 && python3 -m venv /tmp/ci-probe && docker compose version'
+
       - name: Validate Dockerfile
         run: |
           docker buildx build \

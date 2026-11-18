@@ -9,7 +9,7 @@ Keep the current physical ARM64 reference implementation and proven delivery pat
 
 An eventual Proxmox/Terraform layer creates VM/network resources; Ansible converges guest OS/management components; Kubernetes bootstrap and Flux remain their respective responsibilities. Terraform must not become a second owner of Ansible-managed service state or Flux-managed workloads. Isolate Terraform state, locking, backend credentials and drift checks by environment. Do not make a local Terraform provider a prerequisite for physical Pi support.
 
-Gitea remains the functioning forge/registry/runner for now. Evaluate Forgejo via an isolated migration rehearsal with verifiable export/import, identity, package, runner, hooks, DB and rollback compatibility; do not treat container-image replacement as proven migration. Keep canonical GitHub and an independent recovery remote.
+Forgejo is selected under [ADR-0015](0015-forgejo-and-controller-ingress.md). Use a separate instance with verified data transfer, new runner identity, package parity and rollback. The earlier Gitea acceptance remains historical. Keep canonical GitHub and independent recovery material.
 
 Evaluate Backstage or other internal developer portal only when multiple services/personas justify a catalog, templates and self-service golden paths. Portal loss may not prevent core operation, bootstrap or recovery. Prefer documented CLI/golden-path conventions before adopting a large portal.
 

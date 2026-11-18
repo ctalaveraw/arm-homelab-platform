@@ -1,4 +1,6 @@
-FROM docker.io/gitea/runner:3
+FROM data.forgejo.org/forgejo/runner:13.1.0
+
+USER root
 
 # Validation tooling, not a Docker daemon.
 RUN apk add --no-cache \
@@ -29,5 +31,5 @@ ENV HOME=/home/ci
 WORKDIR /data
 USER ci
 
-ENTRYPOINT ["/usr/local/bin/gitea-runner"]
-CMD ["daemon"]
+ENTRYPOINT ["forgejo-runner"]
+CMD ["daemon", "--config", "/data/runner.yml"]

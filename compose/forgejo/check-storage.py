@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Fail closed unless Gitea uses the expected mounted SD filesystem."""
+"""Fail closed unless Forgejo uses the expected mounted SD filesystem."""
 
 import json
 import subprocess
 from pathlib import Path
 
 MOUNT = Path("/srv/storage/state")
-DATA = MOUNT / "services/gitea"
-COMPOSE_DIR = Path("/srv/platform/compose/gitea")
+DATA = MOUNT / "services/forgejo"
+COMPOSE_DIR = Path("/srv/platform/compose/forgejo")
 EXPECTED_LABEL = "storage_sdcard"
 
 
 def fail(message):
-    raise SystemExit(f"Gitea storage preflight FAILED: {message}")
+    raise SystemExit(f"Forgejo storage preflight FAILED: {message}")
 
 
 # Access the directory to trigger systemd's SD automount.
@@ -47,12 +47,12 @@ if mount.returncode != 0 or mount.stdout.strip() != EXPECTED_LABEL:
 
 
 if not DATA.is_dir():
-    fail("Ansible-managed Gitea data directory is missing")
+    fail("Ansible-managed Forgejo data directory is missing")
 
 
 # Reject symlinks that might redirect application writes elsewhere.
 if DATA.resolve() != DATA:
-    fail("Gitea storage path resolves outside its declared location")
+    fail("Forgejo storage path resolves outside its declared location")
 
 
 # Verify that the data directory is actually on the expected mount.
@@ -73,7 +73,7 @@ backing = subprocess.run(
 if backing.returncode != 0 or backing.stdout.split() != [
     str(MOUNT), EXPECTED_LABEL
 ]:
-    fail("Gitea data is not backed by the expected SD mount")
+    fail("Forgejo data is not backed by the expected SD mount")
 
 
 # Check the fully interpolated Compose configuration, not just .env.
@@ -108,4 +108,4 @@ if (
     fail("Compose /data binding violates the storage contract")
 
 
-print("Gitea storage preflight PASSED.")
+print("Forgejo storage preflight PASSED.")

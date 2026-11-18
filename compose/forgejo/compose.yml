@@ -1,0 +1,70 @@
+---
+# Forgejo project.
+# Application deployment is managed separately from host bootstrap.
+name: forgejo
+
+services:
+  server:
+    # Rootful Forgejo image. Pin upgrades deliberately; back up state first.
+    image: codeberg.org/forgejo/forgejo:15.0.11
+
+    # Docker must not restart Forgejo independently of the SD mount check.
+    # A dedicated systemd unit will own startup in PLAT-004.4.
+    restart: "no"
+
+    environment:
+      # Match the Ansible-managed persistent directory (UID/GID 1000).
+      USER_UID: "1000"
+      USER_GID: "1000"
+
+      # Single-node deployment; SQLite state persists under /data.
+      FORGEJO__database__DB_TYPE: sqlite3
+
+      # Stable service identity, independent of the R5C's interface IP.
+      # The :? syntax rejects missing or empty Compose variables.
+      FORGEJO__server__DOMAIN: "${FORGEJO_FQDN:?Set FORGEJO_FQDN}"
+      FORGEJO__server__ROOT_URL: "${FORGEJO_ROOT_URL:?Set FORGEJO_ROOT_URL}"
+      FORGEJO__server__SSH_DOMAIN: "${FORGEJO_FQDN:?Set FORGEJO_FQDN}"
+
+      # Advertised SSH port; the container itself still listens on 22.
+      FORGEJO__server__SSH_PORT: "${FORGEJO_SSH_PORT:-2223}"
+      FORGEJO__actions__ENABLED: "true"
+      FORGEJO__actions__DEFAULT_ACTIONS_URL: "https://github.com"
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+      FORGEJO__service__REQUIRE_SIGNIN_VIEW: "true"
+      FORGEJO__service__ENABLE_REVERSE_PROXY_AUTHENTICATION: "false"
+      FORGEJO__security__REVERSE_PROXY_TRUSTED_PROXIES: "${PROXY_CONTAINER_IP:?Set PROXY_CONTAINER_IP}/32"
+      FORGEJO__security__REVERSE_PROXY_LIMIT: "1"
+
+    ports:
+      # Bind to the chosen LAN interface instead of every host interface.
+      - "${FORGEJO_BIND_IP:?Set FORGEJO_BIND_IP}:${FORGEJO_HTTP_PORT:-3001}:3000"
+
+      # Keep Git-over-SSH separate from the R5C management SSH port.
+      - "${FORGEJO_SSH_BIND_IP:?Set FORGEJO_SSH_BIND_IP}:${FORGEJO_SSH_PORT:-2223}:22"
+
+    networks:
+      default:
+        aliases: [forgejo]
+      ingress:
+        aliases: [forgejo]
+        ipv4_address: "${FORGEJO_CONTAINER_IP:?Set FORGEJO_CONTAINER_IP}"
+
+    volumes:
+      # Stateful application data belongs on the mounted SD filesystem.
+      # The parent namespace and service directory are Ansible-managed.
+      #
+      # Do not create a missing bind source automatically.
+      # IMPORTANT: this is not a substitute for actual mount verification.
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/forgejo"
+        target: /data
+        bind:
+          create_host_path: false
+
+networks:
+  ingress:
+    name: platform_ingress
+    ipam:
+      config:
+        - subnet: "${INGRESS_SUBNET:?Set INGRESS_SUBNET}"

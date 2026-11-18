@@ -5,7 +5,7 @@ Date: 2026-10-10
 
 ## Context
 
-The existing R5C Ansible preflight assumes ARM64, a working OS, Python, Git and an ext4 SD automount with expected filesystem label. This is convergence of a running host, **not** day-zero provisioning. Runtime `.env` files, local service keys, Gitea state, runner identity, deployer X.509 material, signing trust and eventual OpenBao credentials cannot be assumed recoverable from public Git.
+The existing R5C Ansible preflight assumes ARM64, a working OS, Python, Git and an ext4 SD automount with expected filesystem label. This is convergence of a running host, **not** day-zero provisioning. Runtime `.env` files, local service keys, Forgejo state, runner identity, deployer X.509 material, signing trust and eventual OpenBao credentials cannot be assumed recoverable from public Git.
 
 ## Decision
 
@@ -19,14 +19,14 @@ Separate four configuration classes:
 
 Tracked `.env.example` files are examples/schema only; real `.env` files remain ignored and tightly permissioned. Prefer app-supported file injection for secrets when feasible; avoid secret interpolation in logs, verbose shell tracing, command lines and CI artifacts. Define key owners, expiry and rotation, audit, encryption key escrow, restore sequence, and backup of config *and* persistent state. Never commit raw private keys, admin kubeconfigs, vault recovery shares, tokens or populated `.env` files.
 
-Use a staged recovery chain: acquire supported replacement hardware or VM → establish bootable OS, network, trust, storage and mount guards → install runner/Ansible prerequisites → restore/reissue secrets from independent root → converge systemd/Compose/Gitea/services → validate identity and package states → recover cluster bootstrap/etcd when in incident scope → restore routine secret service.
+Use a staged recovery chain: acquire supported replacement hardware or VM → establish bootable OS, network, trust, storage and mount guards → install runner/Ansible prerequisites → restore/reissue secrets from independent root → converge systemd/Compose/Forgejo/services → validate identity and package states → recover cluster bootstrap/etcd when in incident scope → restore routine secret service.
 
 RTO 4h and RPO 1h are **targets**, subject to classification, destinations, key access, hourly-enough consistent backup, spare hardware and timed isolated drills. Do not claim attainment before multiple rehearsals. In particular, a snapshot cadence does not alone prove recoverable RPO.
 
 ## Consequences
 
-The recovery bundle becomes a critical protected asset and must itself have redundant trusted access, verified integrity, access logging and revocation/rotation procedure. Stronger independence adds operational ceremony but removes circular dependence on Gitea, OpenBao or a live R5C.
+The recovery bundle becomes a critical protected asset and must itself have redundant trusted access, verified integrity, access logging and revocation/rotation procedure. Stronger independence adds operational ceremony but removes circular dependence on Forgejo, OpenBao or a live R5C.
 
 ## Implementation evidence required
 
-Blank-device/bootstrap drill, missing/compromised certificate scenario, secrets restore without local vault, Gitea/OCI consistency and backup validation, etcd/rebuild boundary, changed filesystem label/wrong device negative test, measured RTO/RPO with incident timestamps and declared losses.
+Blank-device/bootstrap drill, missing/compromised certificate scenario, secrets restore without local vault, Forgejo/OCI consistency and backup validation, etcd/rebuild boundary, changed filesystem label/wrong device negative test, measured RTO/RPO with incident timestamps and declared losses.

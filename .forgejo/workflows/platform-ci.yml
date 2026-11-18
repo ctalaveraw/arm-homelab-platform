@@ -1,5 +1,5 @@
 ---
-name: ARM Platform CI - Gitea
+name: ARM Platform CI - Forgejo
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
         run: |
           set -eu
 
-          echo "=== NATIVE GITEA RUNNER ==="
+          echo "=== NATIVE FORGEJO RUNNER ==="
           uname -m
           id
 

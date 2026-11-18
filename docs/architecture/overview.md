@@ -1,295 +1,55 @@
-# Platform Architecture Overview
-
-**Updated:** 2026-10-16
-**Scope:** Current architecture after PLAT-012 host metrics plus scoped Kubernetes API server and Flux controller telemetry; workloads, alerts and recovery hardening remain incomplete.
-
-## Design intent
-
-The platform separates the **management plane** from the existing Kubernetes **compute plane**. GitHub remains an external recovery/source-of-truth dependency so management-plane reconstruction does not require the self-hosted Gitea instance.
-
-Source, validation, artifact production, artifact promotion, and runtime deployment are intentionally treated as separate trust boundaries.
-
-## Current and planned architecture
-
-Solid arrows are implemented. Dashed arrows are planned.
-
-```mermaid
-flowchart TB
-    DEV["Developer / operator"]
-    GH["GitHub<br/>canonical source + recovery"]
-    RULES["Protected main<br/>PR + CI gate"]
-    GHCI["GitHub Actions<br/>hosted ARM64"]
-
-    VALIDATION["Portable validation<br/>ShellCheck + Ruff + yamllint + actionlint<br/>Compose contracts + Ansible syntax"]
-    BUILD["Build once<br/>platform-hello:commit"]
-    TEST["Runtime acceptance<br/>linux/arm64 + UID 10001 + HTTP"]
-    SCAN["Trivy<br/>vulnerability + secret scan"]
-    EXPORT["Image export<br/>Docker image ID + tar checksum"]
-    ARTIFACT["GitHub Actions artifact<br/>job handoff"]
-    PUBLISH["Publisher job<br/>contents: read<br/>packages: write"]
-    GHCR["GHCR<br/>verified OCI artifact"]
-
-    subgraph R5C["Independent NanoPi R5C management plane"]
-        ANSIBLE["Ansible<br/>host + service lifecycle"]
-        GITEA["Gitea 1.27.3<br/>private pull mirror"]
-        ACT["Gitea Actions runner v3.5.0<br/>repo-scoped / UID 10001"]
-        GOTIFY["Gotify 3.1.1"]
-        KUMA["Uptime Kuma 2.5.5"]
-        ACNG["APT-Cacher-NG"]
-        PROM["Prometheus<br/>48h / 512MB retention"]
-        GRAF["Grafana<br/>provisioned dashboards"]
-        HOSTEXP["Node Exporter<br/>R5C"]
-        HOSTEXP -->|"metrics"| PROM
-        PROM --> GRAF
-        PARITY["Source parity check<br/>GitHub / Gitea / local main"]
-        KDEPLOY["Scoped Kubernetes deployer<br/>kubectl + X.509 / RBAC"]
-        SD["SD state<br/>storage_sdcard"]
-
-        ANSIBLE --> GITEA
-        ANSIBLE --> ACT
-        ANSIBLE --> GOTIFY
-        ANSIBLE --> KUMA
-        ANSIBLE --> ACNG
-        GITEA --> SD
-        ACT --> SD
-        GOTIFY --> SD
-        KUMA --> SD
-        ACNG --> SD
-        PARITY --> GITEA
-        KUMA -->|"monitor"| GITEA
-        KUMA -->|"monitor"| GOTIFY
-        KUMA -->|"monitor"| ACNG
-        KUMA -->|"notify"| GOTIFY
-    end
-
-    subgraph K8S["Existing upstream kubeadm cluster"]
-        CP["Raspberry Pi control plane"]
-        W1["Worker 1"]
-        W2["Worker 2"]
-        PIEXP["3 native Node Exporters"]
-        CP --- W1
-        CP --- W2
-    end
-
-    GITEAOCI["Gitea OCI registry<br/>local distribution"]
-    RESTIC["Restic repository<br/>planned off-device backup"]
-    FLUX["Flux<br/>source + kustomize controllers<br/>scoped pull reconciliation"]
-
-    DEV -->|"PR"| GH
-    GH --> RULES
-    RULES --> GHCI
-    GHCI --> VALIDATION
-    VALIDATION --> BUILD
-    BUILD --> TEST
-    TEST --> SCAN
-    SCAN --> EXPORT
-    EXPORT --> ARTIFACT
-    ARTIFACT -->|"download + verify"| PUBLISH
-    PUBLISH --> GHCR
-
-    GH -->|"native pull mirror"| GITEA
-    GITEA -->|"sync emits push event"| ACT
-    ACT --> VALIDATION
-    GH --> PARITY
-
-    GHCR -->|"replicate same OCI artifact<br/>preserve digest"| GITEAOCI
-    GHCR -->|"pull by digest"| K8S
-    KDEPLOY -->|"direct scoped API access"| K8S
-    GITEAOCI -.->|"future local pull by digest"| K8S
-
-    GITEA -.->|"consistent state backup"| RESTIC
-    GITEAOCI -.->|"package state backup"| RESTIC
-    PIEXP -->|"R5C scrapes TCP/9100"| PROM
-    CP -->|"read-only TLS API / Flux metrics proxy"| PROM
-    GH -->|"anonymous desired-state pull"| FLUX
-    FLUX -->|"scoped reconcile"| K8S
-```
+# Platform Architecture
 
-## Implemented boundaries
+Updated 2026-11-17. Forgejo and Caddy are deployment targets in this revision. The last recorded host acceptance used Gitea; the [migration runbook](../runbooks/gitea-to-forgejo.md) tracks the transition.
 
-### Source ownership and convergence
+## Source and recovery
 
-GitHub is the canonical public repository. Gitea is a private pull mirror, not a second authoritative push target.
+GitHub is canonical, with protected `main` and PR-based changes. The local Forgejo repository is a private pull mirror, not another push target. Recovery must remain possible without the R5C, its forge, Kubernetes or a future local secret service.
 
-The controller working copy keeps:
+The fetch-only `forgejo` remote and `scripts/ops/check-source-parity.sh` compare GitHub, Forgejo and controller-local `main`. A successful check proves commit convergence, not backup completeness. Existing Gitea mirror acceptance remains recorded in the historical sprint reports.
 
-- GitHub as its normal push destination;
-- Gitea as a fetch-only remote;
-- `scripts/ops/check-source-parity.sh` to compare local `main`, GitHub `main`, and mirrored Gitea `main`.
+## Independent management host
 
-Source parity was proven at commit `e9eb8e245428dec8c91656df94f444bca88231a9` before the GHCR publication work continued.
+`gitops-controller-01` is the ARM64 NanoPi R5C. Its OS, Docker data root and SD-backed application state are distinct storage responsibilities. Ansible prepares service directories, installs storage guards and systemd units, and validates Compose configuration. Systemd owns guarded startup; application restart policy is `no`.
 
-GitHub `main` is protected so merge policy is enforced by the platform rather than operator memory alone.
+| Service | Purpose | Persistent state |
+| --- | --- | --- |
+| Forgejo | GitHub mirror and local OCI distribution | `services/forgejo` |
+| Forgejo Runner | Repository-scoped trusted ARM64 validation | `services/forgejo-runner` |
+| Caddy | HTTPS termination for the selected Git hostname | `services/caddy/data`, `services/caddy/config` |
+| Gotify and Uptime Kuma | Notifications and availability checks | Separate service directories |
+| APT-Cacher-NG | Optional package cache | Separate bounded cache directory |
+| Prometheus and Grafana | Host and Kubernetes/Flux observability | Existing guarded observability storage |
 
-### CI execution and validation
+All listed state paths are relative to `/srv/storage/state`. The actual ext4 filesystem must have label `storage_sdcard`; directory existence alone is insufficient. USB archive storage remains decommissioned.
 
-GitHub Actions:
+## Ingress placement
 
-- hosted ARM64 runner;
-- repository validation;
-- Dockerfile Buildx check;
-- one ARM64 application build;
-- runtime acceptance against that exact image;
-- Trivy vulnerability and secret scanning;
-- verified artifact export;
-- separate least-privileged publisher job.
+| System | Responsibility |
+| --- | --- |
+| OUTER router | WAN firewall, WireGuard, and only the reviewed inbound forwarding rules |
+| INNER router | Transit/LAN routing, LAN DNS and the firewall path to the controller |
+| R5C / Caddy | TLS certificates, HTTP-to-HTTPS redirects and hostname routing |
+| Forgejo | Authentication, Git HTTP, API and OCI registry |
 
-Repository validation currently covers:
+Caddy connects to Forgejo through the dedicated `platform_ingress` Docker network. Forgejo trusts only Caddy's configured IPv4 address for forwarded headers and leaves reverse-proxy authentication disabled. Its ordinary Docker network also serves the validation runner. The backend HTTP port is restricted to loopback after HTTPS acceptance. Git SSH uses a separate LAN-bound port and is not handled by Caddy's HTTP proxy.
 
-- Bash syntax;
-- ShellCheck;
-- Python syntax parsing;
-- Ruff;
-- YAML parsing;
-- yamllint using repository-owned policy;
-- actionlint for GitHub Actions;
-- four Compose safety-contract tests;
-- Ansible playbook syntax;
-- rendered Compose configuration.
+The ingress subnet and container addresses in `.env.example` are candidates. Check them against host, LAN, VPN and Docker routes before deployment. A dedicated ingress host can replace this placement later without moving the routers' responsibilities.
 
-Gitea Actions:
+## Delivery and compute
 
-- repository-scoped physical ARM64 runner on the R5C;
-- same repository-owned validation entrypoints;
-- no production Docker socket;
-- no deployment, registry, or Kubernetes credentials.
+The compute plane is the existing upstream kubeadm cluster with one Raspberry Pi control plane and two workers. A fourth Pi is reserved for reconstruction tests.
 
-### Build-once artifact promotion
+GitHub-hosted ARM64 CI validates the repository, builds `platform-hello` once, tests the same image, and applies Trivy vulnerability and secret checks. A separate publisher receives an image archive plus checksum and expected Docker image ID, verifies that handoff, and publishes to GHCR with `packages: write`.
 
-The application image is built once in the read-only build job.
+Registry replication uses Skopeo with digest preservation. Independent retrieval tests fetch the complete OCI artifact into a fresh layout. Forgejo package association is separate registry metadata. Kubernetes currently pulls the qualified GHCR digest; changing the local forge does not require changing workload image references.
 
-The same image is then:
+Flux pulls canonical Git desired state and reconciles only the selected application namespace using scoped authority. The validation runner has no production Docker socket, deployment credentials or Kubernetes authority. A future operations runner must have its own identity and approval boundary; it must not compete with Flux for routine application reconciliation.
 
-1. runtime-tested;
-2. scanned;
-3. exported with its Docker image ID recorded;
-4. transferred as a GitHub Actions artifact;
-5. protected by an archive SHA-256 checksum;
-6. loaded on a separate publisher runner;
-7. checked against the original Docker image ID;
-8. pushed to GHCR by a job with `packages: write`.
+## Observability and outstanding acceptance
 
-The publisher does not rebuild the image.
+Prometheus and Grafana run outside Kubernetes with bounded retention/storage. Native exporters cover the R5C and three physical Pi hosts. A separate read-only TLS observer scrapes the Kubernetes API and Flux metrics through constrained RBAC. Historical evidence records eight healthy targets and five provisioned dashboards.
 
-The first successful publication came from commit:
+Revalidate mirror synchronization, runner execution, OCI parity, monitor targets and source parity on Forgejo. Public DNS, certificates, router forwarding and LAN split DNS are pending. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
 
-```text
-1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d
-```
-
-Docker image ID preserved across the job boundary:
-
-```text
-sha256:6778f34a5be85bfd970f9124f53efb761d12317feb15c0a4f5c2b29117a0416b
-```
-
-GHCR manifest digest:
-
-```text
-sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
-```
-
-The Docker image ID and registry manifest digest are intentionally different identities for different objects.
-
-### Dual OCI distribution
-
-The R5C uses Ansible-managed Skopeo for registry-native artifact operations.
-
-Repository-owned operational tooling provides:
-
-- `scripts/ops/replicate-oci-image.sh` — copies an existing OCI artifact between registries with digest preservation and performs no rebuild;
-- `scripts/ops/verify-oci-parity.sh` — compares source and destination registry manifest digests;
-- `scripts/ops/verify-oci-retrieval.sh` — proves complete artifact retrieval into a fresh temporary OCI layout;
-- `scripts/ops/link-gitea-package.sh` — manages the Gitea-specific package/repository association independently of OCI artifact contents.
-
-The qualified `platform-hello` artifact is independently retrievable from both GHCR and Gitea by digest.
-
-Both registries report:
-
-```text
-sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
-```
-
-for the promoted registry manifest.
-
-The Gitea package is associated with the mirrored `admin/arm-homelab-platform` repository.
-
-This provides distribution redundancy but is not a substitute for off-device backup or build provenance.
-
-### Management service lifecycle
-
-Ansible owns installation of the systemd unit, daemon reload, configuration validation, enablement, and initial startup for all five management services.
-
-Stateful workloads use explicit SD-backed bind mounts with `create_host_path: false` and service-specific startup guards.
-
-## Current artifact path
-
-Implemented:
-
-```text
-source commit
-  -> validation
-  -> build once
-  -> runtime acceptance
-  -> Trivy scan
-  -> transfer with checksum + image-ID verification
-  -> publish same verified artifact to GHCR
-  -> record registry digest
-  -> independently retrieve GHCR artifact by digest
-  -> replicate same OCI artifact to Gitea with digest preservation
-  -> verify GHCR/Gitea manifest parity
-  -> independently retrieve Gitea artifact by digest
-  -> associate Gitea package with mirrored source repository
-```
-
-Kubernetes delivery is now implemented:
-
-```text
-known immutable registry digest
-  -> Kubernetes Deployment
-  -> worker registry retrieval
-  -> Ready Pod
-  -> verify running image identity
-  -> ClusterIP Service + EndpointSlice
-  -> in-cluster HTTP verification
-  -> scoped Flux reconciliation from canonical Git
-```
-
-Normal application reconciliation is now pull-based through Flux using
-the dedicated `platform-hello-reconciler` ServiceAccount in `flux-system`,
-bound only to application permissions in `platform-demo`.
-
-The namespace-scoped X.509 `platform-deployer` identity remains an independent
-break-glass and verification path rather than the routine deployment mechanism.
-
-Rebuilding independently after testing is intentionally avoided because it breaks artifact identity and creates another drift/failure surface.
-
-## Recovery path
-
-Recovery has two independent ideas:
-
-1. **Distribution redundancy:** GHCR and the local Gitea OCI registry provide separate places from which the same verified image can be retrieved.
-2. **Backup/restore:** Restic will protect persistent Gitea/package state off-device.
-
-A second registry is not a substitute for backup, and backup is not a live registry failover mechanism.
-
-## Implemented host observability (PLAT-012 foundation)
-
-The independent R5C runs Prometheus v3.15.0 and Grafana 13.2.2 under Ansible-owned, systemd-guarded Compose lifecycles with SD-backed state. Prometheus binds its API to 127.0.0.1:9090 and has 48-hour/512MB retention; Grafana binds to 10.0.0.50:3300. Prometheus is bounded to 384 MiB and Grafana to 768 MiB. Native, unprivileged Node Exporters (v1.12.1, SHA-256 pinned) publish R5C metrics on 10.0.0.50:9100 and three Pi host metrics on 10.0.0.5/.6/.8:9100, respectively. R5C exporter memory is capped at 96 MiB and Pi exporter memory at 64 MiB per host. R5C SD access grants traverse-only ACLs and denies the exporter access to Grafana secrets.
-
-The R5C and all Pi targets passed live Prometheus acceptance; Pi and management Ansible playbooks passed a repeated execution with `changed=0`. The host exporters use unauthenticated management-LAN HTTP; network access restrictions have not yet been independently demonstrated. See the [host metrics runbook](../runbooks/observability-host-metrics.md) and [Sprint 13 evidence](../sprints/13-observability-host-foundation.md).
-
-## Implemented Kubernetes and Flux telemetry (PLAT-012 extension)
-
-Prometheus remains out-of-cluster on the R5C, using the control-plane API at `10.0.0.5:6443` for its own metrics and API-mediated proxying of the two Flux metrics Services. A dedicated `CN=platform-observer` certificate and bounded RBAC are independent from the cluster-admin/deployer credentials and ordinary Flux application authority. Bootstrap remains explicitly approved outside application GitOps. Existing Pi host metrics use the separate Node Exporter access path.
-
-G4 verified eight healthy/fresh targets (3 Pi, 1 R5C, 1 Prometheus, 1 Kubernetes API, 2 Flux), non-root monitoring containers, limits, two zero-change Ansible convergences, anonymous Grafana catalog denial and an authenticated five-dashboard catalog. These snapshots do not demonstrate a production outage, exporter VLAN isolation or reboot recovery. Grafana memory snapshots and Prometheus process RSS use different accounting methods and are not directly comparable. See [ADR-0014](../adr/0014-kubernetes-telemetry-observer.md), the [Kubernetes/Flux telemetry runbook](../runbooks/kubernetes-flux-telemetry.md), and [Sprint 14](../sprints/14-kubernetes-flux-telemetry.md).
-
-## Remaining architecture gaps
-
-- shared trusted HTTPS for management endpoints;
-- off-device Restic backup/restore validation;
-- full fresh-host rebuild;
-- Kubernetes workload-state exporters and comprehensive management-service dependency telemetry;
-- runtime alerting for GitOps reconciliation failures and end-to-end failure exercises;
-- independently verified network restrictions on exporter TCP/9100.
+Historical records: [native CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md), [telemetry](../sprints/14-kubernetes-flux-telemetry.md).
