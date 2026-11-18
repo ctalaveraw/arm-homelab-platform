@@ -12,9 +12,11 @@ Use a fresh Forgejo instance beside Gitea. The [supported database conversion](h
 | Compose project | `gitea` | `forgejo` |
 | Application state | `services/gitea` | `services/forgejo` |
 | Runner state | `services/gitea-runner` | `services/forgejo-runner` |
-| Host HTTP port | `3000` | `3001` |
+| Host HTTP port | `3000` | `3002` |
 | Host Git SSH port | `2222` | `2223` |
 | Lifecycle units | `gitea`, `gitea-runner` | `forgejo`, `forgejo-runner` |
+
+Port 3001 belongs to Uptime Kuma. If an earlier local Forgejo `.env` uses 3001, change both `FORGEJO_HTTP_PORT` and the port in `FORGEJO_ROOT_URL` to 3002 before startup.
 
 State paths are relative to `/srv/storage/state`. Keeping staging ports is acceptable after migration; HTTPS clients use TCP/443 regardless of the backend port.
 
@@ -66,11 +68,11 @@ cp compose/forgejo/.env.example compose/forgejo/.env
 chmod 600 compose/forgejo/.env
 ```
 
-Populate the controller LAN bind addresses. Add an INNER DNS record for `forgejo.lab.home.arpa` pointing at the controller, or use an equivalent temporary workstation hosts entry. Keep `FORGEJO_ROOT_URL` consistent with that hostname and `:3001/`.
+Populate the controller LAN bind addresses. Add an INNER DNS record for `forgejo.lab.home.arpa` pointing at the controller, or use an equivalent temporary workstation hosts entry. Keep `FORGEJO_ROOT_URL` consistent with that hostname and `:3002/`.
 
 ```bash
 ansible-playbook ansible/playbooks/02-forgejo.yml --ask-become-pass
-curl --fail --silent --show-error http://forgejo.lab.home.arpa:3001/api/v1/version
+curl --fail --silent --show-error http://forgejo.lab.home.arpa:3002/api/v1/version
 ```
 
 Complete initial installation over the trusted LAN and create the administrator. Self-registration is disabled and anonymous repository viewing requires sign-in. Do not enable WAN forwarding before initialization and acceptance. Verify the UI reports Forgejo and the expected version; check unit/container logs if it does not become ready.
@@ -88,10 +90,10 @@ For a LAN Gitea import, permit only its exact hostname in Forgejo migration sett
 Authenticate interactively with Skopeo into a private authfile outside Git. Use the original owner/package identity and the qualified source digest. For example:
 
 ```bash
-skopeo login --tls-verify=false --authfile "$HOME/.config/containers/forgejo-auth.json" forgejo.lab.home.arpa:3001
+skopeo login --tls-verify=false --authfile "$HOME/.config/containers/forgejo-auth.json" forgejo.lab.home.arpa:3002
 ```
 
-Set `SOURCE_IMAGE` to the qualified `docker://ghcr.io/...@sha256:...` reference and `DEST_IMAGE` to `docker://forgejo.lab.home.arpa:3001/OWNER/PACKAGE:TAG`, then:
+Set `SOURCE_IMAGE` to the qualified `docker://ghcr.io/...@sha256:...` reference and `DEST_IMAGE` to `docker://forgejo.lab.home.arpa:3002/OWNER/PACKAGE:TAG`, then:
 
 ```bash
 DEST_AUTHFILE="$HOME/.config/containers/forgejo-auth.json" DEST_TLS_VERIFY=false \

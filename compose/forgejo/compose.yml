@@ -38,7 +38,7 @@ services:
 
     ports:
       # Bind to the chosen LAN interface instead of every host interface.
-      - "${FORGEJO_BIND_IP:?Set FORGEJO_BIND_IP}:${FORGEJO_HTTP_PORT:-3001}:3000"
+      - "${FORGEJO_BIND_IP:?Set FORGEJO_BIND_IP}:${FORGEJO_HTTP_PORT:-3002}:3000"
 
       # Keep Git-over-SSH separate from the R5C management SSH port.
       - "${FORGEJO_SSH_BIND_IP:?Set FORGEJO_SSH_BIND_IP}:${FORGEJO_SSH_PORT:-2223}:22"

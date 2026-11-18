@@ -9,7 +9,7 @@ GitHub is canonical. Forgejo is a private one-way pull mirror with repository-sc
 The controller keeps a fetch-only `forgejo` remote:
 
 ```bash
-git remote add forgejo http://forgejo.lab.home.arpa:3001/OWNER/arm-homelab-platform.git
+git remote add forgejo http://forgejo.lab.home.arpa:3002/OWNER/arm-homelab-platform.git
 git remote set-url --push forgejo DISABLED
 bash scripts/ops/check-source-parity.sh origin forgejo
 ```
