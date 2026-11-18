@@ -1,30 +1,37 @@
-# Gitea to Forgejo Migration
+# Gitea to Forgejo migration
 
-Status: Forgejo operational LAN cutover verified: HTTP/3000 health, SSH/2223, post-cutover source parity, full OCI retrieval, native Actions and Kuma availability passed. Legacy state is retained for rollback; remaining review is listed in section 9.
-Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
+Forgejo replaced Gitea on the R5C on 2026-11-18. The source was Gitea 1.27.3; the destination is Forgejo 15.0.11 LTS.
 
-## Recorded progress — 2026-11-18
+| Check | Recorded result |
+| --- | --- |
+| HTTP health | `http://git.lab.home.arpa:3000/api/healthz` passed |
+| Git SSH | Port `2223`; controller alias `forgejo` read HEAD/main successfully |
+| Source parity | Local main/HEAD, GitHub and Forgejo matched `44d3d82ba9919c39407031ded42abd4ff49b2128` |
+| OCI transfer | Original tag/digest retained; full retrieval passed through the final TCP/3000 registry |
+| Package association | `ctalaveraw/platform-hello` linked to `ctalaveraw/arm-homelab-platform` |
+| Native Actions | Manual run #1 at `eb84e2ec9c` succeeded in 2m47s; mirrored-push run #2 at `44d3d82ba9` succeeded in 2m32s |
+| Runner | Repository-scoped registration, UID/GID 10001, active after cutover |
+| Availability | Kuma reported Up; operator subsequently updated its URL to `/api/healthz` |
+| Legacy services | `gitea.service` and `gitea-runner.service` stopped and disabled |
 
-- [x] Consistent legacy checkpoint verified at `/srv/backups/gitea-before-forgejo-20261118T002504Z-6vyfHG`; both legacy services restarted.
-- [x] Off-device transfer archive checksum verified: `23b1545d587cef77b8c7cd931aa26b00c830a29d8178153b3693f69de42b7b53` for `gitea-forgejo-transfer-20261118T002504Z.tar.gz`; operator reports it stored in private `homelab-backups-collection`.
-- [x] Ignored legacy Compose directories restored after updating the controller checkout.
-- [x] `git.lab.home.arpa` and `forgejo.lab.home.arpa` resolve to `10.0.0.50`; staging ports selected as HTTP/3002 and SSH/2223.
-- [x] Forgejo installer completed; signed in as `ctalaveraw` at `http://forgejo.lab.home.arpa:3002/`.
-- [x] Source inventory: one mirrored repository and one container package/version; no issues, PRs, comments, releases, attachments or LFS objects recorded. The legacy source repository was public; the intended Forgejo mirror is private.
-- [x] Forgejo mirror created as `ctalaveraw/arm-homelab-platform`; `platform-hello` copied from Gitea and associated with that repository.
-- [x] OCI tag `1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d` retained; source/destination digest `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e` matched and full retrieval passed.
-- [x] Fresh runner deployed with Ansible (`ok=13`, `changed=3`, `failed=0`), moved to repository scope, and exercised by the native workflow. User-scoped registration removed.
-- [x] Controller local `main`, GitHub and Forgejo HTTP parity matched `eb84e2ec9c7d72bd99931350f018120b0ef5830f`; SSH read through alias `forgejo` returned the same HEAD/main.
-- [x] First TCP/3000 attempt safely rolled back after the anonymous version API returned HTTP 403. Staging `/api/healthz` then returned HTTP 200 with cache/database checks passing.
-- [x] Legacy units stopped and disabled; Forgejo `/api/healthz` passed at `http://git.lab.home.arpa:3000/`; runner active after the successful retry.
-- [x] Port-change rollback checkpoint retained at `/srv/backups/forgejo-port3000-retry-fEuVxI`. Initial connection refusals during startup were followed by a passing health check.
-- [x] Final-address OCI login and full retrieval passed at `git.lab.home.arpa:3000` for the same qualified digest; no artifact rebuild or re-copy was needed.
-- [x] Post-cutover source parity passed: local `main`, local HEAD, GitHub and Forgejo all matched `44d3d82ba9919c39407031ded42abd4ff49b2128` using the fetch-only Forgejo remote.
-- [x] Native Actions screenshots confirm run #1 (manual, commit `eb84e2ec9c`, 2m47s) and run #2 (push, commit `44d3d82ba9`, 2m32s) succeeded.
-- [x] Kuma screenshot shows monitor `Forgejo` Up at `http://git.lab.home.arpa:3000/`. The monitor checks the root URL; changing it to `/api/healthz` remains a recommended improvement.
-- [ ] Generated URLs, destination permissions and remaining metadata reviewed before retiring the legacy state.
+The source inventory contained one public pull mirror, one container package/version, one public key and two runner registrations. It recorded no issues, PRs, comments, releases, attachments, LFS objects, deploy keys, webhooks or secrets. The destination owner is `ctalaveraw`; Forgejo reserves the old username `admin`. The old user-scoped Forgejo runner registration was removed after repository-scoped registration.
 
-The record distinguishes staging results from post-cutover checks. Final-address HTTP health, service activation, Git source parity, complete OCI retrieval, native workflow success and Kuma availability have now passed. The [consumer checks](forgejo-reference-map.md#update-consumers-after-transfer) remain a reusable reference. The steps below remain the reusable migration/rollback procedure; this controller has already completed the port change and should keep its existing local `.env` and separate state.
+Transferred tag: `1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d`.
+Manifest digest: `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e`.
+
+## Recorded checkpoints
+
+- Consistent legacy backup: `/srv/backups/gitea-before-forgejo-20261118T002504Z-6vyfHG`.
+- Verified off-device archive: `gitea-forgejo-transfer-20261118T002504Z.tar.gz`, SHA-256 `23b1545d587cef77b8c7cd931aa26b00c830a29d8178153b3693f69de42b7b53`, stored by the operator in private `homelab-backups-collection`.
+- Port-change checkpoint: `/srv/backups/forgejo-port3000-retry-fEuVxI`.
+
+The first port-change attempt rolled back when an anonymous version API request returned 403. The retry used `/api/healthz`, passed after startup retries and left the runner active. Sign-in protection remained enabled.
+
+## Reusing this procedure
+
+The controller has completed the migration. The numbered steps below are for repeating it on another installation. A parallel migration uses HTTP/3002 until Gitea releases HTTP/3000. The checked-in example now describes the final LAN deployment; apply the staging overrides in step 3 before starting a second instance.
+
+Use the [client reference](forgejo-reference-map.md) for current settings and [section 9](#9-acceptance-and-retention) for retained-state review.
 
 ## Migration method
 
@@ -43,7 +50,7 @@ Port 3001 belongs to Uptime Kuma. If an earlier local Forgejo `.env` uses 3001, 
 
 State paths are relative to `/srv/storage/state`. HTTP port 3002 is temporary for parallel validation. After migration, Forgejo takes over the controller's LAN TCP/3000 once Gitea is stopped and disabled. The container's HTTP listener remains 3000 throughout; only the host mapping and advertised root URL change.
 
-The checked-in Forgejo `.env.example` retains the staging values. Current controller overrides are `FORGEJO_FQDN=git.lab.home.arpa`, `FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/` and `FORGEJO_HTTP_PORT=3000`; the LAN bind addresses and SSH/2223 remain unchanged.
+The checked-in example matches the final LAN deployment: `FORGEJO_FQDN=git.lab.home.arpa`, `FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/`, HTTP/3000 and SSH/2223.
 
 ## 1. Checkpoint before updating the controller checkout
 
@@ -71,7 +78,7 @@ sudo systemctl start gitea.service gitea-runner.service
 sudo sha256sum "$checkpoint/gitea-state.tar" | sudo tee "$checkpoint/gitea-state.sha256"
 ```
 
-If snapshot creation fails, restart the original services and resolve it before continuing. This is a local checkpoint, not an off-device backup. Copy it to an independent trusted machine/storage and verify its checksum before retiring Gitea. It contains credentials and private data; keep it out of this public repository. The separate private backup collection is not an application-state directory; routine encrypted backup and restore acceptance remain separate work.
+If snapshot creation fails, restart the original services and resolve it before continuing. Copy the checkpoint to independent storage and verify its checksum before retiring Gitea. It contains credentials and private data; keep it out of this public repository. The separate private backup collection is not an application-state directory; routine encrypted backup and restore acceptance remain separate work.
 
 ## 2. Update code and retain legacy rollback manifests
 
@@ -93,7 +100,16 @@ cp compose/forgejo/.env.example compose/forgejo/.env
 chmod 600 compose/forgejo/.env
 ```
 
-Populate the controller LAN bind addresses. Add an INNER DNS record for `forgejo.lab.home.arpa` pointing at the controller, or use an equivalent temporary workstation hosts entry. Keep `FORGEJO_ROOT_URL` consistent with that hostname and `:3002/`.
+Before starting beside Gitea, set both LAN bind addresses and override these values in the new local `compose/forgejo/.env`:
+
+```text
+FORGEJO_FQDN=forgejo.lab.home.arpa
+FORGEJO_ROOT_URL=http://forgejo.lab.home.arpa:3002/
+FORGEJO_HTTP_PORT=3002
+FORGEJO_SSH_PORT=2223
+```
+
+Add an INNER DNS record for `forgejo.lab.home.arpa` pointing at the controller, or use a temporary workstation hosts entry. Keep the URL and host port consistent.
 
 ```bash
 .ci-venv/bin/ansible-playbook ansible/playbooks/02-forgejo.yml --ask-become-pass
@@ -147,7 +163,7 @@ sudo install -d -o 10001 -g 10001 -m 0700 /srv/storage/state/services/forgejo-ru
 sudo install -o 10001 -g 10001 -m 0600 compose/forgejo-runner/runner.yml.example /srv/storage/state/services/forgejo-runner/runner.yml
 ```
 
-In the mirrored repository, open **Settings → Units → Overview**, check **Actions** and save. Forgejo's default mirror units omit Actions. Then create a new runner under **repository Settings → Actions → Runners**; user, organization and instance registrations have broader scope. Put its UUID/token into the private `runner.yml` with a local editor. The internal URL is `http://forgejo:3000/`; the label is `r5c-arm64-validation:host`. See [official registration](https://forgejo.org/docs/latest/admin/actions/registration/).
+In the mirrored repository, open **Settings → Units → Overview**, check **Actions** and save. Forgejo's default mirror units omit Actions. Then create a new runner under **repository Settings → Actions → Runners**; user, organization and instance registrations have broader scope. Put its UUID/token into the private `runner.yml` with a local editor. The internal URL is `http://forgejo:3000/`; the label is `r5c-arm64-validation:host`. See [official registration](https://forgejo.org/docs/v15.0/admin/actions/registration/).
 
 ```bash
 .ci-venv/bin/ansible-playbook ansible/playbooks/03-forgejo-runner.yml --ask-become-pass
@@ -204,7 +220,8 @@ Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domai
 
 - [x] Consistent backup copied off-device and checksum verified.
 - [x] Actual source version and data inventory recorded.
-- [ ] Forgejo UI, administrator login, permissions and required account authentication work.
+- [x] Administrator sign-in and required account authentication verified.
+- [ ] Destination repository visibility and remaining permissions reviewed.
 - [ ] Required repository refs, metadata, wiki, releases and attachments accounted for.
 - [x] Staging main-branch parity, SSH read and locally verified SSH host key recorded.
 - [x] Required OCI digest parity, full retrieval and package association passed during staging.
@@ -214,12 +231,13 @@ Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domai
 - [x] Post-cutover source parity passed across controller-local, GitHub and Forgejo `main`.
 - [ ] Generated root/clone/package URLs agree with the final address.
 - [x] Native Forgejo validation succeeded in manual and push-triggered runs.
-- [x] Kuma availability check targets Forgejo at the final root URL and reports Up.
+- [x] Kuma availability was verified, and the operator updated the target to the final `/api/healthz` URL.
 - [ ] Notification delivery for the Forgejo monitor verified independently.
-- [ ] Both new service lifecycles and guarded storage behavior checked on the host.
+- [x] Ansible deployment and guarded activation of the server/runner passed.
+- [ ] Full-host reboot recovery and physical storage-failure handling tested separately.
 - [ ] Rollback routing and the preserved legacy instance checked before final retirement.
 
-The Kuma screenshot establishes current root-URL availability, not alert delivery or use of the JSON health endpoint. Its historical uptime percentages include the existing monitor's earlier history and are not a Forgejo-only availability measurement.
+The screenshot recorded root-URL availability; the operator then confirmed changing the monitor to `/api/healthz`. Alert delivery has not been retested. The existing monitor's historical uptime includes its earlier Gitea history.
 
 The old Gitea units stay disabled after the port cutover. Retain their state, images, private checkpoint and local rollback manifests for an agreed retention period. Do not remove them automatically.
 
@@ -229,6 +247,8 @@ Private HTTPS certificate, redirect and LAN/WireGuard acceptance are separate fo
 
 Before cutover, stop the new services and continue using the existing Gitea URLs; its state was never converted. After cutover, record any new Forgejo writes first: an old-instance fallback does not transfer them back.
 
-Stop Caddy and the Forgejo runner before stopping Forgejo (Caddy uses its ingress network). Start the preserved Gitea units, restore the prior DNS/client/monitor endpoints, and verify Git access and the old runner. The saved state archive is a restore option only if the untouched legacy state is unavailable; never overlay a live database.
+If the optional private Forgejo `caddy.service` is running, stop it first. For a full return to Gitea, stop and disable `forgejo-runner.service` and `forgejo.service`, verify that TCP/3000 is free, then enable/start the preserved Gitea units. Restore the prior DNS/client/monitor endpoints and verify Git access and the old runner. The separate public `caddy-public.service` belongs to Zulip and is outside this rollback.
+
+Use the saved archive only if the retained legacy state is unavailable. Stop the application before restoring its data.
 
 No step requires downgrading a database or running Gitea against Forgejo state.

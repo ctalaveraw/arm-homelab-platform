@@ -2,7 +2,7 @@
 
 **Captured:** 2026-10-01  
 **Status:** Brownfield / Pre-Automation  
-**Purpose:** Reference state for Ansible bootstrap.
+**Purpose:** Original reference state for Ansible bootstrap. See the [architecture overview](overview.md) for current operation.
 
 ## 1. Operating System
 
@@ -95,7 +95,7 @@ drwxr-xr-x 3 runner runner 4096 Sep 28 04:16 /srv/storage/archive
 drwxr-xr-x 2 runner runner 4096 Oct  1 01:06 /srv/storage/state
 ```
 
-## 10. Outstanding Work
+## 10. Work outstanding at capture
 
 - [ ] Establish external Git remote.
 - [ ] Review existing bootstrap shell script.
@@ -110,29 +110,3 @@ drwxr-xr-x 2 runner runner 4096 Oct  1 01:06 /srv/storage/state
 This document captures observed system state.
 It does not imply the infrastructure is already
 reproducible or configuration-managed.
-
-## Recorded implementation delta — 2026-10-05
-
-This file remains the original brownfield snapshot. It is not rewritten to make later automation appear to have existed at capture time.
-
-Since the baseline:
-
-- the SD state device was replaced with a 128 GB card while retaining `LABEL=storage_sdcard`;
-- the USB archive was decommissioned after I/O failures;
-- Ansible now manages the host baseline and all management-service lifecycles;
-- Docker Engine and Compose are operational;
-- Gitea, Gitea Actions runner, Gotify, Uptime Kuma and APT-Cacher-NG are operational;
-- GitHub is canonical and protected; Gitea is a private one-way pull mirror;
-- the controller can prove GitHub/Gitea/local-main source convergence using a fetch-only Gitea remote;
-- GitHub-hosted and physical-R5C ARM64 repository validation are operational;
-- repository validation now includes ShellCheck, Ruff, yamllint and actionlint in addition to the existing platform checks;
-- `platform-hello` is built once, runtime-tested, Trivy-scanned, integrity-checked across isolated CI jobs, and published to GHCR;
-- the first verified GHCR publication produced digest `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e`.
-
-See [the current architecture overview](overview.md) for the live design.
-
-## Forgejo delta — 2026-11-18
-
-Forgejo serves `http://git.lab.home.arpa:3000/` from separate state at `/srv/storage/state/services/forgejo`, with administrator and destination owner `ctalaveraw`. HTTP health passed after cutover, SSH remains on `2223`, and the new runner service is active. The mirror, linked `platform-hello` package, main-branch parity, SSH read, OCI digest identity and full artifact retrieval were verified during staging. Legacy Gitea units are stopped and disabled. Post-cutover source parity and OCI retrieval passed; native manual/push Actions runs are green, and Kuma reports the final root URL Up. Retirement and remaining permission/metadata review are tracked separately in the migration checklist. The October checklist and implementation results above describe the earlier Gitea baseline.
-
-Current playbooks are `02-forgejo.yml` and `03-forgejo-runner.yml`; current lifecycle units are `forgejo.service` and `forgejo-runner.service`. Use the [reference map](../runbooks/forgejo-reference-map.md) for complete file/host paths, owner URLs and the guarded port cutover. Preserve old state and backups for rollback.

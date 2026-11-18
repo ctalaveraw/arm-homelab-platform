@@ -1,26 +1,7 @@
 #!/usr/bin/env bash
 
-# -----------------------------------------------------------------------------
-# ARM Homelab Platform - Repository Validation
-#
-# Purpose:
-#   Run the repository's portable/static validation contract before we allow
-#   application build, scan, publication, or deployment work to proceed.
-#
-# Design goals:
-#   - Fail fast on validation errors.
-#   - Print enough context that a CI failure can be diagnosed from the log.
-#   - Use the repository-managed .ci-venv when available.
-#   - Discover tracked files from Git rather than maintaining duplicate lists.
-#   - Never require real secrets to render Compose configuration.
-#
-# Optional debugging:
-#
-#   CI_DEBUG=true bash scripts/ci/validate.sh
-#
-# This enables Bash xtrace with source file + line-number information.
-# Do NOT enable this around commands that could contain secrets.
-# -----------------------------------------------------------------------------
+# Validate tracked source, manifests, playbooks and Compose configuration.
+# Use CI_DEBUG=true for shell tracing with synthetic configuration only.
 
 set -Eeuo pipefail
 
@@ -493,10 +474,11 @@ fi
 
 export STATE_SERVICES_ROOT=/srv/storage/state/services
 
-export FORGEJO_FQDN=forgejo.lab.home.arpa
+export FORGEJO_FQDN=git.lab.home.arpa
 export FORGEJO_BIND_IP=127.0.0.1
 export FORGEJO_SSH_BIND_IP=127.0.0.1
-export FORGEJO_ROOT_URL=http://forgejo.lab.home.arpa:3002/
+export FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/
+export FORGEJO_HTTP_PORT=3000
 export INGRESS_SUBNET=172.30.250.0/28
 export PROXY_CONTAINER_IP=172.30.250.2
 export FORGEJO_CONTAINER_IP=172.30.250.3

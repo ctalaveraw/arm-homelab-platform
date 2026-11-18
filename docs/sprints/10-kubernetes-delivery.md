@@ -134,9 +134,7 @@ ghcr.io/ctalaveraw/platform-hello@sha256:f3c542d3bbc8599f83019263899c2396f6f7aad
 
 with the expected Linux ARM64 manifest digest.
 
-Because the artifact was absent from both eligible workers before scheduling,
-the first deployment proves a real registry retrieval rather than reuse of a
-pre-existing local application cache.
+The artifact was absent from both eligible workers before scheduling, so the first deployment fetched it from the registry.
 
 ## Runtime artifact identity
 
@@ -404,5 +402,4 @@ PLAT-009 acceptance criteria:
 Perform a controlled Kubernetes deployment failure and rollback/recovery
 exercise.
 
-The next milestone must demonstrate not merely successful deployment, but how
-the platform behaves when a deployment is intentionally broken.
+The next milestone tests a failed deployment and recovery.

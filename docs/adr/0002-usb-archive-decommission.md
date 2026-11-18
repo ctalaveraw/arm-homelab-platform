@@ -1,52 +1,29 @@
-# ADR-0002: Decommission Optional USB Archive
+# ADR-0002: Decommission the optional USB archive
 
 Status: Accepted
 Date: 2026-10-03
 
 ## Context
 
-The R5C uses eMMC for the operating system and a
-removable SD filesystem for additional application state.
-
-The optional USB HDD produced kernel-level read errors.
-Its hardware reliability has not been established.
+The optional USB HDD produced kernel read errors. The cause remains unresolved. The R5C uses eMMC for the OS/Docker and removable SD for application state.
 
 ## Decision
 
 - Remove the USB archive from active fstab configuration.
-- Do not require the archive during management bootstrap.
-- Retain /srv/storage/archive as an inactive namespace.
-- Disable automatic SMART monitoring pending investigation.
-- Keep Docker's data root on eMMC for this iteration.
-- Require successful SD validation in management preflight.
+- Retain `/srv/storage/archive` as an inactive namespace.
+- Disable automatic SMART monitoring while the device is investigated.
+- Keep the archive out of bootstrap and recovery dependencies.
+- Validate the SD filesystem before starting stateful services.
+- Store independent backup copies off-device.
 
 ## Consequences
 
-The management plane can continue developing without
-depending on the USB HDD.
+Management services can operate without the unreliable archive. It is not a current backup destination.
 
-The archive is not currently a backup destination.
+Per-service guards check mounts and Compose bindings at startup. Positive mount checks and negative binding tests are recorded in the service evidence. Physical SD removal during active writes has not been tested.
 
-A successful Ansible preflight alone does not guarantee
-that future containers have safe mount dependencies.
-Those guards must be implemented during service deployment.
+Forgejo keeps this storage contract and separate state from Gitea. Its [migration record](../runbooks/gitea-to-forgejo.md) records the verified off-device archive; scheduled encrypted backups and restore remain open work.
 
 ## Follow-up
 
-- Investigate USB HDD, connection and power out of band.
-- Establish functional off-device application backups.
-- Test storage failure behavior before deploying SD-backed services, including Forgejo.
-
-## Implementation Update — 2026-10-04
-
-At this checkpoint, the Gitea, Gotify, Uptime Kuma and APT-Cacher-NG deployments used application-specific startup guards.
-
-Positive mount-validation tests and negative Compose-binding tests passed. Container recreation and persisted application/cache state were independently verified.
-
-Physical SD removal during active application writes has not been tested. This remains outside the completed startup-safety acceptance criteria.
-
-The USB archive remains decommissioned and is not a backup destination.
-
-## Forgejo amendment — 2026-11-17
-
-Forgejo replaces the local forge in deployment configuration and retains the SD startup guard contract. Use [current Forgejo paths](../runbooks/forgejo-reference-map.md); the dated implementation result above remains historical evidence. The USB archive is not reintroduced by this migration.
+Investigate the USB device, cable and power separately. Test backup restoration without reintroducing the archive as a required dependency.

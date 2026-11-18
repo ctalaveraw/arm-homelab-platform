@@ -3,45 +3,38 @@
 ## Working agreement
 
 - One active delivery milestone at a time.
-- New ideas enter the backlog instead of interrupting the current gate.
+- Record new ideas here and finish the current milestone first.
 - A milestone is not complete until implementation **and** verification are recorded.
 - Architecture decisions belong in `docs/adr/`.
 - Interview-relevant proof belongs in `docs/interview/`.
 - Historical sprint/incident records remain historical.
-- Delivery gates include a short knowledge check so implementation can be defended conversationally.
+- Include a short mechanism/knowledge review when closing a milestone.
 
-## Forgejo and HTTPS transition — 2026-11-18
+## Forgejo migration — 2026-11-18
 
-Repository configuration targets Forgejo 15.0.11 LTS and Caddy on the R5C.
-Forgejo is healthy at `http://git.lab.home.arpa:3000/`, with SSH on `2223` and its runner active.
-Mirror/OCI transfer, post-cutover Git source parity, final-address OCI retrieval, native Actions and Kuma availability passed. Retirement and the remaining permission/metadata review stay open below.
-Completed Gitea entries below remain historical acceptance, not Forgejo acceptance.
-See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL map](runbooks/forgejo-reference-map.md).
+Forgejo is live at `http://git.lab.home.arpa:3000/`, with SSH/2223 and a repository-scoped runner. The [migration checklist](runbooks/gitea-to-forgejo.md#9-acceptance-and-retention) tracks the retained Gitea state and remaining review.
 
-- [ ] PORT-003: Complete the separate-instance Forgejo migration and rollback check
-  - [x] Consistent legacy checkpoint and off-device archive checksum verified
-  - [x] Separate Forgejo installation and administrator sign-in as `ctalaveraw`
-  - [x] Mirror populated under `ctalaveraw`; main-branch parity and SSH read verified
-  - [x] New-owner OCI digest parity, full retrieval and package association verified during staging
-  - [x] Fresh repository-scoped runner deployed; manual and push-triggered native workflows succeeded
-  - [x] Legacy units stopped/disabled; Forgejo LAN HTTP/3000 health passed and runner active
-  - [x] Final-address OCI login and complete artifact retrieval passed at LAN TCP/3000
-  - [x] Post-cutover source parity passed across local `main`/HEAD, GitHub and Forgejo at `44d3d82ba9919c39407031ded42abd4ff49b2128`
-  - [x] Kuma reports Forgejo Up at the final root URL; prefer `/api/healthz` for application health
-  - [ ] Generated URLs and destination privacy confirmed; notification delivery checked
-  - [ ] Remaining repository refs/metadata accounted for and rollback reviewed before retiring retained state
-- [ ] OPS-007: Deploy and verify the first HTTPS route; other management routes remain pending
+- [ ] PORT-003: Finish legacy-state review before retirement
+  - [x] Consistent backup and off-device checksum verified
+  - [x] New instance, owner `ctalaveraw`, mirror and runner deployed
+  - [x] HTTP health, SSH and post-cutover Git parity passed
+  - [x] OCI digest preservation, full retrieval and package association passed
+  - [x] Manual and mirrored-push native Actions succeeded
+  - [x] Kuma availability verified; target updated to `/api/healthz`
+  - [ ] Generated URLs, destination permissions and remaining refs/metadata reviewed
+  - [ ] Monitor notification delivery and retained-instance rollback checked before retirement
+- [ ] OPS-007: Private management HTTPS, certificate renewal and client trust verified
 
 ## COMPLETE — Core delivery
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
 - [x] PLAT-003: Ansible-managed Docker host
-- [x] PLAT-004: Gitea with guarded persistent storage
+- [x] PLAT-004: Guarded local Git service; original Gitea replaced by Forgejo
 - [x] PLAT-005: Gotify notifications
-- [x] PLAT-006: Repository-scoped native Gitea Actions runner and mirrored ARM64 validation
+- [x] PLAT-006: Repository-scoped native ARM64 validation; now on Forgejo
 - [x] CI-001: Portable ARM64 repository validation
-- [x] GIT-002: One-way GitHub -> Gitea native pull mirror
+- [x] GIT-002: One-way GitHub -> Forgejo pull mirror
 - [x] OPS-005: Uptime Kuma monitoring and controlled recovery drill
 - [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
 - [ ] OPS-007: Shared HTTPS for management services
@@ -65,11 +58,11 @@ See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL 
 
 - [x] PLAT-008: Dual OCI distribution
   - [x] prove independent pull of the GHCR artifact by digest
-  - [x] validate Gitea built-in OCI registry
-  - [x] replicate the verified OCI artifact from GHCR into Gitea without rebuilding
+  - [x] validate the local built-in OCI registry; now on Forgejo
+  - [x] replicate the verified GHCR artifact without rebuilding; preserve it through the Forgejo transfer
   - [x] preserve registry manifest digest across replication
   - [x] prove complete independent retrieval from both registries
-  - [x] link the Gitea package to the mirrored source repository
+  - [x] link the current Forgejo package to its mirrored source repository
   - [x] encode replication, parity, retrieval and package-link operations in repo scripts
 
 - [x] PLAT-009: Kubernetes delivery pipeline
@@ -97,7 +90,7 @@ See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL 
   - [ ] Kubernetes workload object-state and expanded management-service health coverage
   - [x] G4 baseline, live authorization denials, bounded monitoring containers and Prometheus/Grafana Ansible idempotence
   - [ ] Untrusted-zone TCP/9100 isolation and controlled failed-scrape/recovery exercise (separate gated follow-up)
-  - [ ] Reboot-safe R5C systemd/Compose startup fix in a separate PR; rotation and longer-term capacity validation
+  - [ ] Full-host reboot recovery, observer credential rotation and sustained capacity checks
   - [ ] Final PLAT-012 documentation/evidence PR review and convergence
 - [ ] PLAT-013: Runtime alerting to Gotify
 - [ ] PLAT-014: Ansible bootstrap of fourth Pi
@@ -237,7 +230,7 @@ The [platform charter](vision/platform-charter.md) and [93-objective register](p
 
 - [ ] PORT-001: Environment contracts and capability matrix ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-002: Proxmox Terraform reference lab ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
-- [ ] PORT-003: Forgejo migration acceptance (active transition above; [acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
+- [ ] PORT-003: Legacy Forgejo-migration retirement review (operational cutover passed above; [acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-004: IaC state and provider trust ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 - [ ] PORT-005: Scale-out and multi-site test ([acceptance](planning/objectives.md#port--portability-and-infrastructure-adapters))
 

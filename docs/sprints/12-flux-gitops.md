@@ -92,7 +92,7 @@ changing Git.
 The Deployment reached three desired replicas, then Flux restored it to one
 while the applied Git revision remained unchanged.
 
-This proved runtime drift correction rather than a new desired-state rollout.
+Flux corrected runtime drift while the Git revision stayed unchanged.
 
 ## Git-driven desired state
 

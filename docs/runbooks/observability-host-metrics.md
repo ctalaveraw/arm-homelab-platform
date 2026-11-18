@@ -24,7 +24,7 @@ These aliases depend on local `~/.ssh/config` and verified `known_hosts`; the pu
 
 ## Deploy and converge
 
-From the R5C's verified `/srv/platform` feature checkout, with correct trusted local SSH aliases:
+From the reviewed `/srv/platform` checkout on the R5C, with verified SSH aliases:
 
 ```bash
 bash scripts/ci/validate.sh

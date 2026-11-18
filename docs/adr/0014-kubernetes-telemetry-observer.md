@@ -22,7 +22,7 @@ ADR-0009 already separates privileged Flux installation/bootstrap from namespace
 
 The API endpoint is now a **single monitoring access path** for all three Kubernetes/Flux targets. Proxy failure or API outage can make several jobs fail simultaneously; independent Pi node exporters provide a separate host signal, not an alternative Kubernetes API path. Do not infer Flux health from a successful Prometheus scrape alone. Missing Flux Ready-condition series mean *unknown / unavailable*, never ready, zero failures or healthy.
 
-Client-certificate enrollment requires an explicit CSR approval gate and immediate capture of the issued certificate: an earlier approved CSR disappeared before its certificate was retrieved. The verified observer certificate expires **2027-01-12 03:15:36 UTC**; rotation, short-lived identity renewal, and revocation must be documented and rehearsed rather than assumed automatic.
+Client-certificate enrollment requires an explicit CSR approval gate and immediate capture of the issued certificate: an earlier approved CSR disappeared before its certificate was retrieved. The verified observer certificate expires **2027-01-12 03:15:36 UTC**; rotation, renewal and revocation still require documented procedures and rehearsal.
 
 The network path and authorization were demonstrated. Firewall isolation for unauthenticated Node Exporter TCP/9100 and a full reboot/recovery exercise remain unproven. Runtime alert routing belongs to PLAT-013, and broader Kubernetes object-state/workload metrics are not implied by this decision.
 

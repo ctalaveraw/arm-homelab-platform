@@ -1,6 +1,6 @@
 # Sprint 3 — Gotify Deployment
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Historical Gitea deployment. Current operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 Date: 2026-10-04
 Status: PLAT-005 complete.

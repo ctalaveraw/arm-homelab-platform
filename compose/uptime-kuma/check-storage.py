@@ -76,7 +76,7 @@ if backing.returncode != 0 or backing.stdout.split() != [
     fail("Uptime Kuma data is not backed by the expected SD mount")
 
 
-# Check the fully interpolated Compose configuration, not just .env.
+# Verify bind sources in the rendered Compose configuration.
 rendered = subprocess.run(
     [
         "/usr/bin/docker-compose",

@@ -9,14 +9,14 @@ Keep the current physical ARM64 reference implementation and proven delivery pat
 
 An eventual Proxmox/Terraform layer creates VM/network resources; Ansible converges guest OS/management components; Kubernetes bootstrap and Flux remain their respective responsibilities. Terraform must not become a second owner of Ansible-managed service state or Flux-managed workloads. Isolate Terraform state, locking, backend credentials and drift checks by environment. Do not make a local Terraform provider a prerequisite for physical Pi support.
 
-Forgejo is selected under [ADR-0015](0015-forgejo-and-controller-ingress.md). Use a separate instance with verified data transfer, new runner identity, package parity and rollback. The earlier Gitea acceptance remains historical. Keep canonical GitHub and independent recovery material.
+Forgejo is deployed under [ADR-0015](0015-forgejo-and-controller-ingress.md) with separate state and runner identity. Source parity, package retrieval and native validation passed; the legacy Gitea state is retained for rollback. Keep canonical GitHub and independent recovery material.
 
 Evaluate Backstage or other internal developer portal only when multiple services/personas justify a catalog, templates and self-service golden paths. Portal loss may not prevent core operation, bootstrap or recovery. Prefer documented CLI/golden-path conventions before adopting a large portal.
 
 ## Evidence required
 
-Second target running the same build-once/digest verification and policy contracts; target-specific differences isolated; two-target pipeline validation; intentional loss of noncritical portal/provider does not break the platform; isolated Forgejo compatibility report with tested rollback.
+Second target running the same build-once/digest verification and policy contracts; target-specific differences isolated; two-target pipeline validation; intentional loss of noncritical portal/provider does not break the platform; a verified restore and rollback procedure for retained forge state.
 
 ## Consequences
 
-Portability has a maintenance cost, so it remains an **opt-in target**, not a requirement to generalize every ARM-specific implementation now. Existing Kubernetes and R5C remain the primary environments; Forgejo replaces the local forge with separate acceptance. Use the [current source, runner and registry paths](../runbooks/forgejo-reference-map.md).
+Secondary targets are optional because each adds inventory, testing and maintenance work. Existing Kubernetes and R5C remain the primary environments; Forgejo replaces the local forge with separate acceptance. Use the [current source, runner and registry paths](../runbooks/forgejo-reference-map.md).

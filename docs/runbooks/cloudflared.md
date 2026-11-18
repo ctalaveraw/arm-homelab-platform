@@ -1,8 +1,8 @@
 # Cloudflare Tunnel in Docker
 
-Status: repository configuration prepared; real account setup and live acceptance
-are pending. No token, real hostname, tunnel/account identifier, backend address,
-local network inventory or runtime diagnostic output belongs in this repository.
+This guide covers setup and maintenance of the controller tunnel profile.
+End-to-end public chat acceptance remains open. Keep credentials, deployment
+addresses, account/tunnel identifiers and raw runtime diagnostics outside Git.
 
 The base ingress manifest contains two containers. The selected controller
 profile adds Zulip and four dependencies using `compose/zulip/compose.yaml`:
@@ -60,7 +60,7 @@ In the [Cloudflare dashboard](https://dash.cloudflare.com/), go to
 **Networking → Tunnels** and create a dedicated remotely managed tunnel. Choose
 Docker in the connector setup. For an existing tunnel, select it and choose
 **Add a replica**. The long `eyJ…` value after `--token` in the generated command
-is the token to paste into the helper; do not run the generated command. Use its named-tunnel token; a Quick Tunnel is not this deployment.
+is the token to paste into the helper; do not run the generated command. Use the token for the dedicated remotely managed tunnel.
 Copy the token from the dashboard's connector installation instructions without
 running or saving its token-bearing Docker command.
 
@@ -81,7 +81,7 @@ The token installer stores the credential; it does not start a connector. A new
 tunnel can still show Inactive and zero active replicas until the activation
 step. Saving a published application route does not start the connector either.
 
-Local Compose secrets are bind-mounted files, not encrypted Swarm secrets.
+Local Compose secrets use ordinary host files and require filesystem access controls.
 Their source ownership/mode must allow the nonroot container to read them;
 Compose's uid/gid/mode overrides are not relied on. Back up this private file
 securely off-device. Never copy it under the source checkout.
@@ -155,8 +155,7 @@ token in its arguments.
 
 Use `systemctl status caddy-public` and `sudo /usr/local/sbin/zulip-compose ps` first.
 The connector's readiness probe uses its own loopback metrics endpoint; neither
-metrics nor Caddy's administration interface is published. Readiness proves a
-tunnel connection, not successful Zulip initialization or authentication.
+metrics nor Caddy's administration interface is published. The readiness probe checks tunnel connectivity. Test Zulip initialization and authentication separately.
 
 Verify actual HTTPS from LAN and cellular, HTTP→HTTPS redirect, login, messaging,
 long polling, upload, email and the correct public URLs. Zulip must trust the

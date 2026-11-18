@@ -1,35 +1,7 @@
 #!/usr/bin/env bash
 
-# -----------------------------------------------------------------------------
-# ARM Homelab Platform - CI Dependency Bootstrap
-#
-# Purpose:
-#   Ensure the repository-local CI toolchain exists and contains every tool
-#   required by scripts/ci/validate.sh.
-#
-# Important design rule:
-#
-#   The existence of .ci-venv does NOT mean its dependencies are current.
-#
-# An older implementation only installed dependencies when the virtual
-# environment was first created. That caused dependency drift:
-#
-#   .ci-venv existed
-#       +
-#   Ansible existed
-#       +
-#   new validators were added
-#       =
-#   validate.sh expected tools that bootstrap.sh never installed
-#
-# This script therefore separates:
-#
-#   1. creating the virtual environment when necessary
-#   2. converging its required dependencies on EVERY bootstrap execution
-#
-# pip itself is idempotent enough for this purpose: packages already satisfying
-# the pinned constraints are reused rather than blindly reinstalled.
-# -----------------------------------------------------------------------------
+# Install the repository-local validation toolchain on every invocation.
+# Existing virtual environments still need dependency updates.
 
 set -Eeuo pipefail
 

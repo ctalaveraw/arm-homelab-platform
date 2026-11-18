@@ -1,6 +1,6 @@
 # Sprint 09 — Dual OCI Distribution
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Historical Gitea deployment. Current operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 **Work item:** PLAT-008
 **Completed:** 2026-10-07
@@ -42,7 +42,7 @@ changed=0
 failed=0
 ```
 
-This proves the additional host capability remains declarative and idempotent.
+The second Ansible run confirmed the host tooling converged without changes.
 
 ## Independent GHCR retrieval
 
@@ -57,8 +57,7 @@ sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
 A fresh Skopeo copy into a temporary OCI layout successfully retrieved the
 manifest, configuration and all referenced layers.
 
-This proves retrieval from the registry rather than reliance on a local Docker
-cache.
+The artifact was retrieved into a fresh OCI layout.
 
 ## Gitea OCI discovery and authentication
 

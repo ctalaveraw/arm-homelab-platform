@@ -118,11 +118,8 @@ GitHub Actions run #27 successfully proved:
 - successful publication;
 - registry digest capture.
 
-## Follow-on work
+## Current implementation
 
-- prove independent pull from GHCR by digest;
-- validate Forgejo OCI after the separate-instance migration;
-- replicate the same verified OCI artifact without rebuilding;
-- prove retrieval from both registries;
-- deploy to Kubernetes by immutable digest;
-- evaluate signing/attestation only after the core dual-distribution path is proven.
+Independent GHCR retrieval, digest-preserving local replication and Kubernetes digest deployment passed in the delivery milestones. The 2026-11-18 Forgejo migration preserved the artifact and passed final-address retrieval and package association. See the [migration record](../runbooks/gitea-to-forgejo.md).
+
+Signing, attestations and verified promotion policy remain planned.

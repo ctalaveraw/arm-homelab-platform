@@ -22,7 +22,7 @@ def manifest(name):
 
 
 class ForgejoIngressTests(unittest.TestCase):
-    def test_migration_has_separate_state_and_ports(self):
+    def test_forgejo_has_separate_state_and_lan_ports(self):
         config = manifest("forgejo")
         server = config["services"]["server"]
         self.assertEqual(server["image"], "codeberg.org/forgejo/forgejo:15.0.11")
@@ -30,19 +30,20 @@ class ForgejoIngressTests(unittest.TestCase):
             server["volumes"][0]["source"],
             "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/forgejo",
         )
-        self.assertIn("3002", server["ports"][0])
+        self.assertIn("${FORGEJO_HTTP_PORT:-3000}:3000", server["ports"][0])
         self.assertIn("2223", server["ports"][1])
         self.assertFalse(any("/gitea" in str(v) for v in server["volumes"]))
 
-    def test_staging_http_default_avoids_kuma_and_matches_example(self):
+    def test_lan_http_default_avoids_kuma_and_matches_example(self):
         binding = manifest("forgejo")["services"]["server"]["ports"][0]
         port = int(re.search(r"FORGEJO_HTTP_PORT:-(\d+)", binding).group(1))
         kuma_binding = manifest("uptime-kuma")["services"]["server"]["ports"][0]
         kuma_port = int(kuma_binding.split("}:")[1].split(":")[0])
+        self.assertEqual(port, 3000)
         self.assertNotEqual(port, kuma_port, "Forgejo would collide with Uptime Kuma")
         example = (ROOT / "compose/forgejo/.env.example").read_text()
         self.assertIn(f"FORGEJO_HTTP_PORT={port}\n", example)
-        self.assertIn(f"FORGEJO_ROOT_URL=http://forgejo.lab.home.arpa:{port}/", example)
+        self.assertIn(f"FORGEJO_ROOT_URL=http://git.lab.home.arpa:{port}/", example)
 
     def test_proxy_authentication_is_disabled_and_trust_is_exact(self):
         env = manifest("forgejo")["services"]["server"]["environment"]

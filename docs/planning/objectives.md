@@ -1,6 +1,6 @@
 # DevSecOps platform objective register
 
-**93 additional, individually testable objectives across 11 workstreams.** Planned or evaluate-only as indicated. Recorded 2026-10-10; documentation does not imply implementation.
+93 work items across 11 workstreams. Created 2026-10-10; current status is recorded per row.
 
 ## How to read this register
 
@@ -10,7 +10,7 @@
 - **Dependency:** planning predecessor or existing milestone, **not** proof of completion. A proposed item is closed only with code/config, negative cases, operational verification and evidence in its stated tier. Existing historical sprint evidence is not rewritten.
 - **Security scope:** controls are selected according to a threat model, not by maximizing installed products. Maintain exceptions with owner, reason, evidence, expiry, and compensating controls.
 
-The user-approved target is **ARM-first portable**, **separate approval-gated operations authority**, **approved Ansible convergence**, **independent encrypted recovery root with OpenBao for routine use**, **risk-staged security gates**, and **RTO 4h/RPO 1h goals not currently achieved**. Forgejo is now the selected local forge; its separate-instance migration is defined in the [runbook](../runbooks/gitea-to-forgejo.md). Backstage and Terraform secondary targets remain optional evaluations.
+The platform runs on ARM64 with GitHub source, a Forgejo mirror and restricted validation. Planned work adds approved host operations, independent encrypted recovery material, routine OpenBao secrets and staged security policy. Four-hour RTO and one-hour RPO remain unmeasured targets. Secondary environments and a developer portal are optional.
 
 ## Existing workstreams that remain authoritative
 
@@ -49,7 +49,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | Objective | Mode | Acceptance / failure evidence | Dependency | Tier |
 |---|---|---|---|---|
 | **OPS-008 — Dedicated trusted operations runner** | Planned | Distinct identity/execution boundary from existing validation runner; untrusted PR cannot obtain privileged access. | SEC-004, DR-001 | S/H |
-| **OPS-009 — Approval-gated Ansible operations** | Planned | Allowlisted signed/reviewed scripts/playbooks; actor approval, concurrency lock, dry-run/rollback evidence and bounded privileges. | OPS-008, ENG-003 | H |
+| **OPS-009 — Approval-gated Ansible operations** | Planned | Allowlisted scripts and playbooks from signed or reviewed revisions; actor approval, concurrency locks, dry-run/rollback evidence and limited privileges. | OPS-008, ENG-003 | H |
 | **OPS-010 — Negative SD/systemd/Compose contracts** | Planned | Tests simulate wrong/missing filesystem, label, symlink and bind; startup refuses unsafe state. | CI-007 | P/H |
 | **OPS-011 — Optional APT cache clients** | Planned | Finish OPS-006 ACL checks; test real Pi cold/warm install and bypass on cache outage. | OPS-006, PLAT-014 | H |
 | **OPS-012 — Idempotent service integration seeding** | Planned | Forgejo/monitor/notification config reconciliation is repeatable, non-secret in Git and restore-safe. | OPS-013, PLAT-013 | S/H |
@@ -68,7 +68,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 | **OBS-001 — Infrastructure metrics coverage** | Planned | PLAT-012 collects Pi, K8s, Flux and R5C measurements with cardinality and retention budget. | PLAT-012 | H |
 | **OBS-002 — Actionable alert delivery** | Planned | PLAT-013 maps observed failures to deduplicated Gotify notifications with recovery/silence checks. | PLAT-013 | H |
 | **OBS-003 — Structured logs and event correlation** | Planned | Trace action, image digest, Flux revision and incident in accessible redacted logs. | PLAT-012 | H |
-| **OBS-004 — SLO/SLI and error-budget lab** | Planned | Choose critical user-visible journey, target and burn alert; run controlled violation and response. | OPS-001, PLAT-013 | H |
+| **OBS-004 — SLO/SLI and error-budget lab** | Planned | Choose a critical user operation, SLI, target and burn-rate alert; test failure detection and response. | OPS-001, PLAT-013 | H |
 | **OBS-005 — Incident runbooks and game days** | Planned | Repeatable detection/triage/mitigation/restore evidence, incident ownership and postmortem. | OBS-002, DR-010 | H |
 | **OBS-006 — Traceability/optional tracing evaluation** | Evaluate | Determine whether app tracing adds value, benchmark resource cost, adopt only with concrete span/use case. | OBS-003 | S/H |
 
@@ -141,7 +141,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 |---|---|---|---|---|
 | **PORT-001 — Environment contracts and capability matrix** | Planned | ARM primary and second target declare inventory, OS/arch, DNS, storage, K8s, secret and test requirements. | ENG-003 | P |
 | **PORT-002 — Proxmox Terraform reference lab** | Evaluate | Terraform provisions isolated test VMs/network; Ansible configures OS; Flux app authority unchanged. | PORT-001, DR-001 | S |
-| **PORT-003 — Forgejo migration** | Operational cutover verified; retirement review open | Separate state, mirror, linked OCI artifact, post-cutover Git parity/full retrieval, LAN TCP/3000 health, SSH/2223, native manual/push workflow success and Kuma availability recorded; legacy units disabled. Remaining refs/permissions, generated URLs, notification delivery and retirement/rollback review stay in the [migration checklist](../runbooks/gitea-to-forgejo.md#9-acceptance-and-retention). | ADR-0015 | S/H |
+| **PORT-003 — Forgejo migration** | Operational cutover verified; retirement review open | Separate state, mirror, linked OCI artifact, post-cutover Git parity/full retrieval, LAN TCP/3000 health, SSH/2223, native manual/push workflow success and Kuma health monitoring recorded; legacy units disabled. Review remaining refs/permissions, generated URLs, notification delivery and retirement/rollback using the [migration checklist](../runbooks/gitea-to-forgejo.md#9-acceptance-and-retention). | ADR-0015 | S/H |
 | **PORT-004 — IaC state and provider trust** | Planned | Remote/local state protection, locking, secret handling, drift and destruction guardrails tested. | PORT-002 | S |
 | **PORT-005 — Scale-out and multi-site test** | Evaluate | Multiple worker/site targets without cross-environment secret, runner or GitOps ownership bleed. | PORT-001, REL-003 | S/H |
 

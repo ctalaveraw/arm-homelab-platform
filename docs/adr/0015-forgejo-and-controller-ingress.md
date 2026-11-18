@@ -1,50 +1,42 @@
-# ADR-0015: Forgejo and Controller HTTPS Ingress
+# ADR-0015: Forgejo and controller ingress
 
-Date: 2026-11-17. Status: selected design; host acceptance pending.
+Date: 2026-11-17
+Status: Accepted; Forgejo LAN cutover verified 2026-11-18. Private Forgejo HTTPS and public chat acceptance are separate.
 
 ## Context
 
-The operator selected Forgejo to replace Gitea and requested a registered-domain entry point. The recorded Gitea image is 1.27.3. Forgejo's supported in-place path covers Gitea through 1.22, via Forgejo 10; it does not cover this deployment. A container image substitution against the existing database is therefore unsuitable.
+The operator selected Forgejo to replace Gitea and requested public access for Zulip through a registered domain. Forgejo must remain limited to LAN/WireGuard access.
 
-OUTER provides WAN/firewall/WireGuard access and INNER provides LAN routing and DNS. The independent R5C already owns guarded management application lifecycles.
+The source ran Gitea 1.27.3. Forgejo's documented in-place path covers Gitea through 1.22 via Forgejo 10, so this instance required a fresh database and application-level transfer.
+
+OUTER provides the WAN firewall and WireGuard. INNER provides LAN routing and DNS. The R5C already manages the application services independently of Kubernetes.
 
 ## Decision
 
-Deploy Forgejo 15.0.11 LTS with a fresh database and separate SD-backed state. Recreate the canonical GitHub pull mirror and transfer any local-only metadata through supported application migration. Replicate OCI images with digest preservation, and register a fresh restricted Forgejo runner. Preserve legacy Gitea data and manifests until acceptance and rollback checks are complete.
+Run Forgejo 15.0.11 LTS with separate SD-backed state and a fresh restricted runner identity. Keep GitHub canonical and use a one-way pull mirror under owner `ctalaveraw`. Transfer existing OCI content with digest preservation and link the package to the mirrored repository.
 
-Run Caddy on the controller. Public Zulip uses an outbound cloudflared connector and an unpublished internal Caddy listener; routers retain firewall, routing, DNS, DDNS and WireGuard roles. A future private Forgejo HTTPS listener uses separate routing/state and trusts only its configured proxy. Do not publish Forgejo, controller administration, cache, metrics or Docker endpoints through the public tunnel.
+Forgejo now serves `http://git.lab.home.arpa:3000/` and SSH/2223. Source parity, OCI retrieval, manual/push native validation and availability checks passed. The old Gitea units are disabled; their state, images, manifests and private backups are retained for rollback.
 
-Keep public chat and private Git hostname policies separate. Cloudflare supplies public chat DNS and edge HTTPS; the controller tunnel requires no inbound web forwarding or chat DDNS. The legacy Forgejo Caddyfile is a reference ACME profile, not an authorized public Git endpoint. Private trusted certificates require DNS-01/provider-specific follow-up or a locally trusted private CA.
+Public Zulip uses controller containers for the application, PostgreSQL, RabbitMQ, Redis, Memcached, Caddy and cloudflared. The connector initiates outbound tunnel connections. Its token is supplied as a file secret, and the stack publishes no host ports. Cloudflare manages public chat DNS and edge HTTPS. OUTER/INNER keep their existing responsibilities.
 
-## Public application ingress follow-up
+Caddy accepts the exact chat hostname on an internal listener. The tunnel and application use separate proxy networks. The public stack shares neither Forgejo's state nor its Docker network. Controller administration, private Git, caches, metrics and dependency ports are excluded from public routing.
 
-Zulip and its own database/cache/queue stack run on the controller alongside
-cloudflared and internal Caddy containers,
-with a remotely managed token supplied as a file secret. No host web ports or
-inbound router DNAT are published by that profile. Cloudflare manages the public
-chat DNS/edge HTTPS; unrelated DDNS/WireGuard stays independent. Forgejo remains
-private and is excluded from both public hostname routing and tunnel targets.
-The public profile shares neither the private Forgejo Docker network nor its
-state. Private Forgejo HTTPS remains a separate deployment choice.
-
-The selected application profile is [Zulip on the controller](../runbooks/zulip-controller.md).
-It uses an unpublished internal Caddy-to-Zulip network, threaded workers and
-bounded resources; real workload capacity and recovery remain live checks.
-
-See [Cloudflare Tunnel deployment](../runbooks/cloudflared.md). Real hostnames,
-addresses, token values and account/tunnel identifiers stay outside Git.
+The separate `compose/caddy` profile is optional private Forgejo HTTPS configuration. Its reference ACME configuration needs adaptation for private DNS-01 certificates or a locally trusted CA before deployment. It is not a Cloudflare Tunnel target.
 
 ## Consequences
 
-The controller becomes the initial HTTPS failure domain as well as the forge host. This is acceptable for the present single-host lab, while a dedicated ingress host remains a later move. Two instances temporarily consume additional resources and require explicit reconciliation of accounts, SSH host keys, runner identity, mirror settings, packages and clients.
+The R5C hosts the forge and the public chat application profile, so a controller failure can interrupt both. Resource limits and startup checks reduce the chance of overcommit, but workload capacity and restore still require live tests.
 
-No database downgrade, data-directory rename, router mutation or automatic deletion is part of the transition. Historical Gitea evidence retains its original identity. Existing source authority, GitHub CI publication and Flux application reconciliation remain in force.
+The tunnel avoids inbound web forwarding and chat DDNS. Unrelated DDNS and WireGuard configuration remain independent.
 
-This decision supersedes the optional Forgejo evaluation in ADR-0012. It does not change the independent-recovery, storage-guard or runner-authority decisions in the earlier ADRs.
+Application data was transferred between separate instances. Accounts, SSH host keys, runner registration, registry credentials and client URLs required explicit updates. Retained legacy state must be reviewed before deletion.
+
+GitHub publication and Flux reconciliation keep their existing authority. This decision replaces the Forgejo evaluation in [ADR-0012](0012-portability-and-platform-product.md).
 
 ## References
 
-- [Forgejo Gitea migration](https://forgejo.org/docs/v15.0/admin/upgrade/from-gitea/)
-- [Forgejo LTS releases](https://forgejo.org/releases/15.x/)
-- [Migration runbook](../runbooks/gitea-to-forgejo.md)
-- [Domain ingress runbook](../runbooks/domain-ingress.md)
+- [Supported Gitea conversion](https://forgejo.org/docs/v15.0/admin/upgrade/from-gitea/)
+- [Forgejo 15 LTS releases](https://forgejo.org/releases/15.x/)
+- [Migration and rollback](../runbooks/gitea-to-forgejo.md)
+- [Domain ingress](../runbooks/domain-ingress.md)
+- [Controller Zulip](../runbooks/zulip-controller.md)

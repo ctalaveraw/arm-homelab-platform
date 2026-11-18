@@ -40,7 +40,7 @@ If the Flux Ready-condition panels display *No data*, check whether `gotk_resour
 
 ## Certificate renewal and revocation boundary
 
-The observer certificate recorded at G4 expires **2027-01-12 03:15:36 UTC**. Check before that date; reserve an operational rotation window. A 90-day certificate is not an auto-renewal system.
+The observer certificate recorded at G4 expires **2027-01-12 03:15:36 UTC**. Check before that date; reserve an operational rotation window. Automatic renewal is not configured.
 
 For rotation, do not reuse an unrelated deployer identity: create and verify a new dedicated observer key/CSR (or explicitly approve a key-reuse decision), inspect the requested signer `kubernetes.io/kube-apiserver-client`, subject and usages, require manual cluster-admin authorization to approve **only that CSR**, then **immediately retrieve and persist** the issued certificate. Kubernetes can garbage-collect CSR objects, and one approved request was already lost before capture. Verify CA, key pairing, subject, valid dates, positive/negative RBAC and three job scrapes before moving runtime bindings. Preserve rollback copies securely until acceptance. Removal of RBAC bindings or replacing trust must be planned separately; deleting a CSR is not certificate revocation.
 

@@ -1,33 +1,42 @@
-# Architecture design decisions and implementation gates
+# Architecture decisions and implementation requirements
 
-**Recorded:** 2026-10-10. These design choices are approved direction; verification is future work.
+Approved direction: 2026-10-10. Reviewed: 2026-11-18.
 
-**Forgejo amendment — 2026-11-17:** Forgejo is selected under [ADR-0015](../adr/0015-forgejo-and-controller-ingress.md), with initial setup complete. Transfer and cutover remain active acceptance work; portal adoption is still optional. Use the [current names, owner and paths](../runbooks/forgejo-reference-map.md).
+Forgejo is deployed under [ADR-0015](../adr/0015-forgejo-and-controller-ingress.md). Source parity, OCI retrieval and native validation passed; the [migration checklist](../runbooks/gitea-to-forgejo.md#9-acceptance-and-retention) tracks retained legacy state and remaining review. Portal adoption is optional.
 
-| Gate | Adopted decision | Implication |
-|---|---|---|
-| DG-01 | ARM-first, portable to Proxmox and other targets | Target-specific adapters; no accidental R5C-only contract in shared policy |
-| DG-02 | Dedicated restricted, approval-gated local operations runner | Do not add deploy/admin credentials to existing untrusted validation runner |
-| DG-03 | Protected PR → trusted validation → approved Ansible convergence | No unattended infrastructure apply on every main merge by default |
-| DG-04 | Independent encrypted recovery bundle; OpenBao for routine secrets | No circular dependence on OpenBao or Forgejo for day-zero recovery |
-| DG-05 | Risk-based staged DevSecOps enforcement and expiring exceptions | Document threshold, owner, expiry, compensating controls, measured rollout |
-| DG-06 | RTO 4 hours; RPO 1 hour **targets** | Recovery state classification, hourly-consistent copies and timed isolated rehearsal required |
-| DG-07 | Forgejo separate-instance migration selected; developer portal remains evaluation | Independent migration acceptance; portal is not a prerequisite to observability, restore or delivery |
-| DG-08 | Planning PR = backlog + vision + roadmap + ADRs | Documentation-only; no live behavior, secrets or enforcement altered |
+| Gate | Adopted decision | Requirement |
+| --- | --- | --- |
+| DG-01 | ARM-first, with optional secondary targets | Keep target inventory and adapters separate from shared policy |
+| DG-02 | Separate local operations runner | Keep host, deployment and administrator credentials out of the validation runner |
+| DG-03 | Reviewed PR → validation → approved Ansible operation | Require explicit authorization for infrastructure changes |
+| DG-04 | Independent encrypted recovery material; OpenBao for routine secrets | Recovery must work while OpenBao or Forgejo is unavailable |
+| DG-05 | Staged security enforcement | Record thresholds, exceptions, owners and expiry; verify each enforcement change |
+| DG-06 | Four-hour RTO and one-hour RPO targets | Define critical state and prove the targets in timed restore exercises |
+| DG-07 | Forgejo migrated separately; portal remains optional | Keep the verified forge independent of portal adoption |
+| DG-08 | Planning updates track implementation status | Close work only when its required checks pass |
 
-## Follow-up implementation gates, not blockers to this planning PR
+## Recovery and identity
 
-1. **Recovery scope:** decide tiered critical services/data (Forgejo database/repositories, OCI packages, runner identity, PKI, kubeadm/etcd, monitoring history); define incident start/stop and what 4h/1h specifically cover.
-2. **Recovery medium and hardware:** identify backup destination(s), credentials and encryption-key escrow, spare ARM target or VM equivalent, network/DNS prerequisites, offsite reachability and resource/cost ceilings; prove loss of R5C and/or SD is recoverable.
-3. **PKI bootstrap:** define CA ownership, issuer access, X.509 deployer identity generation, certificate renewal/revocation, kubeadm admin/etcd/Flux bootstrap assets, restoration after key compromise. Never store cleartext private keys in public Git.
-4. **Operations runner identity:** choose separate approved repository/workflow source, runner executor and isolated host, ephemeral/job-scoped credentials, human approver identity, PR-origin protection, concurrency locks, audit retention and break-glass path. The validation runner remains credential-free.
-5. **Delivery promotion:** choose how a verified digest enters Git (separate bot PR versus human promotion) and how signed attestations are independently verified before publication and admission. Flux remains application-state owner.
-6. **Runtime controls:** define admission rollout sequence, policy exception format, test namespaces, CPU/memory budget on Pis, egress requirements and bootstrap allowlist; fail closed without breaking cluster recovery.
-7. **Config transport:** classify `.env` keys and paths; decide secure file injection versus app-specific env support; define ownership, backup/restore, trust CA and redaction rules.
-8. **APT proxy:** complete source ACL validation and prove optional cache bypass before using it in the fourth-Pi bootstrap. Management HTTPS is separate work.
-9. **Forgejo/portal:** complete the selected fresh-instance transfer and rollback acceptance using owner `ctalaveraw`, separate state and the final LAN port cutover; trigger portal proof only when multiple services/personas justify it.
-10. **Portability:** define second-target minimum fidelity (Proxmox VM plus Terraform provisioning versus physical second ARM host), inventory abstractions, providers and secret boundaries.
+Decide the critical service/data scope, backup destinations, encryption-key custody, spare target and network prerequisites. Define the incident clock and acceptable data loss before measuring the recovery targets.
 
-## Decision/change control
+Specify CA ownership, issuer access, certificate enrollment/renewal/revocation and protected kubeadm/etcd/Flux recovery assets. Keep private keys in protected recovery storage.
 
-Treat design commitments as accepted direction but revisit via ADR when evidence shows that the selected approach is unsafe or impractical. Each workstream milestone needs an explicit threat/acceptance scope; do not use planning-ticket completion as evidence that the runtime control exists.
+A future operations runner needs a distinct execution identity, reviewed workflow source, restricted playbooks/arguments, approval records, concurrency control, timeouts and an independent recovery path.
+
+## Delivery and host configuration
+
+Choose how verified image digests enter Git desired state and how signatures/provenance are checked. Flux remains the application reconciler.
+
+Define admission rollout, exceptions, test namespaces, Pi resource budgets and bootstrap network access before enforcing runtime policies.
+
+Classify local configuration and secrets, including file injection, ownership, backup and trusted CAs. Complete APT cache source ACL and bypass tests before depending on the cache during fourth-Pi bootstrap.
+
+## Remaining deployment choices
+
+Private Forgejo HTTPS needs its own certificate and access checks. Retiring the retained Gitea state requires the remaining [migration review](../runbooks/gitea-to-forgejo.md#9-acceptance-and-retention).
+
+A second target needs a defined minimum environment, inventory, providers and credentials. Evaluate a developer portal only when several services or users need a catalog, templates or self-service workflows.
+
+## Change control
+
+Revise an ADR when operational evidence changes its assumptions. Record the required test tier and result for each implementation milestone.
