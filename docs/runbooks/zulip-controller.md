@@ -77,8 +77,9 @@ Dependencies started by this initialization command remain running. If init
 fails, preserve state and diagnose locally; use `zulip-compose down` to stop
 partial containers. Do not delete the database or secrets and retry.
 
-Configure only the chat published application as HTTP `server:8080` in
-Cloudflare. Use its tunnel-managed DNS; add no router inbound web forwards or
+Configure only the chat published application with the full Service URL
+`http://server:8080` in Cloudflare (including `http://`). Choose the intended chat
+subdomain and leave Path empty. Use its tunnel-managed DNS; add no router inbound web forwards or
 chat-to-controller local DNS override. Then activate explicitly:
 
 ```bash
