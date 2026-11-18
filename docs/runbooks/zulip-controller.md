@@ -23,6 +23,11 @@ corrects an existing application data mount created with mode 0700, without
 changing the contents or ownership of files below it. The default run does not
 start containers.
 
+Preparation sets the checkout's public `Caddyfile` to mode 0644 and preserves its
+owner. Caddy drops all capabilities, so a mode 0600 file owned by the checkout
+user is unreadable inside the container even when Caddy runs as root. This file
+contains the proxy template; credentials remain in their separate protected files.
+
 Keep `compose/caddy-public/.env` mode 0600. If it already exists, add missing
 keys from `.env.example`; do not replace it. Configure these values locally:
 
@@ -103,6 +108,15 @@ chat-to-controller local DNS override. Then activate explicitly:
 ```bash
 ansible-playbook ansible/playbooks/caddy-public.yml --ask-become-pass \
   -e public_ingress_activate=true
+sudo /usr/local/sbin/zulip-compose ps
+```
+
+If Caddy validation reports permission denied opening `/etc/caddy/Caddyfile`,
+rerun the updated preparation playbook or repair the one bind source and restart:
+
+```bash
+sudo chmod 0644 /srv/platform/compose/caddy-public/Caddyfile
+sudo systemctl restart caddy-public
 sudo /usr/local/sbin/zulip-compose ps
 ```
 

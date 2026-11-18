@@ -53,9 +53,10 @@ jobs:
       - run: >-
           python -m unittest discover -s scripts/ci/tests
           -p 'test_*controller*.py' -v
-      - name: Prepare controller directories using the deployment tasks
+      - name: Prepare controller files using the deployment tasks
         run: |
-          # Reproduce the old root-only data mount; preparation must repair it.
+          # Reproduce a private checkout and the old root-only data mount.
+          chmod 0600 compose/caddy-public/Caddyfile
           sudo install -d -m 0700 "$STATE_SERVICES_ROOT/zulip/data"
           python - <<'PY'
           import os
@@ -69,13 +70,14 @@ jobs:
               if isinstance(value, list):
                   return [sandbox(item) for item in value]
               if isinstance(value, str):
-                  return value.replace('/srv/storage/state/services', os.environ['STATE_SERVICES_ROOT'])
+                  return (value.replace('/srv/storage/state/services', os.environ['STATE_SERVICES_ROOT'])
+                          .replace('/srv/platform', os.environ['GITHUB_WORKSPACE']))
               return value
 
           play = yaml.safe_load(Path('ansible/playbooks/caddy-public.yml').read_text())[1]
           tasks = [sandbox(task) for task in play['tasks']
                    if 'ansible.builtin.file' in task or 'ansible.builtin.stat' in task]
-          fixture = [{'name': 'Prepare isolated controller storage', 'hosts': 'localhost',
+          fixture = [{'name': 'Prepare isolated controller filesystem', 'hosts': 'localhost',
                       'connection': 'local', 'gather_facts': False, 'become': True, 'tasks': tasks}]
           path = Path(os.environ['RUNNER_TEMP']) / 'controller-fixture.yml'
           path.write_text(yaml.safe_dump(fixture, sort_keys=False))
