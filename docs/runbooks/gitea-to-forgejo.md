@@ -1,6 +1,6 @@
 # Gitea to Forgejo Migration
 
-Status: Forgejo repository, OCI transfer, runner deployment and Git access verified on LAN TCP/3002. Final LAN cutover pending.
+Status: Forgejo LAN HTTP/3000 cutover, Git source parity and final-address OCI retrieval passed; SSH remains on TCP/2223 and the runner is active. Monitoring and remaining acceptance checks are still open.
 Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 
 ## Recorded progress — 2026-11-18
@@ -16,9 +16,13 @@ Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 - [x] Fresh runner deployed with Ansible (`ok=13`, `changed=3`, `failed=0`), moved to repository scope, and exercised by the native workflow. User-scoped registration removed.
 - [x] Controller local `main`, GitHub and Forgejo HTTP parity matched `eb84e2ec9c7d72bd99931350f018120b0ef5830f`; SSH read through alias `forgejo` returned the same HEAD/main.
 - [x] First TCP/3000 attempt safely rolled back after the anonymous version API returned HTTP 403. Staging `/api/healthz` then returned HTTP 200 with cache/database checks passing.
-- [ ] Legacy units disabled; Forgejo moved to LAN HTTP/3000; consumers updated and rollback checked.
+- [x] Legacy units stopped and disabled; Forgejo `/api/healthz` passed at `http://git.lab.home.arpa:3000/`; runner active after the successful retry.
+- [x] Port-change rollback checkpoint retained at `/srv/backups/forgejo-port3000-retry-fEuVxI`. Initial connection refusals during startup were followed by a passing health check.
+- [x] Final-address OCI login and full retrieval passed at `git.lab.home.arpa:3000` for the same qualified digest; no artifact rebuild or re-copy was needed.
+- [x] Post-cutover source parity passed: local `main`, local HEAD, GitHub and Forgejo all matched `44d3d82ba9919c39407031ded42abd4ff49b2128` using the fetch-only Forgejo remote.
+- [ ] Generated URLs and monitoring confirmed; native workflow's final successful conclusion recorded.
 
-Use the existing verified checkpoint rather than repeating steps 1–3 on this controller. The [Forgejo reference map](forgejo-reference-map.md) lists every destination path, account and URL, including intentional legacy paths.
+The record distinguishes staging results from post-cutover checks. Final-address HTTP health, service activation, Git source parity and complete OCI retrieval have now passed. Use the [consumer checks](forgejo-reference-map.md#update-consumers-after-transfer) to finish at the new address. The steps below remain the reusable migration/rollback procedure; this controller has already completed the port change and should keep its existing local `.env` and separate state.
 
 ## Migration method
 
@@ -36,6 +40,8 @@ Use a fresh Forgejo instance beside Gitea. The [supported database conversion](h
 Port 3001 belongs to Uptime Kuma. If an earlier local Forgejo `.env` uses 3001, change both `FORGEJO_HTTP_PORT` and the port in `FORGEJO_ROOT_URL` to 3002 before startup.
 
 State paths are relative to `/srv/storage/state`. HTTP port 3002 is temporary for parallel validation. After migration, Forgejo takes over the controller's LAN TCP/3000 once Gitea is stopped and disabled. The container's HTTP listener remains 3000 throughout; only the host mapping and advertised root URL change.
+
+The checked-in Forgejo `.env.example` retains the staging values. Current controller overrides are `FORGEJO_FQDN=git.lab.home.arpa`, `FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/` and `FORGEJO_HTTP_PORT=3000`; the LAN bind addresses and SSH/2223 remain unchanged.
 
 ## 1. Checkpoint before updating the controller checkout
 
@@ -194,21 +200,25 @@ Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domai
 
 ## 9. Acceptance and retention
 
-- [ ] Consistent backup copied off-device and checksum verified.
-- [ ] Actual source version and data inventory recorded.
+- [x] Consistent backup copied off-device and checksum verified.
+- [x] Actual source version and data inventory recorded.
 - [ ] Forgejo UI, administrator login, permissions and required account authentication work.
 - [ ] Required repository refs, metadata, wiki, releases and attachments accounted for.
-- [ ] Git HTTP clone and intended SSH operations pass; new SSH host key verified locally.
-- [ ] GitHub mirror sync, source parity and native Forgejo validation pass.
-- [ ] Required OCI digest parity, full retrieval and package association pass.
-- [ ] Forgejo serves the final LAN TCP/3000 endpoint; generated root/clone/package URLs agree.
-- [ ] Legacy Gitea units are disabled and cannot reclaim TCP/3000 after reboot.
-- [ ] Private HTTPS certificate, redirect and LAN/WireGuard behavior pass when HTTPS is deployed.
+- [x] Staging main-branch parity, SSH read and locally verified SSH host key recorded.
+- [x] Required OCI digest parity, full retrieval and package association passed during staging.
+- [x] Forgejo final LAN TCP/3000 health passed; runner service active.
+- [x] Legacy Gitea units stopped and disabled, releasing TCP/3000.
+- [x] Final-address OCI retrieval passed at LAN TCP/3000 with the preserved digest.
+- [x] Post-cutover source parity passed across controller-local, GitHub and Forgejo `main`.
+- [ ] Generated root/clone/package URLs agree with the final address.
+- [ ] Native Forgejo validation has a recorded final successful result.
 - [ ] Availability checks and alerts now target Forgejo accurately.
 - [ ] Both new service lifecycles and guarded storage behavior checked on the host.
 - [ ] Rollback routing and the preserved legacy instance checked before final retirement.
 
 The old Gitea units stay disabled after the port cutover. Retain their state, images, private checkpoint and local rollback manifests for an agreed retention period. Do not remove them automatically.
+
+Private HTTPS certificate, redirect and LAN/WireGuard acceptance are separate follow-up work when HTTPS is deployed; they do not block the current private LAN HTTP migration. A reboot-safe startup test and a full backup restoration are separate from the recorded port-change rollback.
 
 ## Rollback
 

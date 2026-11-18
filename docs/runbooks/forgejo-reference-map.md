@@ -1,16 +1,16 @@
 # Forgejo Names, Paths and Client Cutover
 
-Updated 2026-11-17. Forgejo is initialized at `http://forgejo.lab.home.arpa:3002/`, and the operator has signed in as `ctalaveraw`. The dashboard still shows zero repositories. Repository transfer, OCI replication, runner acceptance and the final port cutover remain pending.
+Updated 2026-11-18. Forgejo is healthy at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw`, SSH/2223 and an active repository-scoped runner. Mirror/main parity, SSH read, OCI digest parity, complete retrieval and package association passed during staging. Legacy Gitea units are stopped and disabled. Final client and monitoring checks at the new address remain.
 
 ## Service and account identity
 
 GitHub remains canonical at `https://github.com/ctalaveraw/arm-homelab-platform`. The controller checkout remains `/srv/platform`; its canonical remote is named `github`.
 
-The Forgejo administrator and destination owner is **`ctalaveraw`**. The installer rejects `admin` as a reserved username. Continue authenticating to the old Gitea source with its existing `admin` account, but select `ctalaveraw` as the owner when creating or migrating into Forgejo. Account credentials, tokens and runner registrations belong to their respective instances.
+The Forgejo administrator and destination owner is **`ctalaveraw`**. The installer rejects `admin` as a reserved username. The old Gitea source used its existing `admin` account; destination repositories and packages use `ctalaveraw`. Account credentials, tokens and runner registrations belong to their respective instances.
 
-Both LAN names resolve to controller IPv4 `10.0.0.50`. Apply the final values only in [migration step 7](gitea-to-forgejo.md#7-move-lan-http-to-port-3000).
+Both LAN names resolve to controller IPv4 `10.0.0.50`. The current values were applied in [migration step 7](gitea-to-forgejo.md#7-move-lan-http-to-port-3000). The staging column describes the earlier parallel instance and remains the checked-in `.env.example` profile; the live controller uses the current LAN column.
 
-| Setting or consumer | Forgejo staging | Final LAN target |
+| Setting or consumer | Earlier Forgejo staging | Current LAN endpoint |
 | --- | --- | --- |
 | `FORGEJO_FQDN` | `forgejo.lab.home.arpa` | `git.lab.home.arpa` |
 | `FORGEJO_ROOT_URL` | `http://forgejo.lab.home.arpa:3002/` | `http://git.lab.home.arpa:3000/` |
@@ -52,11 +52,12 @@ The rootful Forgejo installer still uses `/data/gitea/gitea.db` internally. With
 
 ## Update consumers after transfer
 
-After the private mirror exists and has synchronized, configure its fetch-only remote:
+The controller's SSH alias `forgejo` already points at `forgejo.lab.home.arpa` on port `2223`; its host key and repository read were verified locally. This alias remains valid after the HTTP port change. Configure the fetch-only remote and check current source parity:
 
 ```bash
 cd /srv/platform
-forgejo_url=http://forgejo.lab.home.arpa:3002/ctalaveraw/arm-homelab-platform.git
+git pull --ff-only github main
+forgejo_url=ssh://git@forgejo/ctalaveraw/arm-homelab-platform.git
 if git remote get-url forgejo >/dev/null 2>&1; then
   git remote set-url forgejo "$forgejo_url"
 else
@@ -66,9 +67,21 @@ git remote set-url --push forgejo DISABLED
 bash scripts/ops/check-source-parity.sh github forgejo
 ```
 
-Retain the legacy `gitea` remote while rollback is needed. After port cutover, set the `forgejo` fetch URL to the final URL from the table and repeat parity and clone checks. GitHub remains the normal push destination. A checkout whose canonical remote is named `origin` should pass `origin forgejo` to the helper instead.
+Run from the controller's clean `main` checkout. If GitHub has advanced, synchronize the Forgejo mirror in repository settings before repeating parity. Retain the legacy `gitea` remote as a rollback reference. Any old HTTP/3000 URL now reaches Forgejo, while legacy SSH/2222 is no longer served. GitHub remains the normal push destination. A checkout whose canonical remote is named `origin` should pass `origin forgejo` to the helper instead. Machines without the controller's SSH alias can use a qualified SSH or HTTP URL from the current LAN column above.
 
-Update Uptime Kuma's monitor name and URL, bookmarks, Git credential entries, SSH clone URLs/verified host keys, hooks, deploy keys and integrations to the new endpoint and owner. Log Skopeo/OCI clients into the new registry address with a new Forgejo credential; registry auth entries are keyed by hostname and port. Update local registry image prefixes while preserving the qualified digest. Verify package association with `scripts/ops/link-forgejo-package.sh` using owner `ctalaveraw`.
+Log Skopeo into the final registry address using a Forgejo credential; auth entries are keyed by hostname and port. Verify retrieval of the transferred artifact without rebuilding it:
+
+```bash
+skopeo login --tls-verify=false --username ctalaveraw \
+  --authfile "$HOME/.config/containers/forgejo-auth.json" git.lab.home.arpa:3000
+AUTHFILE="$HOME/.config/containers/forgejo-auth.json" TLS_VERIFY=false \
+  bash scripts/ops/verify-oci-retrieval.sh \
+  docker://git.lab.home.arpa:3000/ctalaveraw/platform-hello@sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e
+```
+
+The explicit TLS flag is for this trusted LAN HTTP registry. Keep normal verification for GHCR and HTTPS endpoints. The package association was already verified; a port change does not require re-copying or re-linking it.
+
+Update Uptime Kuma's monitor name to Forgejo and its URL to `http://git.lab.home.arpa:3000/api/healthz`, expecting HTTP 200 and JSON `status: pass`. Keep its existing notification channel if appropriate. Update bookmarks, Git credential entries, clone URLs, hooks, deploy keys and integrations to the new endpoint and owner as applicable. Check generated clone/package URLs and confirm the native workflow's final success from the Actions page.
 
 The runner registration remains `http://forgejo:3000/` internally after host-port cutover. Public GitHub URLs, GHCR images, Kubernetes digest references and Flux sources keep their existing canonical identities.
 

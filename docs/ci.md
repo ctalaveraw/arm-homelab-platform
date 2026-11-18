@@ -1,20 +1,25 @@
 # CI, Mirroring and OCI Distribution
 
-Updated 2026-11-17. Configuration now targets Forgejo. Prior Gitea runner and registry success remains historical evidence; repeat those checks after migration.
+Updated 2026-11-18. Forgejo serves LAN HTTP/3000 and SSH/2223 with an active repository-scoped runner. Git parity, SSH read and full OCI retrieval passed during staging. Final client and monitoring checks at the new address remain; prior Gitea results remain historical evidence.
 
 ## Source ownership
 
-GitHub is canonical. Forgejo's intended role is a private one-way pull mirror with repository-scoped validation. Initial setup as `ctalaveraw` is complete; mirror population and runner acceptance remain pending. Do not push routine changes to both forges. GitHub remains available for controller recovery when the local forge is unavailable.
+GitHub is canonical. Forgejo provides a populated one-way pull mirror under `ctalaveraw/arm-homelab-platform`, intended to be private, with repository-scoped validation. The new runner was deployed and exercised by a native workflow. Do not push routine changes to both forges. GitHub remains available for controller recovery when the local forge is unavailable.
 
-After the mirror exists and has synchronized, add a fetch-only `forgejo` remote (or update the existing remote's fetch URL):
+After the mirror has synchronized, configure a fetch-only `forgejo` remote using the controller's verified SSH alias (hostname `forgejo.lab.home.arpa`, port `2223`):
 
 ```bash
-git remote add forgejo http://forgejo.lab.home.arpa:3002/ctalaveraw/arm-homelab-platform.git
+forgejo_url=ssh://git@forgejo/ctalaveraw/arm-homelab-platform.git
+if git remote get-url forgejo >/dev/null 2>&1; then
+  git remote set-url forgejo "$forgejo_url"
+else
+  git remote add forgejo "$forgejo_url"
+fi
 git remote set-url --push forgejo DISABLED
 bash scripts/ops/check-source-parity.sh github forgejo
 ```
 
-The controller's canonical remote is `github`; another checkout may pass `origin` explicitly. After LAN port cutover, use `http://git.lab.home.arpa:3000/ctalaveraw/arm-homelab-platform.git`. See the [reference map](runbooks/forgejo-reference-map.md) for repeatable remote updates and SSH/registry URLs. The parity helper compares local `main`, canonical GitHub `main` and the mirrored branch. A pending mirror synchronization may legitimately cause temporary divergence; do not force-push either side to conceal it.
+The controller's canonical remote is `github`; another checkout may pass `origin` explicitly. The current HTTP alternative is `http://git.lab.home.arpa:3000/ctalaveraw/arm-homelab-platform.git`. See the [reference map](runbooks/forgejo-reference-map.md) for other SSH/registry URLs. The parity helper compares local `main`, canonical GitHub `main` and the mirrored branch. A pending mirror synchronization may legitimately cause temporary divergence; do not force-push either side to conceal it.
 
 ## Workflows and authority
 
@@ -29,7 +34,7 @@ Use a fresh repository-scoped Forgejo UUID/token in the SD-backed `runner.yml`. 
 
 Forgejo uses `actions/checkout@v4`, with `persist-credentials: false`. `DEFAULT_ACTIONS_URL` explicitly resolves shorthand actions against GitHub, preserving the current dependency. Owning/mirroring upstream actions and pinning their commit identities remains separate supply-chain work; switching forge software alone does not accomplish that.
 
-The previous Gitea mirror was observed to emit a push event after forced synchronization. Forgejo's mirror-trigger behavior and a complete validation run must be tested before retiring that runner.
+Enable the repository's Actions unit under **Settings → Units → Overview → Actions**; registering a runner alone does not add the tab. The active registration is repository-scoped, and the earlier user-scoped registration was removed. A manual native run exercised checkout, ARM64 tools and validation. Confirm its final successful conclusion and test mirror-trigger behavior separately; the old Gitea push-trigger result does not establish Forgejo's behavior.
 
 ## Validation contract
 
@@ -67,15 +72,15 @@ The repository-owned helpers remain registry-independent except for the Forgejo 
 - `verify-oci-retrieval.sh`: retrieve the complete artifact into a fresh temporary OCI layout.
 - `link-forgejo-package.sh`: associate an existing package with the intended mirrored repository using `FORGEJO_TOKEN`.
 
-Use normal TLS verification for the final domain. `DEST_TLS_VERIFY=false` and `TLS_VERIFY=false` are restricted to the temporary trusted LAN HTTP endpoint during migration. This does not authorize disabling verification for public HTTPS.
+Use normal TLS verification for HTTPS. `DEST_TLS_VERIFY=false` and `TLS_VERIFY=false` are needed only for the trusted LAN HTTP registry, including the current TCP/3000 endpoint. Keep normal verification enabled for GHCR and any future HTTPS endpoint.
 
-Re-publish required OCI artifacts from GHCR or the old registry without rebuilding, then verify parity and full retrieval. Package association, credentials and ownership must be established on Forgejo; they are not transferred by Skopeo. Existing Kubernetes GHCR references remain unchanged.
+The existing `platform-hello` artifact was copied from Gitea without rebuilding and associated with the Forgejo repository. Staging source/destination digest parity and complete retrieval passed for the qualified digest above, retaining tag `1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d`. Repeat retrieval using the final registry address after updating its authfile entry. Package association, credentials and ownership are separate from Skopeo's content transfer. Existing Kubernetes GHCR references remain unchanged.
 
-Use destination owner `ctalaveraw`, including `forgejo.lab.home.arpa:3002/ctalaveraw/platform-hello` during staging and `git.lab.home.arpa:3000/ctalaveraw/platform-hello` after cutover. The old source owner `admin` is reserved in Forgejo. Re-authenticate OCI clients when the registry hostname or port changes. LAN HTTP still needs the explicit local-only TLS flags until private HTTPS is deployed.
+Use destination `git.lab.home.arpa:3000/ctalaveraw/platform-hello`. The earlier `forgejo.lab.home.arpa:3002` address was the staging registry, and old source owner `admin` is reserved in Forgejo. Re-authenticate OCI clients at the new hostname and port. LAN HTTP still needs the explicit local-only TLS flags until private HTTPS is deployed.
 
 ## Acceptance and records
 
-Follow [migration and rollback](runbooks/gitea-to-forgejo.md) and [domain ingress](runbooks/domain-ingress.md). Update Kuma, OCI clients and the fetch-only remote only after successful checks. Historical proof remains in [native Gitea CI](sprints/07-native-gitea-ci.md), [dual distribution](sprints/09-dual-oci-distribution.md) and the [engineering evidence ledger](interview/engineering-evidence.md).
+Follow [migration and rollback](runbooks/gitea-to-forgejo.md) and [domain ingress](runbooks/domain-ingress.md). The remaining endpoint checks and commands are in the [reference map](runbooks/forgejo-reference-map.md#update-consumers-after-transfer). Kuma should target `http://git.lab.home.arpa:3000/api/healthz` and expect HTTP 200 with JSON `status: pass`. Historical proof remains in [native Gitea CI](sprints/07-native-gitea-ci.md), [dual distribution](sprints/09-dual-oci-distribution.md) and the [engineering evidence ledger](interview/engineering-evidence.md).
 
 ## Controller tunnel validation
 

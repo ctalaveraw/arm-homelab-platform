@@ -10,19 +10,25 @@
 - Historical sprint/incident records remain historical.
 - Delivery gates include a short knowledge check so implementation can be defended conversationally.
 
-## Forgejo and HTTPS transition — 2026-11-17
+## Forgejo and HTTPS transition — 2026-11-18
 
 Repository configuration targets Forgejo 15.0.11 LTS and Caddy on the R5C.
-Forgejo initial setup and sign-in as `ctalaveraw` are confirmed on LAN TCP/3002.
-Data transfer, runner acceptance and final LAN TCP/3000 cutover are pending.
+Forgejo is healthy at `http://git.lab.home.arpa:3000/`, with SSH on `2223` and its runner active.
+Mirror/OCI transfer, post-cutover Git source parity and final-address OCI retrieval passed; monitoring and remaining acceptance checks are still open.
 Completed Gitea entries below remain historical acceptance, not Forgejo acceptance.
 See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL map](runbooks/forgejo-reference-map.md).
 
 - [ ] PORT-003: Complete the separate-instance Forgejo migration and rollback check
   - [x] Consistent legacy checkpoint and off-device archive checksum verified
   - [x] Separate Forgejo installation and administrator sign-in as `ctalaveraw`
-  - [ ] Private mirror/data transfer, new-owner OCI parity and runner acceptance
-  - [ ] Disable legacy units, move Forgejo to LAN HTTP/3000 and verify updated consumers
+  - [x] Mirror populated under `ctalaveraw`; main-branch parity and SSH read verified
+  - [x] New-owner OCI digest parity, full retrieval and package association verified during staging
+  - [x] Fresh repository-scoped runner deployed and native workflow exercised
+  - [x] Legacy units stopped/disabled; Forgejo LAN HTTP/3000 health passed and runner active
+  - [x] Final-address OCI login and complete artifact retrieval passed at LAN TCP/3000
+  - [x] Post-cutover source parity passed across local `main`/HEAD, GitHub and Forgejo at `44d3d82ba9919c39407031ded42abd4ff49b2128`
+  - [ ] Generated URLs, destination privacy and monitoring confirmed; native workflow final success recorded
+  - [ ] Remaining repository refs/metadata accounted for and rollback reviewed before retiring retained state
 - [ ] OPS-007: Deploy and verify the first HTTPS route; other management routes remain pending
 
 ## COMPLETE — Core delivery

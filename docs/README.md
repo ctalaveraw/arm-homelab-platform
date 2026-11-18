@@ -4,7 +4,7 @@ This directory separates **current-state documentation** from **historical evide
 
 ## Deployment transition
 
-Forgejo initial setup and sign-in as `ctalaveraw` are confirmed at `http://forgejo.lab.home.arpa:3002/`. The dashboard shows zero repositories; mirror/data transfer, OCI, runner and final LAN port `3000` acceptance remain pending. Forgejo stays LAN/WireGuard-only.
+As of 2026-11-18, Forgejo serves `http://git.lab.home.arpa:3000/` with SSH on `2223`, and its health check and runner service pass after cutover. The `ctalaveraw/arm-homelab-platform` mirror and linked OCI package passed Git parity, SSH read and full artifact retrieval during staging. Legacy Gitea units are stopped and disabled; their state remains available for rollback. Final client and monitoring checks at the new address remain. Forgejo stays LAN/WireGuard-only.
 
 - [Gitea to Forgejo migration](runbooks/gitea-to-forgejo.md) — backup, separate storage, mirror, registry, runner, acceptance and rollback.
 - [Forgejo names, paths and client cutover](runbooks/forgejo-reference-map.md) — current owner, staging/final URLs, renamed files and intentional legacy references.
