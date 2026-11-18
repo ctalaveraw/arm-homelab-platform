@@ -24,7 +24,7 @@ Caddy terminates HTTPS on the controller and forwards only the configured Git ho
 
 ## Forgejo migration
 
-Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo uses a new `/srv/storage/state/services/forgejo` directory and temporary HTTP/SSH ports `3002`/`2223`. Existing Gitea state, credentials and runner identity must not be copied into it.
+Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo uses a new `/srv/storage/state/services/forgejo` directory and temporary HTTP/SSH ports `3002`/`2223`. After validation, Forgejo takes over LAN HTTP port `3000` with an explicit root-URL/container restart and the old Gitea units disabled. Existing Gitea state, credentials and runner identity must not be copied into it.
 
 Follow the [migration runbook](docs/runbooks/gitea-to-forgejo.md) to:
 

@@ -7,18 +7,18 @@ Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 
 Use a fresh Forgejo instance beside Gitea. The [supported database conversion](https://forgejo.org/docs/v15.0/admin/upgrade/from-gitea/) only covers Gitea through 1.22 via Forgejo 10. Do not point this Forgejo image at the existing Gitea directory or copy its SQLite database, `app.ini`, secrets or runner identity.
 
-| Resource | Gitea | Forgejo staging |
-| --- | --- | --- |
-| Compose project | `gitea` | `forgejo` |
-| Application state | `services/gitea` | `services/forgejo` |
-| Runner state | `services/gitea-runner` | `services/forgejo-runner` |
-| Host HTTP port | `3000` | `3002` |
-| Host Git SSH port | `2222` | `2223` |
-| Lifecycle units | `gitea`, `gitea-runner` | `forgejo`, `forgejo-runner` |
+| Resource | Gitea | Forgejo staging | Forgejo after cutover |
+| --- | --- | --- | --- |
+| Compose project | `gitea` | `forgejo` | `forgejo` |
+| Application state | `services/gitea` | `services/forgejo` | Unchanged |
+| Runner state | `services/gitea-runner` | `services/forgejo-runner` | Unchanged |
+| Host HTTP port | `3000` | `3002` | `3000` |
+| Host Git SSH port | `2222` | `2223` | `2223` |
+| Lifecycle units | `gitea`, `gitea-runner` | `forgejo`, `forgejo-runner` | Unchanged |
 
 Port 3001 belongs to Uptime Kuma. If an earlier local Forgejo `.env` uses 3001, change both `FORGEJO_HTTP_PORT` and the port in `FORGEJO_ROOT_URL` to 3002 before startup.
 
-State paths are relative to `/srv/storage/state`. Keeping staging ports is acceptable after migration; HTTPS clients use TCP/443 regardless of the backend port.
+State paths are relative to `/srv/storage/state`. HTTP port 3002 is temporary for parallel validation. After migration, Forgejo takes over the controller's LAN TCP/3000 once Gitea is stopped and disabled. The container's HTTP listener remains 3000 throughout; only the host mapping and advertised root URL change.
 
 ## 1. Checkpoint before updating the controller checkout
 
@@ -123,11 +123,44 @@ ansible-playbook ansible/playbooks/03-forgejo-runner.yml --ask-become-pass
 
 Force mirror synchronization and confirm `.forgejo/workflows/platform-ci.yml` runs successfully on the ARM64 UID-10001 worker with no production Docker socket. Test a subsequent mirrored push as well. The old Gitea `.runner` identity is not valid here.
 
-## 7. Add HTTPS and switch consumers
+## 7. Move LAN HTTP to port 3000
 
-Follow [domain ingress](domain-ingress.md). Use a product-independent hostname such as `git.<registered-domain>`, update Forgejo's root URL and SSH domain, and recreate the containers explicitly. Update the fetch-only Git remote, Kuma checks, OCI authfiles/clients, hooks and bookmarks. Keep GHCR/Flux source and workload references unchanged unless a separate delivery change is intended.
+Perform the data transfer and staging acceptance first. Freeze legacy writes during the final synchronization. The intended LAN endpoint after cutover is `http://git.lab.home.arpa:3000/`; `git.lab.home.arpa` must resolve to the controller. This port change does not transfer or alter application data.
 
-## 8. Acceptance and retirement
+If the Forgejo runner has been installed, stop it first. Save a private copy of Forgejo's current `.env` before editing. Then stop the staged server and disable the old units so they cannot reclaim TCP/3000 after reboot:
+
+```bash
+cp -n compose/forgejo/.env compose/forgejo/.env.before-lan-port-cutover
+sudo systemctl stop forgejo.service
+sudo systemctl disable --now gitea-runner.service gitea.service
+sudo ss -lntp '( sport = :3000 )'
+```
+
+Verify that the chosen controller LAN address and TCP/3000 are free. Update `compose/forgejo/.env`:
+
+```text
+FORGEJO_FQDN=git.lab.home.arpa
+FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/
+FORGEJO_HTTP_PORT=3000
+```
+
+Keep the LAN bind addresses, new state directory and SSH port unchanged. Validate the configuration and start the service explicitly; Ansible `state: started` alone does not recreate a running container:
+
+```bash
+docker-compose --env-file compose/forgejo/.env -f compose/forgejo/compose.yml config --quiet
+sudo systemctl start forgejo.service
+curl --fail --retry 10 --retry-connrefused --retry-delay 2 --max-time 3 http://git.lab.home.arpa:3000/api/v1/version
+```
+
+Restart the Forgejo runner if installed. Its internal server URL `http://forgejo:3000/` is unchanged. Verify generated clone/package URLs, Git operations and OCI retrieval at the final LAN endpoint. Update Kuma, registry authfiles, fetch-only remotes, hooks and bookmarks for the final URL. GitHub/GHCR and Flux references remain unchanged.
+
+For a port-cutover failure, restore the saved staging `.env` and restart Forgejo on TCP/3002. Only after it has released TCP/3000 should the old Gitea units be re-enabled and started. Reconcile new writes before a full application fallback; never point Gitea at Forgejo data.
+
+## 8. Private HTTPS
+
+Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domain ingress](domain-ingress.md) for a registered hostname and DNS-01 certificates. The checked-in Caddyfile is a public ACME profile; it must be adapted before private certificate deployment. No WAN forwarding to Forgejo is part of this migration. HTTPS clients later use TCP/443 independently of the retained backend port.
+
+## 9. Acceptance and retention
 
 - [ ] Consistent backup copied off-device and checksum verified.
 - [ ] Actual source version and data inventory recorded.
@@ -136,12 +169,14 @@ Follow [domain ingress](domain-ingress.md). Use a product-independent hostname s
 - [ ] Git HTTP clone and intended SSH operations pass; new SSH host key verified locally.
 - [ ] GitHub mirror sync, source parity and native Forgejo validation pass.
 - [ ] Required OCI digest parity, full retrieval and package association pass.
-- [ ] HTTPS certificate, redirect, root/clone URLs and LAN/WireGuard behavior pass.
+- [ ] Forgejo serves the final LAN TCP/3000 endpoint; generated root/clone/package URLs agree.
+- [ ] Legacy Gitea units are disabled and cannot reclaim TCP/3000 after reboot.
+- [ ] Private HTTPS certificate, redirect and LAN/WireGuard behavior pass when HTTPS is deployed.
 - [ ] Availability checks and alerts now target Forgejo accurately.
 - [ ] Both new service lifecycles and guarded storage behavior checked on the host.
 - [ ] Rollback routing and the preserved legacy instance checked before final retirement.
 
-After those checks, disable/stop `gitea-runner.service` and `gitea.service`. Retain their state, images, private checkpoint and local rollback manifests for an agreed retention period. Do not remove them automatically.
+The old Gitea units stay disabled after the port cutover. Retain their state, images, private checkpoint and local rollback manifests for an agreed retention period. Do not remove them automatically.
 
 ## Rollback
 
