@@ -83,7 +83,7 @@ curl --fail https://git.your-domain.tld/api/v1/version
 
 Expect an HTTP-to-HTTPS redirect, a trusted hostname-matching certificate, and the expected Forgejo version. A sign-in redirect is normal with anonymous viewing disabled. Do not use `curl -k` as certificate acceptance.
 
-Test authenticated Git clone/fetch and OCI login/retrieval through HTTPS. Verify generated links use the final HTTPS URL with no `:3001`, no mixed content, and correct SSH host/port. Confirm Forgejo sees the intended client address through Caddy. From outside, confirm no backend/administrative ports were exposed by the router change. Test WireGuard/LAN name resolution separately from public DNS.
+Test authenticated Git clone/fetch and OCI login/retrieval through HTTPS. Verify generated links use the final HTTPS URL with no `:3002`, no mixed content, and correct SSH host/port. Confirm Forgejo sees the intended client address through Caddy. From outside, confirm no backend/administrative ports were exposed by the router change. Test WireGuard/LAN name resolution separately from public DNS.
 
 Check `systemctl status forgejo caddy` and `docker-compose --env-file compose/caddy/.env -f compose/caddy/compose.yml logs --tail 100` for DNS, ACME or upstream errors. Do not post private tokens or full unreviewed configs.
 

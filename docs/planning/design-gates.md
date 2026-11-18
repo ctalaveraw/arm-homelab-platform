@@ -2,6 +2,8 @@
 
 **Recorded:** 2026-10-10. These design choices are approved direction; verification is future work.
 
+**Forgejo amendment — 2026-11-17:** Forgejo is selected under [ADR-0015](../adr/0015-forgejo-and-controller-ingress.md), with initial setup complete. Transfer and cutover remain active acceptance work; portal adoption is still optional. Use the [current names, owner and paths](../runbooks/forgejo-reference-map.md).
+
 | Gate | Adopted decision | Implication |
 |---|---|---|
 | DG-01 | ARM-first, portable to Proxmox and other targets | Target-specific adapters; no accidental R5C-only contract in shared policy |
@@ -10,7 +12,7 @@
 | DG-04 | Independent encrypted recovery bundle; OpenBao for routine secrets | No circular dependence on OpenBao or Forgejo for day-zero recovery |
 | DG-05 | Risk-based staged DevSecOps enforcement and expiring exceptions | Document threshold, owner, expiry, compensating controls, measured rollout |
 | DG-06 | RTO 4 hours; RPO 1 hour **targets** | Recovery state classification, hourly-consistent copies and timed isolated rehearsal required |
-| DG-07 | Forgejo and developer portal: evaluate now, defer implementation | Neither becomes prerequisite to observability, restore or core delivery |
+| DG-07 | Forgejo separate-instance migration selected; developer portal remains evaluation | Independent migration acceptance; portal is not a prerequisite to observability, restore or delivery |
 | DG-08 | Planning PR = backlog + vision + roadmap + ADRs | Documentation-only; no live behavior, secrets or enforcement altered |
 
 ## Follow-up implementation gates, not blockers to this planning PR
@@ -23,7 +25,7 @@
 6. **Runtime controls:** define admission rollout sequence, policy exception format, test namespaces, CPU/memory budget on Pis, egress requirements and bootstrap allowlist; fail closed without breaking cluster recovery.
 7. **Config transport:** classify `.env` keys and paths; decide secure file injection versus app-specific env support; define ownership, backup/restore, trust CA and redaction rules.
 8. **APT proxy:** complete source ACL validation and prove optional cache bypass before using it in the fourth-Pi bootstrap. Management HTTPS is separate work.
-9. **Forgejo/portal:** assess real export/import compatibility and rollback in an isolated environment; trigger portal proof only when multiple services/personas justify it.
+9. **Forgejo/portal:** complete the selected fresh-instance transfer and rollback acceptance using owner `ctalaveraw`, separate state and the final LAN port cutover; trigger portal proof only when multiple services/personas justify it.
 10. **Portability:** define second-target minimum fidelity (Proxmox VM plus Terraform provisioning versus physical second ARM host), inventory abstractions, providers and secret boundaries.
 
 ## Decision/change control

@@ -111,7 +111,7 @@ This document captures observed system state.
 It does not imply the infrastructure is already
 reproducible or configuration-managed.
 
-## Current-state delta — 2026-10-05
+## Recorded implementation delta — 2026-10-05
 
 This file remains the original brownfield snapshot. It is not rewritten to make later automation appear to have existed at capture time.
 
@@ -130,3 +130,9 @@ Since the baseline:
 - the first verified GHCR publication produced digest `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e`.
 
 See [the current architecture overview](overview.md) for the live design.
+
+## Forgejo delta — 2026-11-17
+
+Forgejo is initialized on separate state at `/srv/storage/state/services/forgejo`. Administrator `ctalaveraw` can sign in at `http://forgejo.lab.home.arpa:3002/`; the dashboard shows zero repositories. Source/data transfer, local OCI, the new runner and final LAN `http://git.lab.home.arpa:3000/` acceptance remain pending. The October checklist and implementation results above describe the earlier Gitea baseline.
+
+Current playbooks are `02-forgejo.yml` and `03-forgejo-runner.yml`; current lifecycle units are `forgejo.service` and `forgejo-runner.service`. Use the [reference map](../runbooks/forgejo-reference-map.md) for complete file/host paths, owner URLs and the guarded port cutover. Preserve old state and backups for rollback.

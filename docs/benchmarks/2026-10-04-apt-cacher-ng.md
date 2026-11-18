@@ -1,5 +1,7 @@
 # BENCH-001 — ARM64 APT Package Cache
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 **Date:** October 4, 2026
 **Platform:** NanoPi R5C, Debian Trixie / ARM64
 **Service:** APT-Cacher-NG, containerized on Docker

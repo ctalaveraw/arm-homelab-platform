@@ -37,8 +37,8 @@ or the declared Compose binding is invalid.
 
 Ansible provides repeatable provisioning, artifact
 installation, configuration validation, boot enablement
-and initial service activation for all five current
-management-plane services.
+and initial service activation for the original five
+management-plane services recorded below.
 
 This design protects startup, not unexpected physical
 SD removal during active writes.
@@ -52,7 +52,7 @@ host reconstruction remain distinct responsibilities.
 
 ## Implementation update — 2026-10-04
 
-The guarded lifecycle now covers:
+At this checkpoint, the guarded lifecycle covered:
 
 - Gitea
 - Gitea Actions runner
@@ -61,3 +61,7 @@ The guarded lifecycle now covers:
 - APT-Cacher-NG
 
 The runner adds a separate contract: its persisted `.runner` identity must exist on the expected SD-backed path with UID/GID 10001 and mode 0600 before startup.
+
+## Forgejo amendment — 2026-11-17
+
+Current lifecycle units are `forgejo.service` and `forgejo-runner.service`, installed from `compose/forgejo/` and `compose/forgejo-runner/`. Guards and Ansible playbooks use the corresponding Forgejo names. The fresh runner identity is `/srv/storage/state/services/forgejo-runner/runner.yml`, not the dated `.runner` format above; it requires UID/GID 10001 and mode 0600. See [all current paths](../runbooks/forgejo-reference-map.md#repository-and-host-paths). This configuration change does not transfer the earlier host acceptance to the new services.

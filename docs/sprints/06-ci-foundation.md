@@ -1,5 +1,7 @@
 # Sprint 6 — Portable ARM64 CI and Gitea mirror
 
+> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+
 Date: 2026-10-04
 Status: GitHub CI complete; Gitea runner not yet deployed.
 

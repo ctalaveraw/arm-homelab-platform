@@ -57,6 +57,10 @@ The USB archive is decommissioned as recorded in ADR-0002.
 
 ## Implementation update — 2026-10-04
 
-The guarded state namespace currently includes Gitea, the Gitea Actions runner, Gotify, Uptime Kuma, and APT-Cacher-NG.
+At this checkpoint, the guarded state namespace included Gitea, the Gitea Actions runner, Gotify, Uptime Kuma, and APT-Cacher-NG.
 
-The runner identity is persisted under `/srv/storage/state/services/gitea-runner` with UID/GID 10001 and restrictive permissions. All five service playbooks now install their systemd units and declaratively enable/start the service after validation.
+The runner identity was persisted under `/srv/storage/state/services/gitea-runner` with UID/GID 10001 and restrictive permissions. All five service playbooks installed their systemd units and declaratively enabled/started the service after validation.
+
+## Forgejo amendment — 2026-11-17
+
+Current deployment configuration uses fresh `/srv/storage/state/services/forgejo` and `/srv/storage/state/services/forgejo-runner` directories. The new runner stores its UUID/token in `runner.yml`, owned by UID/GID 10001 with mode 0600. The old paths above describe the 2026-10-04 implementation and remain rollback state; do not rename or reuse them. See the [current path map](../runbooks/forgejo-reference-map.md#repository-and-host-paths).
