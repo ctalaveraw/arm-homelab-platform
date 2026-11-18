@@ -46,6 +46,11 @@ Forgejo uses `actions/checkout@v4` with persisted credentials disabled. `DEFAULT
 
 GitHub separately builds the runner and validates Caddy. Controller ingress CI checks unpublished ports, exact proxy trust, storage and secret handling, then initializes Zulip with disposable credentials and waits for its health check. It does not authenticate a real tunnel or send SMTP mail.
 
+The ingress fixture applies the playbook's directory preparation tasks to an
+isolated path, including root ownership and private parent directories. It starts
+with a root-owned mode 0700 application data mount so preparation must repair its
+traversal permissions before the image can initialize as the `zulip` user.
+
 ## Build once and publish
 
 The application passes through these steps:

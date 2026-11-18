@@ -15,9 +15,13 @@ ansible-playbook ansible/playbooks/caddy-public.yml --ask-become-pass
 ```
 
 This installs `zulip-compose`, `zulip-init-secrets`, the storage guard and the
-combined lifecycle unit. It creates missing SD data directories without
-reassigning ownership of directories already initialized by service images.
-The default run does not start containers.
+combined lifecycle unit. It preserves ownership of database, queue and Redis
+directories already initialized by their images. The application data mount
+is root-owned mode 0755 so the container's `zulip` user can read its generated
+configuration. Its host parent remains root-owned mode 0700. Preparation also
+corrects an existing application data mount created with mode 0700, without
+changing the contents or ownership of files below it. The default run does not
+start containers.
 
 Keep `compose/caddy-public/.env` mode 0600. If it already exists, add missing
 keys from `.env.example`; do not replace it. Configure these values locally:
@@ -75,6 +79,21 @@ The last command should finish with `=== End Initial Configuration Phase ===`.
 Dependencies started by this initialization command remain running. If init
 fails, preserve state and diagnose locally; use `zulip-compose down` to stop
 partial containers. Do not delete the database or secrets and retry.
+
+If an earlier preparation run created the application data directory as
+root-owned mode 0700, initialization can report `Error accessing Zulip secrets`
+even though the image already runs its validation command as `zulip`. The
+generated `/etc/zulip/zulip-secrets.conf` links through `/data`, which that user
+must be able to traverse. Rerun the updated preparation playbook, or repair
+only the mount directory and retry:
+
+```bash
+sudo chmod 0755 /srv/storage/state/services/zulip/data
+sudo /usr/local/sbin/zulip-compose run --rm zulip app:init
+```
+
+This preserves the source credentials and generated configuration. The source
+credential directory remains mode 0700 and its six files remain mode 0444.
 
 Configure only the chat published application with the full Service URL
 `http://server:8080` in Cloudflare (including `http://`). Choose the intended chat
