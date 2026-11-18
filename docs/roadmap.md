@@ -1,6 +1,6 @@
 # Platform Engineering Roadmap
 
-**2026-11-18 transition:** Forgejo 15.0.11 LTS is healthy at `http://git.lab.home.arpa:3000/`, with SSH on `2223` and its runner active. The populated mirror and linked OCI artifact passed staging checks; legacy units are stopped and disabled. Final client and monitoring checks remain. Historical completion below was measured on Gitea; use the [migration runbook](runbooks/gitea-to-forgejo.md) and [current reference map](runbooks/forgejo-reference-map.md). Private HTTPS is separate follow-up work.
+**2026-11-18 transition:** Forgejo 15.0.11 LTS is healthy at `http://git.lab.home.arpa:3000/`, with SSH on `2223` and its runner active. The populated mirror and linked OCI artifact passed staging checks; legacy units are stopped and disabled. Post-cutover source parity, OCI retrieval, native Actions and Kuma availability now pass; retirement and remaining permission/metadata review stay in the migration checklist. Historical completion below was measured on Gitea; use the [migration runbook](runbooks/gitea-to-forgejo.md) and [current reference map](runbooks/forgejo-reference-map.md). Private HTTPS is separate follow-up work.
 
 ## Current objective
 
@@ -31,7 +31,7 @@ Exit criteria met:
 
 ## M2 — Development infrastructure
 
-**Status: Original Gitea baseline complete; Forgejo LAN cutover passed, final client checks remain.**
+**Status: Original Gitea baseline complete; Forgejo operational cutover verified, retirement review remains.**
 
 Implemented:
 
@@ -45,7 +45,7 @@ Implemented:
 - Ansible-owned enable/start lifecycle for all five services;
 - SD-backed guarded state.
 
-Forgejo now uses separate state and owner `ctalaveraw`. Main-branch parity, SSH read, OCI digest parity and full retrieval passed during staging; the new runner was deployed and exercised. HTTP health and runner activation passed after moving to LAN TCP/3000 and disabling the old units. Final-address consumers and monitoring still need confirmation; the original acceptance above remains historical. Private HTTPS, backup/restore and fresh-host reconstruction are tracked separately.
+Forgejo now uses separate state and owner `ctalaveraw`. Main-branch parity, SSH read, OCI digest parity and full retrieval passed during staging; the new runner was deployed and exercised. HTTP health and runner activation passed after moving to LAN TCP/3000 and disabling the old units. Post-cutover source parity and OCI retrieval passed; successful manual/push native workflows and Kuma availability are now recorded. The original acceptance above remains historical. Retirement and remaining permission/metadata review are listed in the migration checklist. Private HTTPS, backup/restore and fresh-host reconstruction are tracked separately.
 
 ## M3 — Application delivery
 

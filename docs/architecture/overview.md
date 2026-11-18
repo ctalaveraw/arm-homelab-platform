@@ -1,6 +1,6 @@
 # Platform Architecture
 
-Updated 2026-11-18. Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active repository-scoped runner. The mirror and linked OCI artifact passed staging checks; final client and monitoring checks at the new address remain. Private Forgejo HTTPS is separate follow-up work. The [migration runbook](../runbooks/gitea-to-forgejo.md) records the evidence and rollback; the [reference map](../runbooks/forgejo-reference-map.md) lists current names, paths and URLs.
+Updated 2026-11-18. Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active repository-scoped runner. The mirror and linked OCI artifact passed staging and post-cutover checks; manual and push-triggered native Actions runs are green, and Kuma reports Forgejo Up. Private Forgejo HTTPS is separate follow-up work. The [migration runbook](../runbooks/gitea-to-forgejo.md) records the evidence and rollback; the [reference map](../runbooks/forgejo-reference-map.md) lists current names, paths and URLs.
 
 ## Source and recovery
 
@@ -52,6 +52,6 @@ Flux pulls canonical Git desired state and reconciles only the selected applicat
 
 Prometheus and Grafana run outside Kubernetes with bounded retention/storage. Native exporters cover the R5C and three physical Pi hosts. A separate read-only TLS observer scrapes the Kubernetes API and Flux metrics through constrained RBAC. Historical evidence records eight healthy targets and five provisioned dashboards.
 
-Staging acceptance recorded main-branch parity, SSH read, OCI digest parity and complete artifact retrieval, plus deployment and native workflow execution on the new runner. After the successful HTTP/3000 cutover, update client addresses and Kuma's health monitor, repeat Git/OCI access at the final address and confirm the native workflow's final result. Both LAN forge names resolve to `10.0.0.50`; private HTTPS remains pending. No public Forgejo forwarding is needed. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
+Staging acceptance recorded main-branch parity, SSH read, OCI digest parity and complete artifact retrieval, plus deployment and native workflow execution on the new runner. Post-cutover Git source parity and full OCI retrieval passed. Native Actions shows successful manual and push-triggered runs. Kuma reports the final root URL Up; using `/api/healthz` would check application health directly. Notification delivery and remaining retirement/permission/metadata review are not established by the screenshots. Both LAN forge names resolve to `10.0.0.50`; private HTTPS remains pending. No public Forgejo forwarding is needed. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
 
 Historical records: [native CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md), [telemetry](../sprints/14-kubernetes-flux-telemetry.md).

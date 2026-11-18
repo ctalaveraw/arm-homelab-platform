@@ -1,6 +1,6 @@
 # Platform charter — ARM-first, portable DevSecOps platform
 
-**2026-11-18 amendment:** Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active runner. The mirror and linked OCI artifact were transferred under owner `ctalaveraw` and verified during staging; legacy units are stopped and disabled. Final client and monitoring checks remain. The recorded Gitea baseline remains historical; the [migration runbook](../runbooks/gitea-to-forgejo.md) and [reference map](../runbooks/forgejo-reference-map.md) define current paths, owner URLs and rollback.
+**2026-11-18 amendment:** Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active runner. The mirror and linked OCI artifact were transferred under owner `ctalaveraw` and verified during staging; legacy units are stopped and disabled. Post-cutover source parity, OCI retrieval, native Actions and Kuma availability now pass; retirement and remaining permission/metadata review stay in the migration checklist. The recorded Gitea baseline remains historical; the [migration runbook](../runbooks/gitea-to-forgejo.md) and [reference map](../runbooks/forgejo-reference-map.md) define current paths, owner URLs and rollback.
 
 **Status:** Approved planning direction (2026-10-10); individual capabilities remain unimplemented until verified.
 **Purpose:** Define the destination without overstating today's evidence.

@@ -1,6 +1,6 @@
 # CI, Mirroring and OCI Distribution
 
-Updated 2026-11-18. Forgejo serves LAN HTTP/3000 and SSH/2223 with an active repository-scoped runner. Git parity, SSH read and full OCI retrieval passed during staging. Final client and monitoring checks at the new address remain; prior Gitea results remain historical evidence.
+Updated 2026-11-18. Forgejo serves LAN HTTP/3000 and SSH/2223 with an active repository-scoped runner. Git parity, SSH read and full OCI retrieval passed during staging. Post-cutover source parity and OCI retrieval passed; manual and push-triggered native Actions runs are green, and Kuma reports the final root URL Up. Prior Gitea results remain historical evidence.
 
 ## Source ownership
 
@@ -34,7 +34,7 @@ Use a fresh repository-scoped Forgejo UUID/token in the SD-backed `runner.yml`. 
 
 Forgejo uses `actions/checkout@v4`, with `persist-credentials: false`. `DEFAULT_ACTIONS_URL` explicitly resolves shorthand actions against GitHub, preserving the current dependency. Owning/mirroring upstream actions and pinning their commit identities remains separate supply-chain work; switching forge software alone does not accomplish that.
 
-Enable the repository's Actions unit under **Settings → Units → Overview → Actions**; registering a runner alone does not add the tab. The active registration is repository-scoped, and the earlier user-scoped registration was removed. A manual native run exercised checkout, ARM64 tools and validation. Confirm its final successful conclusion and test mirror-trigger behavior separately; the old Gitea push-trigger result does not establish Forgejo's behavior.
+Enable the repository's Actions unit under **Settings → Units → Overview → Actions**; registering a runner alone does not add the tab. The active registration is repository-scoped, and the earlier user-scoped registration was removed. The Actions page records successful native run #1 (manual, commit `eb84e2ec9c`, 2m47s) and run #2 (push, commit `44d3d82ba9`, 2m32s). The push-triggered run on the pull mirror establishes this behavior for the observed synchronization; it does not promise every future event or branch will run.
 
 ## Validation contract
 
@@ -80,7 +80,7 @@ Use destination `git.lab.home.arpa:3000/ctalaveraw/platform-hello`. The earlier 
 
 ## Acceptance and records
 
-Follow [migration and rollback](runbooks/gitea-to-forgejo.md) and [domain ingress](runbooks/domain-ingress.md). The remaining endpoint checks and commands are in the [reference map](runbooks/forgejo-reference-map.md#update-consumers-after-transfer). Kuma should target `http://git.lab.home.arpa:3000/api/healthz` and expect HTTP 200 with JSON `status: pass`. Historical proof remains in [native Gitea CI](sprints/07-native-gitea-ci.md), [dual distribution](sprints/09-dual-oci-distribution.md) and the [engineering evidence ledger](interview/engineering-evidence.md).
+Follow [migration and rollback](runbooks/gitea-to-forgejo.md) and [domain ingress](runbooks/domain-ingress.md). The reusable endpoint commands are in the [reference map](runbooks/forgejo-reference-map.md#update-consumers-after-transfer). Kuma currently reports `http://git.lab.home.arpa:3000/` Up. Prefer `http://git.lab.home.arpa:3000/api/healthz` for application health, expecting HTTP 200 with JSON `status: pass`; notification delivery is a separate check. Historical proof remains in [native Gitea CI](sprints/07-native-gitea-ci.md), [dual distribution](sprints/09-dual-oci-distribution.md) and the [engineering evidence ledger](interview/engineering-evidence.md).
 
 ## Controller tunnel validation
 
