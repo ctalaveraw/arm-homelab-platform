@@ -1,0 +1,28 @@
+{
+	auto_https off
+	servers {
+		protocols h1 h2
+		trusted_proxies static {$CLOUDFLARED_CONTAINER_IP}
+		trusted_proxies_strict
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+:8080 {
+	respond "Not found" 404
+}
+
+http://{$ZULIP_FQDN}:8080 {
+	route {
+		@untrusted not remote_ip {$CLOUDFLARED_CONTAINER_IP}
+		respond @untrusted 403
+		@plaintext header X-Forwarded-Proto http
+		redir @plaintext https://{$ZULIP_FQDN}{uri} 308
+		reverse_proxy {$ZULIP_UPSTREAM} {
+			header_up Host {host}
+			header_up X-Forwarded-For {client_ip}
+			header_up X-Forwarded-Proto https
+			header_up X-Forwarded-Host {host}
+		}
+	}
+}

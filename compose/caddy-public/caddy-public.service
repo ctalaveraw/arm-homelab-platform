@@ -1,0 +1,22 @@
+[Unit]
+Description=Cloudflare Tunnel and Caddy - controller public application ingress
+Documentation=https://developers.cloudflare.com/tunnel/
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/caddy-public /srv/storage/state/services/cloudflared
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/platform/compose/caddy-public
+ExecStartPre=/usr/local/sbin/caddy-public-check-storage
+ExecStartPre=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml run --rm --no-deps server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml up -d --wait --wait-timeout 180
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml down
+ExecStopPost=-/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml down
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target

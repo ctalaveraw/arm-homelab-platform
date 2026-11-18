@@ -37,3 +37,11 @@ __pycache__/
 # Local-only legacy rollback manifests retained during the Forgejo cutover.
 /compose/gitea/
 /compose/gitea-runner/
+
+# Local Cloudflare tunnel credentials and diagnostic/config exports
+**/.cloudflared/
+**/tunnel-token
+**/tunnel-token.*
+**/cloudflared-credentials*.json
+**/cloudflared-config.local.*
+**/cloudflared-diagnostics*/

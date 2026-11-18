@@ -12,9 +12,22 @@ OUTER provides WAN/firewall/WireGuard access and INNER provides LAN routing and 
 
 Deploy Forgejo 15.0.11 LTS with a fresh database and separate SD-backed state. Recreate the canonical GitHub pull mirror and transfer any local-only metadata through supported application migration. Replicate OCI images with digest preservation, and register a fresh restricted Forgejo runner. Preserve legacy Gitea data and manifests until acceptance and rollback checks are complete.
 
-Run Caddy on the controller for the initial hostname. Keep routers responsible for forwarding, firewall policy and DNS. Use an explicitly bound listener, persistent guarded certificate state, and a dedicated ingress network. Forgejo trusts only the configured Caddy container address for forwarded headers; proxy authentication remains disabled. Do not publish controller administration, cache, metrics or Docker endpoints.
+Run Caddy on the controller. Public Zulip uses an outbound cloudflared connector and an unpublished internal Caddy listener; routers retain firewall, routing, DNS, DDNS and WireGuard roles. A future private Forgejo HTTPS listener uses separate routing/state and trusts only its configured proxy. Do not publish Forgejo, controller administration, cache, metrics or Docker endpoints through the public tunnel.
 
-Use the registered domain independently from the product name, for example `git.<domain>`. Public reachability and private LAN/WireGuard access are separate deployment choices. The supplied Caddyfile is the public ACME profile; DNS-01/private access requires provider-specific follow-up.
+Keep public chat and private Git hostname policies separate. Cloudflare supplies public chat DNS and edge HTTPS; the controller tunnel requires no inbound web forwarding or chat DDNS. The legacy Forgejo Caddyfile is a reference ACME profile, not an authorized public Git endpoint. Private trusted certificates require DNS-01/provider-specific follow-up or a locally trusted private CA.
+
+## Public application ingress follow-up
+
+Public Zulip uses controller-hosted cloudflared and internal Caddy containers,
+with a remotely managed token supplied as a file secret. No host web ports or
+inbound router DNAT are published by that profile. Cloudflare manages the public
+chat DNS/edge HTTPS; unrelated DDNS/WireGuard stays independent. Forgejo remains
+private and is excluded from both public hostname routing and tunnel targets.
+The public profile shares neither the private Forgejo Docker network nor its
+state. Private Forgejo HTTPS remains a separate deployment choice.
+
+See [Cloudflare Tunnel deployment](../runbooks/cloudflared.md). Real hostnames,
+addresses, token values and account/tunnel identifiers stay outside Git.
 
 ## Consequences
 
