@@ -1,17 +1,21 @@
 # Gitea to Forgejo Migration
 
-Status: Forgejo initialized on LAN TCP/3002; administrator sign-in confirmed. Data transfer and final cutover pending.
+Status: Forgejo repository, OCI transfer, runner deployment and Git access verified on LAN TCP/3002. Final LAN cutover pending.
 Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 
-## Recorded progress — 2026-11-17
+## Recorded progress — 2026-11-18
 
 - [x] Consistent legacy checkpoint verified at `/srv/backups/gitea-before-forgejo-20261118T002504Z-6vyfHG`; both legacy services restarted.
 - [x] Off-device transfer archive checksum verified: `23b1545d587cef77b8c7cd931aa26b00c830a29d8178153b3693f69de42b7b53` for `gitea-forgejo-transfer-20261118T002504Z.tar.gz`; operator reports it stored in private `homelab-backups-collection`.
 - [x] Ignored legacy Compose directories restored after updating the controller checkout.
 - [x] `git.lab.home.arpa` and `forgejo.lab.home.arpa` resolve to `10.0.0.50`; staging ports selected as HTTP/3002 and SSH/2223.
 - [x] Forgejo installer completed; signed in as `ctalaveraw` at `http://forgejo.lab.home.arpa:3002/`.
-- [ ] Required repositories and metadata transferred; dashboard currently shows zero repositories.
-- [ ] OCI parity/retrieval, fresh runner, source parity and clone/SSH acceptance.
+- [x] Source inventory: one mirrored repository and one container package/version; no issues, PRs, comments, releases, attachments or LFS objects recorded. The legacy source repository was public; the intended Forgejo mirror is private.
+- [x] Forgejo mirror created as `ctalaveraw/arm-homelab-platform`; `platform-hello` copied from Gitea and associated with that repository.
+- [x] OCI tag `1ddd76c14a35f974d06dbd1ed7e3c4c14475c92d` retained; source/destination digest `sha256:f3c542d3bbc8599f83019263899c2396f6f7aadbda781f329d5a0fa17afaa61e` matched and full retrieval passed.
+- [x] Fresh runner deployed with Ansible (`ok=13`, `changed=3`, `failed=0`), moved to repository scope, and exercised by the native workflow. User-scoped registration removed.
+- [x] Controller local `main`, GitHub and Forgejo HTTP parity matched `eb84e2ec9c7d72bd99931350f018120b0ef5830f`; SSH read through alias `forgejo` returned the same HEAD/main.
+- [x] First TCP/3000 attempt safely rolled back after the anonymous version API returned HTTP 403. Staging `/api/healthz` then returned HTTP 200 with cache/database checks passing.
 - [ ] Legacy units disabled; Forgejo moved to LAN HTTP/3000; consumers updated and rollback checked.
 
 Use the existing verified checkpoint rather than repeating steps 1–3 on this controller. The [Forgejo reference map](forgejo-reference-map.md) lists every destination path, account and URL, including intentional legacy paths.
@@ -85,12 +89,14 @@ Populate the controller LAN bind addresses. Add an INNER DNS record for `forgejo
 
 ```bash
 .ci-venv/bin/ansible-playbook ansible/playbooks/02-forgejo.yml --ask-become-pass
-curl --fail --silent --show-error http://forgejo.lab.home.arpa:3002/api/v1/version
+curl --fail --silent --show-error http://forgejo.lab.home.arpa:3002/api/healthz
 ```
 
 Complete initial installation over the trusted LAN and create administrator `ctalaveraw`. The installer reserves `admin`; leave that username on the legacy source and use the new owner for Forgejo destinations. Self-registration is disabled and anonymous repository viewing requires sign-in. Forgejo remains LAN/WireGuard-only; do not add a WAN forwarding rule for it. Verify the UI reports Forgejo and the expected version; check unit/container logs if it does not become ready.
 
 The rootful image's default SQLite path `/data/gitea/gitea.db` belongs inside the new Forgejo `/data` mount. Keep this internal path; it is not permission to reuse `/srv/storage/state/services/gitea`.
+
+Use `/api/healthz` for readiness: require HTTP 200 and JSON `status: pass`. With `REQUIRE_SIGNIN_VIEW=true`, anonymous version API requests can return HTTP 403; this is an authentication rejection, not a suitable startup test. Keep sign-in protection enabled. Query `/api/v1/version` with authentication if version information is needed.
 
 ## 4. Populate source and application data
 
@@ -133,7 +139,7 @@ sudo install -d -o 10001 -g 10001 -m 0700 /srv/storage/state/services/forgejo-ru
 sudo install -o 10001 -g 10001 -m 0600 compose/forgejo-runner/runner.yml.example /srv/storage/state/services/forgejo-runner/runner.yml
 ```
 
-In the mirrored repository, enable Actions and create a new runner under **repository Settings → Actions → Runners**, not instance scope. Put its UUID/token into the private `runner.yml` with a local editor. The internal URL is `http://forgejo:3000/`; the label is `r5c-arm64-validation:host`. See [official registration](https://forgejo.org/docs/latest/admin/actions/registration/).
+In the mirrored repository, open **Settings → Units → Overview**, check **Actions** and save. Forgejo's default mirror units omit Actions. Then create a new runner under **repository Settings → Actions → Runners**; user, organization and instance registrations have broader scope. Put its UUID/token into the private `runner.yml` with a local editor. The internal URL is `http://forgejo:3000/`; the label is `r5c-arm64-validation:host`. See [official registration](https://forgejo.org/docs/latest/admin/actions/registration/).
 
 ```bash
 .ci-venv/bin/ansible-playbook ansible/playbooks/03-forgejo-runner.yml --ask-become-pass
@@ -144,6 +150,14 @@ Force mirror synchronization and confirm `.forgejo/workflows/platform-ci.yml` ru
 ## 7. Move LAN HTTP to port 3000
 
 Perform the data transfer and staging acceptance first. Freeze legacy writes during the final synchronization. The intended LAN endpoint after cutover is `http://git.lab.home.arpa:3000/`; `git.lab.home.arpa` must resolve to the controller. This port change does not transfer or alter application data.
+
+Before stopping services, verify the existing staging endpoint:
+
+```bash
+curl --noproxy '*' --fail --silent --show-error http://forgejo.lab.home.arpa:3002/api/healthz
+```
+
+Require HTTP 200 and JSON `status: pass` before proceeding. After restart, use the same health endpoint on TCP/3000; do not use an anonymous version API request as readiness.
 
 If the Forgejo runner has been installed, stop it first. Save a private copy of Forgejo's current `.env` before editing. Then stop the staged server and disable the old units so they cannot reclaim TCP/3000 after reboot:
 
@@ -167,7 +181,7 @@ Keep the LAN bind addresses, new state directory and SSH port unchanged. Validat
 ```bash
 docker-compose --env-file compose/forgejo/.env -f compose/forgejo/compose.yml config --quiet
 sudo systemctl start forgejo.service
-curl --fail --retry 10 --retry-connrefused --retry-delay 2 --max-time 3 http://git.lab.home.arpa:3000/api/v1/version
+curl --fail --retry 10 --retry-connrefused --retry-delay 2 --max-time 3 http://git.lab.home.arpa:3000/api/healthz
 ```
 
 Restart the Forgejo runner if installed. Its internal server URL `http://forgejo:3000/` is unchanged. Verify generated clone/package URLs, Git operations and OCI retrieval at the final LAN endpoint. Update Kuma, registry authfiles, fetch-only remotes, hooks and bookmarks for the final URL. GitHub/GHCR and Flux references remain unchanged.
