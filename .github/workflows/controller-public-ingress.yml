@@ -6,13 +6,21 @@ on:
     paths:
       - 'compose/caddy-public/**'
       - 'scripts/cloudflared/**'
+      - 'compose/zulip/**'
+      - 'scripts/zulip/**'
+      - 'ansible/playbooks/caddy-public.yml'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
+      - 'scripts/ci/tests/test_zulip_controller.py'
       - '.github/workflows/controller-public-ingress.yml'
   pull_request:
     paths:
       - 'compose/caddy-public/**'
       - 'scripts/cloudflared/**'
+      - 'compose/zulip/**'
+      - 'scripts/zulip/**'
+      - 'ansible/playbooks/caddy-public.yml'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
+      - 'scripts/ci/tests/test_zulip_controller.py'
       - '.github/workflows/controller-public-ingress.yml'
 
 permissions:
@@ -21,6 +29,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
     env:
       STATE_SERVICES_ROOT: /tmp/caddy-public-ci-state
       ZULIP_FQDN: chat.example.com
@@ -28,6 +37,13 @@ jobs:
       PUBLIC_INGRESS_SUBNET: 192.0.2.0/28
       CLOUDFLARED_CONTAINER_IP: 192.0.2.2
       CADDY_TUNNEL_IP: 192.0.2.3
+      ZULIP_PROXY_SUBNET: 198.51.100.0/28
+      CADDY_ZULIP_IP: 198.51.100.2
+      ZULIP_CONTAINER_IP: 198.51.100.3
+      ZULIP_ADMIN_EMAIL: admin@example.com
+      SMTP_HOST: smtp.example.com
+      SMTP_USER: ci@example.com
+      SMTP_FROM: ci@example.com
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,7 +52,7 @@ jobs:
       - run: python -m pip install 'PyYAML>=6,<7'
       - run: >-
           python -m unittest discover -s scripts/ci/tests
-          -p test_controller_public_ingress.py -v
+          -p 'test_*controller*.py' -v
       - name: Prepare noncredential CI fixture
         run: |
           mkdir -p \
@@ -45,6 +61,20 @@ jobs:
             "$STATE_SERVICES_ROOT/cloudflared"
           printf '%s' ci-not-a-real-token > "$STATE_SERVICES_ROOT/cloudflared/tunnel-token"
           chmod 0444 "$STATE_SERVICES_ROOT/cloudflared/tunnel-token"
+          python - <<'PY'
+          import os
+          import secrets
+          from pathlib import Path
+
+          root = Path(os.environ['STATE_SERVICES_ROOT']) / 'zulip'
+          for name in ('data', 'postgresql', 'rabbitmq', 'redis', 'secrets'):
+              (root / name).mkdir(parents=True)
+          for name in ('postgres_password', 'memcached_password', 'rabbitmq_password',
+                       'redis_password', 'secret_key', 'email_password'):
+              path = root / 'secrets' / name
+              path.write_text(secrets.token_hex(32))
+              path.chmod(0o444)
+          PY
       - name: Validate pinned container configurations
         run: |
           docker compose --env-file /dev/null \
@@ -63,3 +93,36 @@ jobs:
           docker cp caddy-binary:/usr/bin/caddy "$RUNNER_TEMP/caddy"
           docker rm caddy-binary
           python scripts/cloudflared/smoke-proxy.py --caddy "$RUNNER_TEMP/caddy"
+      - name: Validate the combined controller contract
+        run: |
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml \
+            config --format json > "$RUNNER_TEMP/zulip-project.json"
+          python - <<'PY'
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+
+          spec = importlib.util.spec_from_file_location('guard', 'compose/caddy-public/check-storage.py')
+          guard = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(guard)
+          guard.STATE = Path(os.environ['STATE_SERVICES_ROOT']) / 'caddy-public'
+          guard.TOKEN = Path(os.environ['STATE_SERVICES_ROOT']) / 'cloudflared/tunnel-token'
+          guard.ZULIP = Path(os.environ['STATE_SERVICES_ROOT']) / 'zulip'
+          guard.COMPOSE = Path('compose/caddy-public').resolve()
+          guard.validate_project(json.loads((Path(os.environ['RUNNER_TEMP']) / 'zulip-project.json').read_text()))
+          PY
+      - name: Initialize and health-check Zulip on ARM64
+        run: |
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml \
+            run --rm zulip app:init
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml \
+            up -d --wait --wait-timeout 900 zulip
+      - name: Clean up synthetic application containers
+        if: always()
+        run: |
+          docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml down

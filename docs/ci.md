@@ -85,4 +85,11 @@ only synthetic settings and a deliberately invalid CI file-secret fixture,
 checks the token-file CLI, and runs a loopback-only proxy smoke test.
 Regression tests protect unpublished ports, exact proxy trust, private Forgejo
 isolation, canonical SD credentials and non-echoing atomic token installation.
+The colocated overlay is rendered together with the base ingress manifest and
+checked against the runtime storage/network contract. ARM64 CI initializes the
+official Zulip image with disposable file credentials, starts the application
+and dependencies, and waits for the inherited application health check. It does
+not start an authenticated Cloudflare connection or send actual SMTP mail.
+Tests also cover exact Caddy-to-Zulip trust, memory/swap/storage minimums and
+preservation of the complete application credential set on reinitialization.
 No real deployment configuration, diagnostics or credentials are CI inputs.

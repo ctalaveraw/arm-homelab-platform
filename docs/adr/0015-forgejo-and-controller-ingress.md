@@ -18,13 +18,18 @@ Keep public chat and private Git hostname policies separate. Cloudflare supplies
 
 ## Public application ingress follow-up
 
-Public Zulip uses controller-hosted cloudflared and internal Caddy containers,
+Zulip and its own database/cache/queue stack run on the controller alongside
+cloudflared and internal Caddy containers,
 with a remotely managed token supplied as a file secret. No host web ports or
 inbound router DNAT are published by that profile. Cloudflare manages the public
 chat DNS/edge HTTPS; unrelated DDNS/WireGuard stays independent. Forgejo remains
 private and is excluded from both public hostname routing and tunnel targets.
 The public profile shares neither the private Forgejo Docker network nor its
 state. Private Forgejo HTTPS remains a separate deployment choice.
+
+The selected application profile is [Zulip on the controller](../runbooks/zulip-controller.md).
+It uses an unpublished internal Caddy-to-Zulip network, threaded workers and
+bounded resources; real workload capacity and recovery remain live checks.
 
 See [Cloudflare Tunnel deployment](../runbooks/cloudflared.md). Real hostnames,
 addresses, token values and account/tunnel identifiers stay outside Git.

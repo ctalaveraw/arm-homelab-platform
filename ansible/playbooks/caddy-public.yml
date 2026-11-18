@@ -19,6 +19,36 @@
         - caddy-public/data
         - caddy-public/config
         - cloudflared
+        - zulip
+
+    - name: Inspect Zulip data directories without changing service ownership
+      ansible.builtin.stat:
+        path: "/srv/storage/state/services/zulip/{{ item }}"
+      loop: [data, postgresql, rabbitmq, redis]
+      register: zulip_directories
+
+    - name: Create missing Zulip data directories
+      ansible.builtin.file:
+        path: "/srv/storage/state/services/zulip/{{ item.item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+      loop: "{{ zulip_directories.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: not item.stat.exists
+
+    - name: Install controller Zulip operator helpers
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/scripts/zulip/{{ item.source }}"
+        dest: "/usr/local/sbin/{{ item.target }}"
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - {source: init-secrets.py, target: zulip-init-secrets}
+        - {source: compose.sh, target: zulip-compose}
 
     - name: Install hidden-input token helper
       ansible.builtin.copy:

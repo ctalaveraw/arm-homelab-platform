@@ -11,6 +11,7 @@ A platform engineering lab for reproducible infrastructure, ARM64 application de
 | Local forge | Forgejo 15.0.11 LTS; new SD-backed state | Initial setup and administrator sign-in confirmed; mirror and OCI transfer pending |
 | Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Gitea runner; ARM64 validation and mirror push trigger |
 | Public app ingress | cloudflared 2026.11.1 → internal Caddy 2.11.9; no host ports | Configuration prepared; tunnel/app acceptance pending |
+| Chat application | Controller Zulip 13.2-0; private database/queue/caches | Placement selected; initialization and live acceptance pending |
 | Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |
 | Observability | Prometheus, Grafana, native exporters and read-only Kubernetes observer | Eight Prometheus targets and five dashboards |
 
@@ -20,7 +21,7 @@ GitHub remains the canonical source and external recovery copy. Forgejo provides
 
 The R5C remains outside the Kubernetes cluster. Ansible manages the host baseline and guarded systemd/Compose services. Persistent service state lives under `/srv/storage/state/services`; startup guards require the actual `storage_sdcard` ext4 filesystem and reject redirected or incorrect bind sources. Docker's own data root remains on eMMC.
 
-Public application ingress uses controller-hosted cloudflared and internal Caddy containers. Cloudflare Tunnel makes outbound connections; this profile needs no inbound web forwarding. Forgejo remains private and has no public Caddy/tunnel route. OUTER/INNER retain routing, firewall, DNS, WireGuard and unrelated DDNS roles. See [Cloudflare Tunnel deployment](docs/runbooks/cloudflared.md) and [domain ingress](docs/runbooks/domain-ingress.md).
+The selected profile runs Zulip, its database/queue/caches, cloudflared and internal Caddy in separate controller containers. Cloudflare Tunnel makes outbound connections; this profile needs no inbound web forwarding. Forgejo remains private and has no public Caddy/tunnel route. OUTER/INNER retain routing, firewall, DNS, WireGuard and unrelated DDNS roles. See [Cloudflare Tunnel deployment](docs/runbooks/cloudflared.md) and [domain ingress](docs/runbooks/domain-ingress.md).
 
 ## Forgejo migration
 
@@ -55,7 +56,7 @@ Copy the relevant `.env.example` files to local `.env` files. Local credentials,
 | `07-prometheus.yml`, `08-grafana.yml` | Bounded management observability |
 | `09-node-exporter.yml`, `10-pi-exporters.yml` | Host and Pi exporters |
 | `11-caddy.yml` | Separate private Forgejo HTTPS candidate; not a public tunnel target |
-| `caddy-public.yml` | Prepare controller tunnel/Caddy; explicit activation after local token setup |
+| `caddy-public.yml` | Prepare controller Zulip/tunnel/Caddy; explicit activation after local secrets setup |
 
 Systemd owns startup; Compose restart policies cannot bypass storage guards. Apply configuration changes with explicit restarts after reviewing them. Running a playbook with `state: started` does not recreate an already running container automatically.
 
@@ -78,6 +79,7 @@ GitHub-hosted ARM64 CI also validates the Caddyfile with the pinned Caddy image 
 - [Domain and HTTPS ingress](docs/runbooks/domain-ingress.md)
 - [Cloudflare Tunnel in Docker](docs/runbooks/cloudflared.md)
 - [Controller public application ingress](docs/runbooks/controller-public-ingress.md)
+- [Zulip on the controller](docs/runbooks/zulip-controller.md)
 - [Forgejo and controller ingress decision](docs/adr/0015-forgejo-and-controller-ingress.md)
 - [Engineering evidence ledger](docs/interview/engineering-evidence.md)
 - [Platform charter](docs/vision/platform-charter.md)

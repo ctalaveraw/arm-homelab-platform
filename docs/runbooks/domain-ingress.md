@@ -19,10 +19,10 @@ account/tunnel details stay local or in Cloudflare.
 | Responsibility | Selected behavior |
 | --- | --- |
 | Public DNS/HTTPS | Cloudflare tunnel-managed chat record and edge certificate |
-| Controller | Outbound connector and exact-host Caddy reverse proxy |
+| Controller | Zulip application/dependencies, outbound connector and exact-host Caddy |
 | OUTER/INNER | Existing routing/firewall, DNS, WireGuard and unrelated DDNS |
 | Chat LAN DNS | Resolve the public Cloudflare endpoint initially |
-| Application backend | Restricted endpoint reachable only by controller Caddy |
+| Application backend | Unpublished Zulip container on an internal Caddy proxy bridge |
 
 No inbound TCP 80/443 forwarding, residential chat DDNS, router application
 installation or direct chat-to-controller DNS override is needed by this path.
@@ -32,8 +32,8 @@ second public path while validating the tunnel.
 
 Cloudflare terminates client HTTPS; the connector link is encrypted, while its
 Caddy hop is HTTP on a private Docker bridge. Caddy forwards the HTTPS scheme
-and real client IP through an explicitly trusted connector peer. Secure the
-separate Caddy-to-backend hop according to that network's trust boundary.
+and real client IP through an explicitly trusted connector peer. The
+Caddy-to-Zulip hop uses a separate internal Docker bridge on the same controller.
 
 ## Private Forgejo HTTPS remains separate
 

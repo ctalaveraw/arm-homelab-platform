@@ -1,0 +1,168 @@
+---
+# Combine with compose/caddy-public/compose.yaml; this is not a standalone project.
+# Dependencies adapted from zulip/docker-zulip 13.2-0 (Apache-2.0).
+# See THIRD_PARTY.md and docker-zulip-LICENSE in this directory.
+x-zulip-service: &zulip-service
+  restart: "no"
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  server:
+    environment:
+      ZULIP_UPSTREAM: http://zulip:80
+    networks:
+      zulip_proxy:
+        ipv4_address: "${CADDY_ZULIP_IP:?Set CADDY_ZULIP_IP}"
+
+  database:
+    <<: *zulip-service
+    image: zulip/zulip-postgresql:14
+    mem_limit: 384m
+    secrets: [zulip__postgres_password]
+    environment:
+      POSTGRES_DB: zulip
+      POSTGRES_USER: zulip
+      POSTGRES_PASSWORD_FILE: /run/secrets/zulip__postgres_password
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/postgresql"
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: false
+    networks: [zulip_backend]
+
+  memcached:
+    <<: *zulip-service
+    image: memcached:alpine
+    mem_limit: 128m
+    command:
+      - sh
+      - -euc
+      - |
+        echo 'mech_list: plain' > "$$SASL_CONF_PATH"
+        echo "zulip@$$HOSTNAME:$$(cat $$MEMCACHED_PASSWORD_FILE)" > "$$MEMCACHED_SASL_PWDB"
+        echo "zulip@localhost:$$(cat $$MEMCACHED_PASSWORD_FILE)" >> "$$MEMCACHED_SASL_PWDB"
+        exec memcached -S -m 64
+    secrets: [zulip__memcached_password]
+    environment:
+      SASL_CONF_PATH: /home/memcache/memcached.conf
+      MEMCACHED_SASL_PWDB: /home/memcache/memcached-sasl-db
+      MEMCACHED_PASSWORD_FILE: /run/secrets/zulip__memcached_password
+    networks: [zulip_backend]
+
+  rabbitmq:
+    <<: *zulip-service
+    image: rabbitmq:4.2
+    mem_limit: 384m
+    command:
+      - sh
+      - -euc
+      - |
+        export RABBITMQ_DEFAULT_PASS="$$(cat $$RABBITMQ_PASSWORD_FILE)"
+        echo 'default_user = $$(RABBITMQ_DEFAULT_USER)' >> /etc/rabbitmq/rabbitmq.conf
+        echo 'default_pass = $$(RABBITMQ_DEFAULT_PASS)' >> /etc/rabbitmq/rabbitmq.conf
+        exec docker-entrypoint.sh rabbitmq-server
+    secrets: [zulip__rabbitmq_password]
+    environment:
+      RABBITMQ_DEFAULT_USER: zulip
+      RABBITMQ_PASSWORD_FILE: /run/secrets/zulip__rabbitmq_password
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/rabbitmq"
+        target: /var/lib/rabbitmq
+        bind:
+          create_host_path: false
+    networks: [zulip_backend]
+
+  redis:
+    <<: *zulip-service
+    image: redis:alpine
+    mem_limit: 128m
+    command:
+      - sh
+      - -euc
+      - 'exec /usr/local/bin/docker-entrypoint.sh --requirepass "$$(cat $$REDIS_PASSWORD_FILE)"'
+    secrets: [zulip__redis_password]
+    environment:
+      REDIS_PASSWORD_FILE: /run/secrets/zulip__redis_password
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/redis"
+        target: /data
+        bind:
+          create_host_path: false
+    networks: [zulip_backend]
+
+  zulip:
+    <<: *zulip-service
+    image: ghcr.io/zulip/zulip-server:13.2-0
+    mem_limit: 1536m
+    secrets:
+      - zulip__postgres_password
+      - zulip__memcached_password
+      - zulip__rabbitmq_password
+      - zulip__redis_password
+      - zulip__secret_key
+      - zulip__email_password
+    environment:
+      SETTING_EXTERNAL_HOST: "${ZULIP_FQDN:?Set ZULIP_FQDN}"
+      SETTING_ZULIP_ADMINISTRATOR: "${ZULIP_ADMIN_EMAIL:?Set ZULIP_ADMIN_EMAIL}"
+      SETTING_OPEN_REALM_CREATION: "False"
+      SETTING_REMOTE_POSTGRES_HOST: database
+      SETTING_MEMCACHED_LOCATION: memcached:11211
+      SETTING_RABBITMQ_HOST: rabbitmq
+      SETTING_REDIS_HOST: redis
+      LOADBALANCER_IPS: "${CADDY_ZULIP_IP:?Set CADDY_ZULIP_IP}"
+      TRUST_GATEWAY_IP: "False"
+      CONFIG_application_server__queue_workers_multiprocess: "False"
+      SETTING_EMAIL_HOST: "${SMTP_HOST:?Set SMTP_HOST}"
+      SETTING_EMAIL_HOST_USER: "${SMTP_USER:?Set SMTP_USER}"
+      SETTING_EMAIL_PORT: "587"
+      SETTING_EMAIL_USE_TLS: "True"
+      SETTING_EMAIL_USE_SSL: "False"
+      SETTING_NOREPLY_EMAIL_ADDRESS: "${SMTP_FROM:?Set SMTP_FROM}"
+    volumes:
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/data"
+        target: /data
+        bind:
+          create_host_path: false
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1048576
+    depends_on: [database, memcached, rabbitmq, redis]
+    # The official image's /health probe is inherited, including its start grace.
+    networks:
+      zulip_proxy:
+        ipv4_address: "${ZULIP_CONTAINER_IP:?Set ZULIP_CONTAINER_IP}"
+      zulip_backend: {}
+      zulip_egress: {}
+
+networks:
+  zulip_proxy:
+    internal: true
+    ipam:
+      config:
+        - subnet: "${ZULIP_PROXY_SUBNET:?Set ZULIP_PROXY_SUBNET}"
+  zulip_backend:
+    internal: true
+  zulip_egress: {}
+
+secrets:
+  zulip__postgres_password:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/postgres_password"
+  zulip__memcached_password:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/memcached_password"
+  zulip__rabbitmq_password:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/rabbitmq_password"
+  zulip__redis_password:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/redis_password"
+  zulip__secret_key:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/secret_key"
+  zulip__email_password:
+    file: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/zulip/secrets/email_password"
