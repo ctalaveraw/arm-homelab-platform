@@ -1,0 +1,10 @@
+{
+	email {$ACME_EMAIL}
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$ZULIP_FQDN} {
+	reverse_proxy {$ZULIP_UPSTREAM}
+}

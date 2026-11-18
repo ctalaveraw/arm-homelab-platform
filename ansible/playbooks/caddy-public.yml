@@ -1,0 +1,64 @@
+---
+- import_playbook: 00-preflight.yml
+
+- name: Configure controller public application ingress
+  hosts: management
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Inspect legacy Forgejo ingress unit
+      ansible.builtin.command:
+        argv: [/usr/bin/systemctl, is-active, caddy.service]
+      register: private_caddy
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Require explicit listener ownership
+      ansible.builtin.assert:
+        that:
+          - private_caddy.stdout | trim not in ['active', 'activating', 'reloading']
+        fail_msg: >-
+          caddy.service uses a Forgejo routing profile. Resolve listener ownership
+          before activating public Caddy; never forward WAN to the Forgejo profile.
+
+    - name: Prepare public certificate storage
+      ansible.builtin.file:
+        path: "/srv/storage/state/services/caddy-public/{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+      loop: ['', data, config]
+
+    - name: Install public ingress storage guard
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/caddy-public/check-storage.py"
+        dest: /usr/local/sbin/caddy-public-check-storage
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install public ingress lifecycle unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir | dirname | dirname }}/compose/caddy-public/caddy-public.service"
+        dest: /etc/systemd/system/caddy-public.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Apply pending unit changes
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable and start controller public ingress
+      ansible.builtin.systemd_service:
+        name: caddy-public.service
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd_service:
+        daemon_reload: true

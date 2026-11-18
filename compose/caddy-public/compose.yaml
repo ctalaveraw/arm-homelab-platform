@@ -1,0 +1,44 @@
+---
+name: caddy-public
+
+services:
+  server:
+    image: caddy:2.11.9-alpine
+    restart: "no"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      ZULIP_FQDN: "${ZULIP_FQDN:?Set ZULIP_FQDN}"
+      ZULIP_UPSTREAM: "${ZULIP_UPSTREAM:?Set ZULIP_UPSTREAM}"
+      ACME_EMAIL: "${ACME_EMAIL:?Set ACME_EMAIL}"
+    ports:
+      - "${PROXY_BIND_IP:?Set PROXY_BIND_IP}:80:80/tcp"
+      - "${PROXY_BIND_IP:?Set PROXY_BIND_IP}:443:443/tcp"
+    volumes:
+      - type: bind
+        source: ./Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/caddy-public/data"
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/caddy-public/config"
+        target: /config
+        bind:
+          create_host_path: false
+    tmpfs: [/tmp]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

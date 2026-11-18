@@ -1,0 +1,12 @@
+---
+# Copy next to the earlier homelab-zulip bundle's compose.yaml.
+# Use BOTH files for every app lifecycle command. Caddy runs on the controller.
+services:
+  caddy:
+    profiles: [legacy-collocated-ingress]
+  zulip:
+    ports:
+      - "${ZULIP_BIND_IPV4:?Set ZULIP_BIND_IPV4}:8080:80/tcp"
+    environment:
+      LOADBALANCER_IPS: "${CONTROLLER_PROXY_IPV4:?Set CONTROLLER_PROXY_IPV4}"
+      TRUST_GATEWAY_IP: "False"

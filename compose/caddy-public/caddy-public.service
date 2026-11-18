@@ -1,0 +1,21 @@
+[Unit]
+Description=Caddy - public application ingress on GitOps controller
+Documentation=https://caddyserver.com/docs/
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+RequiresMountsFor=/srv/storage/state/services/caddy-public
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/platform/compose/caddy-public
+ExecStartPre=/usr/local/sbin/caddy-public-check-storage
+ExecStartPre=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml run --rm --no-deps server caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecStart=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml up -d
+ExecStop=/usr/bin/docker-compose --env-file /srv/platform/compose/caddy-public/.env -f /srv/platform/compose/caddy-public/compose.yaml down
+TimeoutStartSec=300
+TimeoutStopSec=90
+
+[Install]
+WantedBy=multi-user.target
