@@ -29,6 +29,13 @@ def run(argv):
     return subprocess.run(argv, capture_output=True, text=True, check=False)
 
 
+def guarded_bind(volume):
+    # Compose v2 serializes explicit false as bind: {}; v5 keeps the false key.
+    # An absent bind object or explicit true must still fail closed.
+    options = volume.get("bind")
+    return isinstance(options, dict) and options.get("create_host_path", False) is False
+
+
 def validate_secret(path=TOKEN):
     if path.is_symlink() or path.resolve() != path:
         fail("Tunnel token storage is redirected")
@@ -79,7 +86,7 @@ def validate_project(project):
         source, readonly = expected.get(volume.get("target"), (None, None))
         if (volume.get("source") != source or volume.get("type") != "bind"
                 or volume.get("read_only", False) != readonly
-                or volume.get("bind", {}).get("create_host_path", True) is not False):
+                or not guarded_bind(volume)):
             fail("Compose persistence violates the SD storage contract")
     connector = services["cloudflared"]
     if connector.get("volumes") or connector.get("user") != "65532:65532":
@@ -141,7 +148,7 @@ def validate_zulip(project, tunnel_subnet):
         mount = mounts[0]
         if (mount.get("type") != "bind" or mount.get("source") != str(ZULIP / folder)
                 or mount.get("target") != target or mount.get("read_only", False)
-                or mount.get("bind", {}).get("create_host_path", True) is not False):
+                or not guarded_bind(mount)):
             fail("Zulip persistence violates the SD storage contract")
     for name in ZULIP_SECRETS:
         if project.get("secrets", {}).get("zulip__" + name, {}).get("file") != str(ZULIP / "secrets" / name):

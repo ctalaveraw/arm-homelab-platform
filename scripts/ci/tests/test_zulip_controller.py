@@ -49,6 +49,24 @@ def colocated_project():
 
 
 class ColocatedZulipTests(unittest.TestCase):
+    def test_accepts_compose_v2_omitted_false_in_explicit_bind_object(self):
+        project = colocated_project()
+        for service in project["services"].values():
+            for volume in service.get("volumes", []):
+                volume["bind"] = {}
+        GUARD.validate_project(project)
+
+    def test_rejects_automatic_or_unspecified_bind_path_creation(self):
+        for bind in (None, {"create_host_path": True}):
+            project = colocated_project()
+            volume = project["services"]["zulip"]["volumes"][0]
+            if bind is None:
+                del volume["bind"]
+            else:
+                volume["bind"] = bind
+            with self.subTest(bind=bind), self.assertRaisesRegex(SystemExit, "SD storage"):
+                GUARD.validate_project(project)
+
     def test_accepts_private_colocated_project_without_host_listeners(self):
         project = colocated_project()
         GUARD.validate_project(project)
