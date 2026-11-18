@@ -25,7 +25,8 @@ See the [migration runbook](runbooks/gitea-to-forgejo.md) and [current path/URL 
   - [x] New-owner OCI digest parity, full retrieval and package association verified during staging
   - [x] Fresh repository-scoped runner deployed and native workflow exercised
   - [x] Legacy units stopped/disabled; Forgejo LAN HTTP/3000 health passed and runner active
-  - [ ] Final-address Git/OCI access, generated URLs, destination privacy and monitoring confirmed; native workflow final success recorded
+  - [x] Final-address OCI login and complete artifact retrieval passed at LAN TCP/3000
+  - [ ] Final-address Git access, generated URLs, destination privacy and monitoring confirmed; native workflow final success recorded
   - [ ] Remaining repository refs/metadata accounted for and rollback reviewed before retiring retained state
 - [ ] OPS-007: Deploy and verify the first HTTPS route; other management routes remain pending
 

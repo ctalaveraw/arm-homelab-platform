@@ -18,7 +18,8 @@ Recorded source: Gitea 1.27.3. Target: Forgejo 15.0.11 LTS.
 - [x] First TCP/3000 attempt safely rolled back after the anonymous version API returned HTTP 403. Staging `/api/healthz` then returned HTTP 200 with cache/database checks passing.
 - [x] Legacy units stopped and disabled; Forgejo `/api/healthz` passed at `http://git.lab.home.arpa:3000/`; runner active after the successful retry.
 - [x] Port-change rollback checkpoint retained at `/srv/backups/forgejo-port3000-retry-fEuVxI`. Initial connection refusals during startup were followed by a passing health check.
-- [ ] Final-address Git/OCI access, generated URLs and monitoring confirmed; native workflow's final successful conclusion recorded.
+- [x] Final-address OCI login and full retrieval passed at `git.lab.home.arpa:3000` for the same qualified digest; no artifact rebuild or re-copy was needed.
+- [ ] Final-address Git access, generated URLs and monitoring confirmed; native workflow's final successful conclusion recorded.
 
 The source, parity and registry results above were measured during staging; the final cutover result proves HTTP health and service activation. Use the [consumer checks](forgejo-reference-map.md#update-consumers-after-transfer) to finish at the new address. The steps below remain the reusable migration/rollback procedure; this controller has already completed the port change and should keep its existing local `.env` and separate state.
 
@@ -206,7 +207,8 @@ Forgejo remains LAN/WireGuard-only. Follow the private-access sections of [domai
 - [x] Required OCI digest parity, full retrieval and package association passed during staging.
 - [x] Forgejo final LAN TCP/3000 health passed; runner service active.
 - [x] Legacy Gitea units stopped and disabled, releasing TCP/3000.
-- [ ] Final-address Git access, OCI retrieval and generated root/clone/package URLs agree.
+- [x] Final-address OCI retrieval passed at LAN TCP/3000 with the preserved digest.
+- [ ] Final-address Git access and generated root/clone/package URLs agree.
 - [ ] GitHub mirror synchronization and native Forgejo validation have a recorded final successful result.
 - [ ] Availability checks and alerts now target Forgejo accurately.
 - [ ] Both new service lifecycles and guarded storage behavior checked on the host.
