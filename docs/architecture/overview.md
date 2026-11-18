@@ -1,10 +1,10 @@
 # Platform Architecture
 
-Updated 2026-11-17. Forgejo initial setup and sign-in as `ctalaveraw` are confirmed on LAN TCP/3002. Repository/data transfer, registry, runner and final LAN TCP/3000 acceptance remain pending. Caddy is prepared but not accepted. The [migration runbook](../runbooks/gitea-to-forgejo.md) tracks the transition; the [reference map](../runbooks/forgejo-reference-map.md) lists current names, paths and URLs.
+Updated 2026-11-18. Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active repository-scoped runner. The mirror and linked OCI artifact passed staging checks; final client and monitoring checks at the new address remain. Private Forgejo HTTPS is separate follow-up work. The [migration runbook](../runbooks/gitea-to-forgejo.md) records the evidence and rollback; the [reference map](../runbooks/forgejo-reference-map.md) lists current names, paths and URLs.
 
 ## Source and recovery
 
-GitHub is canonical, with protected `main` and PR-based changes. The local Forgejo repository will be a private pull mirror under `ctalaveraw/arm-homelab-platform`; it has not yet been populated. Recovery must remain possible without the R5C, its forge, Kubernetes or a future local secret service.
+GitHub is canonical, with protected `main` and PR-based changes. The local Forgejo pull mirror is populated under `ctalaveraw/arm-homelab-platform`; its intended visibility is private. Controller-local, GitHub and Forgejo `main` matched during staging, and Forgejo SSH read succeeded. Recovery must remain possible without the R5C, its forge, Kubernetes or a future local secret service.
 
 The fetch-only `forgejo` remote and `scripts/ops/check-source-parity.sh` compare GitHub, Forgejo and controller-local `main`. A successful check proves commit convergence, not backup completeness. Existing Gitea mirror acceptance remains recorded in the historical sprint reports.
 
@@ -25,7 +25,7 @@ All listed state paths are relative to `/srv/storage/state`. The actual ext4 fil
 
 ## Ingress placement
 
-Forgejo stays LAN/WireGuard-only. Its staging URL is `http://forgejo.lab.home.arpa:3002/`; the final LAN URL is `http://git.lab.home.arpa:3000/` after the legacy units are stopped and disabled. Git SSH remains LAN TCP/2223. Registered-domain HTTPS is optional follow-up work; public Zulip ingress is separate.
+Forgejo stays LAN/WireGuard-only at `http://git.lab.home.arpa:3000/`; the legacy units are stopped and disabled. The earlier `http://forgejo.lab.home.arpa:3002/` address was used for parallel migration. Git SSH remains LAN TCP/2223. Registered-domain HTTPS is optional follow-up work; public Zulip ingress is separate.
 
 | System | Responsibility |
 | --- | --- |
@@ -52,6 +52,6 @@ Flux pulls canonical Git desired state and reconciles only the selected applicat
 
 Prometheus and Grafana run outside Kubernetes with bounded retention/storage. Native exporters cover the R5C and three physical Pi hosts. A separate read-only TLS observer scrapes the Kubernetes API and Flux metrics through constrained RBAC. Historical evidence records eight healthy targets and five provisioned dashboards.
 
-Revalidate mirror synchronization, runner execution, OCI parity, monitor targets and source parity on Forgejo. Both LAN forge names resolve to `10.0.0.50`; private HTTPS remains pending. No public Forgejo forwarding is needed. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
+Staging acceptance recorded main-branch parity, SSH read, OCI digest parity and complete artifact retrieval, plus deployment and native workflow execution on the new runner. After the successful HTTP/3000 cutover, update client addresses and Kuma's health monitor, repeat Git/OCI access at the final address and confirm the native workflow's final result. Both LAN forge names resolve to `10.0.0.50`; private HTTPS remains pending. No public Forgejo forwarding is needed. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
 
 Historical records: [native CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md), [telemetry](../sprints/14-kubernetes-flux-telemetry.md).

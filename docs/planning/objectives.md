@@ -141,7 +141,7 @@ The user-approved target is **ARM-first portable**, **separate approval-gated op
 |---|---|---|---|---|
 | **PORT-001 — Environment contracts and capability matrix** | Planned | ARM primary and second target declare inventory, OS/arch, DNS, storage, K8s, secret and test requirements. | ENG-003 | P |
 | **PORT-002 — Proxmox Terraform reference lab** | Evaluate | Terraform provisions isolated test VMs/network; Ansible configures OS; Flux app authority unchanged. | PORT-001, DR-001 | S |
-| **PORT-003 — Forgejo migration** | In progress (initial setup complete) | Separate state and administrator `ctalaveraw` initialized; verify repository/metadata transfer, OCI digest parity, fresh runner, final LAN TCP/3000 consumers and tested rollback. See the [current reference map](../runbooks/forgejo-reference-map.md). | ADR-0015 | S/H |
+| **PORT-003 — Forgejo migration** | In progress (LAN cutover passed) | Separate state, mirror, linked OCI artifact, staging main/SSH/digest/retrieval checks and fresh runner recorded; LAN TCP/3000 health and runner active, legacy units disabled. Confirm final clients/monitoring, native workflow conclusion, remaining refs/permissions and retirement/rollback acceptance. See the [current reference map](../runbooks/forgejo-reference-map.md). | ADR-0015 | S/H |
 | **PORT-004 — IaC state and provider trust** | Planned | Remote/local state protection, locking, secret handling, drift and destruction guardrails tested. | PORT-002 | S |
 | **PORT-005 — Scale-out and multi-site test** | Evaluate | Multiple worker/site targets without cross-environment secret, runner or GitOps ownership bleed. | PORT-001, REL-003 | S/H |
 

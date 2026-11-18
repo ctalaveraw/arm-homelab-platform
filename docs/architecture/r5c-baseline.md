@@ -131,8 +131,8 @@ Since the baseline:
 
 See [the current architecture overview](overview.md) for the live design.
 
-## Forgejo delta — 2026-11-17
+## Forgejo delta — 2026-11-18
 
-Forgejo is initialized on separate state at `/srv/storage/state/services/forgejo`. Administrator `ctalaveraw` can sign in at `http://forgejo.lab.home.arpa:3002/`; the dashboard shows zero repositories. Source/data transfer, local OCI, the new runner and final LAN `http://git.lab.home.arpa:3000/` acceptance remain pending. The October checklist and implementation results above describe the earlier Gitea baseline.
+Forgejo serves `http://git.lab.home.arpa:3000/` from separate state at `/srv/storage/state/services/forgejo`, with administrator and destination owner `ctalaveraw`. HTTP health passed after cutover, SSH remains on `2223`, and the new runner service is active. The mirror, linked `platform-hello` package, main-branch parity, SSH read, OCI digest identity and full artifact retrieval were verified during staging. Legacy Gitea units are stopped and disabled; final client and monitoring checks remain. The October checklist and implementation results above describe the earlier Gitea baseline.
 
 Current playbooks are `02-forgejo.yml` and `03-forgejo-runner.yml`; current lifecycle units are `forgejo.service` and `forgejo-runner.service`. Use the [reference map](../runbooks/forgejo-reference-map.md) for complete file/host paths, owner URLs and the guarded port cutover. Preserve old state and backups for rollback.

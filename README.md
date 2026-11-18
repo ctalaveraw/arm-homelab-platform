@@ -4,12 +4,12 @@
 
 A platform engineering lab for reproducible infrastructure, ARM64 application delivery, observability and recovery.
 
-**Deployment transition — 2026-11-17:** Forgejo is initialized on the independent NanoPi R5C (`gitops-controller-01`) at `http://forgejo.lab.home.arpa:3002/`, with administrator `ctalaveraw`. The dashboard shows zero repositories. Repository transfer, OCI replication, Forgejo runner acceptance and the final LAN port `3000` cutover remain pending. The [migration runbook](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md) define the remaining work and rollback.
+**Deployment status — 2026-11-18:** Forgejo is healthy on the independent NanoPi R5C (`gitops-controller-01`) at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw` and SSH on `2223`. The GitHub mirror and linked `platform-hello` package were transferred and verified during staging; the repository-scoped runner is active. Legacy Gitea units are stopped and disabled, with separate state retained for rollback. Final client and monitoring checks at the new address remain. See the [migration record](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md).
 
 | Component | Repository configuration | Last recorded runtime evidence |
 | --- | --- | --- |
-| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | Initial setup and administrator sign-in confirmed; mirror and OCI transfer pending |
-| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Gitea runner; ARM64 validation and mirror push trigger |
+| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | LAN HTTP/3000 health passed; mirror parity, SSH read and complete OCI retrieval passed during staging |
+| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Ansible deployment passed; native workflow exercised; service active after cutover |
 | Public app ingress | cloudflared 2026.11.1 → internal Caddy 2.11.9; no host ports | Configuration prepared; tunnel/app acceptance pending |
 | Chat application | Controller Zulip 13.2-0; private database/queue/caches | Placement selected; initialization and live acceptance pending |
 | Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |
@@ -25,7 +25,7 @@ The selected profile runs Zulip, its database/queue/caches, cloudflared and inte
 
 ## Forgejo migration
 
-Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo uses a new `/srv/storage/state/services/forgejo` directory and temporary HTTP/SSH ports `3002`/`2223`. After validation, Forgejo takes over LAN HTTP port `3000` with an explicit root-URL/container restart and the old Gitea units disabled. Existing Gitea state, credentials and runner identity must not be copied into it.
+Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo was initialized in a new `/srv/storage/state/services/forgejo` directory beside Gitea on HTTP/3002. The verified mirror and OCI artifact remain in that same new state while Forgejo serves LAN HTTP/3000 and SSH/2223. The old Gitea units are disabled. Existing Gitea state, credentials and runner identity must not be copied into Forgejo.
 
 Follow the [migration runbook](docs/runbooks/gitea-to-forgejo.md) to:
 
@@ -43,6 +43,8 @@ Historical sprint reports, incidents and screenshots retain their original Gitea
 ## Configuration and lifecycle
 
 Copy the relevant `.env.example` files to local `.env` files. Local credentials, runner configuration and private keys are excluded from Git. Ansible playbooks run from the controller checkout at `/srv/platform`.
+
+The Forgejo example retains the parallel-migration settings. The live controller's local `.env` instead uses `FORGEJO_FQDN=git.lab.home.arpa`, `FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/` and `FORGEJO_HTTP_PORT=3000`; SSH remains `2223`.
 
 | Playbook | Responsibility |
 | --- | --- |
