@@ -5,7 +5,7 @@ Date: 2026-10-10
 
 ## Context
 
-CI currently validates source/Compose/Ansible, builds once, tests the image, scans with Trivy, transfers across verified jobs and publishes to GHCR. Same-digest replication was proven on Gitea, and Flux reconciliation is proven. Forgejo is the current local registry target; repeat parity/retrieval and package association using the [new owner and paths](../runbooks/forgejo-reference-map.md). Vulnerability scan output and immutable digests do not themselves prove trusted builder identity, SBOM provenance, admission policy or a comprehensive vulnerability response process.
+CI currently validates source/Compose/Ansible, builds once, tests the image, scans with Trivy, transfers across verified jobs and publishes to GHCR. Flux reconciliation and OCI digest preservation are verified. The transferred Forgejo package passed full retrieval and repository association under the [current owner and paths](../runbooks/forgejo-reference-map.md). Builder identity, SBOM/provenance, admission policy and vulnerability response still need implementation and testing.
 
 ## Decision
 

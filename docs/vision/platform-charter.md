@@ -1,73 +1,69 @@
-# Platform charter — ARM-first, portable DevSecOps platform
+# Platform charter
 
-**2026-11-18 amendment:** Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active runner. The mirror and linked OCI artifact were transferred under owner `ctalaveraw` and verified during staging; legacy units are stopped and disabled. Post-cutover source parity, OCI retrieval, native Actions and Kuma availability now pass; retirement and remaining permission/metadata review stay in the migration checklist. The recorded Gitea baseline remains historical; the [migration runbook](../runbooks/gitea-to-forgejo.md) and [reference map](../runbooks/forgejo-reference-map.md) define current paths, owner URLs and rollback.
-
-**Status:** Approved planning direction (2026-10-10); individual capabilities remain unimplemented until verified.
-**Purpose:** Define the destination without overstating today's evidence.
+Approved direction: 2026-10-10. Current deployment reviewed: 2026-11-18.
 
 ## Mission
 
-Build an ARM-first, security-conscious platform engineering reference architecture that can be rebuilt, operated and defended by another engineer, and later exercised on Proxmox/VMs or other environments. It must demonstrate the complete change, build, supply-chain, delivery, runtime, incident and recovery lifecycles—not merely install infrastructure products.
+Build an ARM64 platform that another operator can configure, deploy, diagnose and recover using this repository and protected recovery material. A second environment, such as Proxmox, should be able to reuse the same source, artifact and deployment contracts.
 
-## Principles
+## Current implemented baseline
 
-1. **Working evidence over tool count.** Each capability has a failing/negative test, a positive test and durable evidence appropriate to its risk. Never call a proposed control deployed.
-2. **One authority for each desired state.** GitHub protected main owns canonical source; Flux reconciles selected Kubernetes application resources; Ansible converges host and out-of-cluster management services; systemd owns guarded service startup; privileged Kubernetes bootstrap stays separate.
-3. **Independent recovery root.** A lost R5C, Forgejo service, Kubernetes control plane or OpenBao must not make its own recovery impossible. Public Git, trusted bootstrap instructions and encrypted off-device recovery material remain independently accessible.
-4. **Build once; promote identities, not rebuilds.** Validate, test and scan the same artifact; preserve OCI digest, record provenance and verify release-policy decisions before promotion.
-5. **Untrusted and privileged execution must be separate.** Public/PR CI has no homelab management credential. A future approved operations runner has distinct identity, trusted inputs, bounded commands and audited changes.
-6. **Secure defaults, explicit exceptions.** Risk-adjusted progressive enforcement; approved exceptions require owner, evidence, expiry and reassessment. No unbounded permanent waivers.
-7. **Portability by interfaces, not lowest-common-denominator technology.** Keep target inventory, artifact identity, configuration and lifecycle contracts stable; permit site-specific adapters. ARM-first is not ARM-only.
-8. **Small increments and no split brain.** One active milestone at a time; backlog ideas do not silently expand its scope. PR checks may be portable, simulated or physical-lab required, and those distinctions must remain visible.
-9. **Operational transparency.** Logs/metrics/security findings should answer who changed what, which digest runs, why it was allowed, what failed and how to restore it.
-10. **Human-maintainable delivery.** Choose Bash for short CLI glue, Python for structured logic, Ansible for convergence, Flux for app reconciliation, and dedicated testing for policy. Prefer simple interfaces over clever frameworks.
+- GitHub owns protected source; Forgejo provides the local pull mirror, repository-scoped validation and OCI distribution.
+- The R5C manages services independently of Kubernetes. Ansible configures the host; systemd checks SD storage before Compose startup.
+- GitHub and physical ARM64 workers validate the repository. CI builds, tests and scans one image, verifies its transfer and publishes it to GHCR.
+- Flux reconciles the application namespace from GitHub. Scoped deployment access, drift correction, suspend/resume and failed-rollout recovery have been tested.
+- Forgejo migration checks passed for source parity, SSH, OCI retrieval and manual/push native workflows. Kuma now targets its health endpoint.
+- Host, Kubernetes API and Flux telemetry are deployed. Wider service coverage, alerts, restore and blank-host reconstruction remain open.
 
-## Current implemented baseline (as of charter adoption)
+Use the [architecture](../architecture/overview.md), [migration record](../runbooks/gitea-to-forgejo.md) and [evidence ledger](../interview/engineering-evidence.md) for implementation details.
 
-- GitHub canonical with protected main and CI; Gitea private one-way mirror; independent R5C.
-- Guarded SD-backed management services and Ansible-managed service lifecycle.
-- Hosted and physical ARM64 validation; immutable image built/tested/scanned once and published to GHCR.
-- Exact digest replication and retrieval from Gitea OCI.
-- Scoped Kubernetes identity, immutable deployment and controlled failed-rollout recovery.
-- Hardened Flux with a namespace-scoped application reconciler; drift, Git propagation and suspend/resume proven.
+## Operating principles
 
-This baseline **does not** prove a fresh-metal rebuild, production-like secrets lifecycle, artifact attestations, complete admission policy, runtime security, dependable 4h/1h recovery, or service-level observability. See [existing evidence](../interview/engineering-evidence.md), [objective register](../planning/objectives.md) and [roadmap](../roadmap.md).
+1. Give each resource one owner: GitHub for source, Flux for application desired state, Ansible for host configuration and systemd for service startup.
+2. Keep recovery source, credentials and decryption keys accessible when the local forge, cluster or secret service is down.
+3. Test and scan the image that will be published. Preserve its digest through replication and deployment.
+4. Keep public PR execution separate from privileged operations. A future operations runner needs its own identity, reviewed inputs, approval, timeouts and audit records.
+5. Record security exceptions with an owner, reason, scope and expiry. Test both allowed and denied operations.
+6. Add target-specific inventory and adapters where required. Keep shared artifact and interface contracts consistent.
+7. Finish one milestone before starting another. Record whether a result came from portable tests, simulation or the physical lab.
+8. Choose small scripts for command orchestration, Python for structured logic, Ansible for host configuration and Flux for application reconciliation.
 
 ## Target delivery streams
 
-| Stream | Authority | Target evidence |
-|---|---|---|
-| Source governance and developer workflows | Protected GitHub | Enforced approvals, reproducible and policy-checked changes |
-| Portable CI and testing | GitHub Actions; restricted Forgejo validation | Unit/integration, security and platform contract checks without the lab |
-| Build and artifact supply chain | Build/publish jobs and registries | SBOM, provenance, digest identity, signatures, verified promotion |
-| Kubernetes applications | Flux plus scoped ServiceAccounts | Drift correction, policy enforcement, readiness and rollback |
-| Host and management plane | Ansible plus systemd | Safe idempotence, startup gates, credential-separated maintenance |
-| Local approved operations | Separate trusted operations runner (future) | Signed/approved inputs, bounded changes, audit and recovery independence |
-| Runtime reliability and security | Metrics/logs/alerts, security sensors and operator | Actionable incidents, containment and evidence |
-| Secrets/identity | OpenBao for routine use, external recovery trust root | Bootstrap, rotation, revocation, TTL and compromise testing |
-| Recovery | Off-device encrypted backups and rebuild tooling | Blank-host rebuild, isolated restore, independently verified recovery objectives |
-| Portability and developer experience | Target contracts and golden paths | Second environment, comprehensible docs and reproducible onboarding |
+| Stream | Owner | Required result |
+| --- | --- | --- |
+| Source and CI | GitHub / restricted Forgejo validation | Reviewed changes and reproducible checks |
+| Artifact supply chain | Build/publish jobs and registries | SBOM, provenance, signatures and verified digest promotion |
+| Kubernetes applications | Flux / scoped ServiceAccounts | Policy enforcement, drift correction, readiness and rollback |
+| Host services | Ansible / systemd | Repeatable configuration, storage checks and controlled maintenance |
+| Approved operations | Separate future operations runner | Limited credentials, approvals and audit records |
+| Reliability and security | Monitoring, logs and operator procedures | Actionable alerts, incident response and containment |
+| Secrets and identity | Planned OpenBao / independent recovery material | Bootstrap, expiry, rotation, revocation and recovery |
+| Recovery | Off-device encrypted backups / rebuild tooling | Tested restore and measured recovery time/data loss |
+| Portability and onboarding | Environment contracts and runbooks | A working second environment and repeatable contributor setup |
+
+The [objective register](../planning/objectives.md) defines individual work items and dependencies.
 
 ## Lab/off-lab acceptance tiers
 
-- **P — Portable:** GitHub-hosted tests, schemas, source lint, mock API tests, manifest renders, deterministic fixtures; never claim live-host success.
-- **S — Simulated:** throwaway VM/container/ephemeral Kubernetes integration and negative tests; document equivalence gaps.
-- **H — Hardware/site:** real R5C/SD/systemd/network/physical ARM/Kubernetes behavior and controlled failures. Only H can complete objectives that explicitly require physical state.
+| Tier | Environment | Examples |
+| --- | --- | --- |
+| P — Portable | Hosted CI or developer machine | Lint, schemas, mocked APIs, manifest rendering |
+| S — Simulated | Disposable VM, container or cluster | Integration tests and controlled failures |
+| H — Hardware/site | Physical lab | SD mounts, boot order, network paths and service recovery |
 
-Record which tier is required for each acceptance criterion. Work may be contributed and reviewed remotely, but live-impacting milestones remain open until their H gates pass.
+Each objective states its required tier. Record simulation gaps explicitly; physical checks still require a lab operator.
 
 ## Recovery SLO planning targets (not achieved)
 
-**Chosen design targets:** RTO **4 hours** and RPO **1 hour**. These are aspirational engineering constraints, not measured guarantees or availability SLAs. The reference recovery clock starts at incident declaration and ends when agreed critical capabilities pass recovery checks. RPO bounds acceptable *recoverable* loss of classified mutable state relative to the event; a backup schedule alone does not prove RPO.
+The targets are a four-hour recovery time objective (RTO) and a one-hour recovery point objective (RPO). Neither has been measured in a full recovery drill.
 
-Initial critical-scope proposal: Git/mirror recoverability, Forgejo repository and OCI package state, identities and config needed for management services, and essential management control access. Classify Uptime Kuma history, transient CI logs, metrics and caches separately. Cluster etcd and workload data require their own scope and restore plan. Final data classification, dependency ordering, spare hardware and network assumptions are an implementation gate, not already decided.
+Start the recovery clock at incident declaration and stop it when the agreed critical services pass their checks. RPO measures recoverable data loss relative to the incident.
 
-4h/1h implies at least hourly-enough consistent capture with margin, off-device redundancy, key availability, fast rebuild/replacement access and rehearsed runbooks. A 4h restore cannot be assumed if spare hardware is unavailable or restoration depends on a failed local forge.
+Classify Forgejo repositories/packages, service identities, configuration and management access as candidate critical state. Classify monitoring history, transient CI logs and caches separately. Kubernetes etcd and workload data need their own capture and restore procedures.
+
+Meeting these targets requires consistent capture with enough margin, off-device copies, available keys, replacement hardware and rehearsed rebuild/restore steps. Final service scope, backup media, key custody and dependency order are open decisions.
 
 ## Exit definition for the overall program
 
-A second operator, starting with Git and protected recovery material, can provision a supported target, validate trust and release policies, deliver a signed/provenance-linked image by digest, observe a controlled failure, recover service and rebuild lost state within measured objectives. Every claim points to tests, runbooks, run IDs or a documented limitation.
-
-## Non-goals for this planning PR
-
-No new runtime components, runner privilege, secret publication, CI enforcement switch, artifact signing or actual live-environment mutations. No Terraform dependency, Backstage installation or wholesale Bash rewrite.
+A second operator can start with Git and protected recovery material, configure a supported target, verify release policy, deploy an image by digest, diagnose a controlled failure and restore service within measured recovery objectives. The [roadmap](../roadmap.md) and [backlog](../backlog.md) track that work.

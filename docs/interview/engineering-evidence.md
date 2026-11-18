@@ -1,6 +1,6 @@
 # Engineering Evidence Ledger
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Dated implementation records. Current Git/OCI operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 Purpose: Record verifiable engineering work and
 preserve the reasoning behind implementation.
@@ -275,7 +275,7 @@ Evidence:
 - docs/evidence/plat-006/
 
 What I learned:
-A self-hosted runner is an execution boundary, not merely another service. Registration scope, persisted identity, runtime privilege, and access to the host Docker daemon materially change the risk profile.
+Runner registration scope, stored credentials, runtime permissions and Docker access determine which workflows can safely run.
 
 ## EVIDENCE-011: First ARM64 Application Build and Runtime Acceptance
 
@@ -344,7 +344,7 @@ Trade-offs:
 - `actions/download-artifact@v4` still has a non-blocking Node.js runtime deprecation warning.
 
 What I learned:
-Validation quality and source convergence are separate controls. A mirror can be healthy while execution capabilities remain intentionally asymmetric, and bootstrap logic must converge dependencies rather than merely create them once.
+Source parity and execution capabilities need separate checks. Bootstrap must update dependencies in an existing environment.
 
 ## EVIDENCE-013: Build-Once, Verified GHCR Publication
 
@@ -414,7 +414,7 @@ Evidence:
 - docs/sprints/08-application-delivery-foundation.md.
 
 What I learned:
-A promotion pipeline is not merely a sequence of successful commands. Artifact identity, integrity across trust boundaries, explicit security policy, and least-privilege credentials must all remain intact until the registry returns the immutable deployment identity.
+Publication requires the tested image, a verified transfer, the configured scan result and a publisher credential limited to registry writes. The returned registry digest identifies the published artifact.
 
 ## EVIDENCE-014: Dual OCI Distribution with Immutable Artifact Parity
 
@@ -742,19 +742,6 @@ a Git change represents legitimate new desired state. Suspend/resume testing
 proved that Flux, rather than Kubernetes itself, was responsible for restoring
 the declared application state.
 
-## Evidence Template
-
-### EVIDENCE-XXX: Title
-
-Date:
-Problem:
-Implementation:
-Verification:
-Trade-offs:
-Evidence:
-What I learned:
-
-
 ## EVIDENCE-018: R5C and Raspberry Pi Host Observability Foundation
 
 Date: 2026-10-11
@@ -806,10 +793,10 @@ Verification:
 Limits:
 - Two Flux Ready-condition panels lacked matching series; absence of metrics does not prove health.
 - No induced target outage, external-zone exporter isolation or independent reboot recovery was accepted in this phase. Long-term capacity, workload-state telemetry, alerts and automatic observer certificate rotation are deferred.
-- Observer certificate expires 2027-01-12 03:15:36 UTC. The R5C boot-order/permissions defect has a separate permanent-repair PR planned.
+- Observer certificate expires 2027-01-12 03:15:36 UTC. Full-host reboot recovery remains unverified.
 
 Evidence:
 - [Sprint 14](../sprints/14-kubernetes-flux-telemetry.md)
 - [ADR-0014](../adr/0014-kubernetes-telemetry-observer.md)
 - [Observer operations runbook](../runbooks/kubernetes-flux-telemetry.md)
-- Local commits `66e25b3`, `5a4d4f3`, `917eff4`, `fb193e5`, `059e7d9` (verify complete history before PR).
+- Local commits `66e25b3`, `5a4d4f3`, `917eff4`, `fb193e5`, `059e7d9` (recorded local revisions).

@@ -1,6 +1,6 @@
 # Sprint 07 — Native Gitea Actions CI
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Historical Gitea deployment. Current operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 **Work item:** PLAT-006  
 **Date completed:** 2026-10-04  
@@ -175,7 +175,7 @@ Confirmed successful execution of:
 
 The Gitea run details explicitly identified its trigger as `push` on `main`.
 
-The workflow was dispatched following a forced synchronization of the GitHub pull mirror. This proves that mirror synchronization successfully generated a push-triggered Actions run on the deployed Gitea 1.27.3 instance.
+A forced GitHub pull-mirror synchronization generated the observed push-triggered Actions run on Gitea 1.27.3.
 
 
 ### Evidence files
@@ -200,7 +200,7 @@ Forced mirror synchronization generated a `push` event on `main`, triggering the
 
 ## Security and architectural decisions
 
-The first self-hosted runner is intentionally a trusted validation worker rather than a general-purpose, multi-tenant execution platform.
+The first self-hosted runner accepts trusted validation workflows only.
 
 Controls implemented:
 

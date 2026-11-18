@@ -32,8 +32,7 @@ connector and application have separate outbound networks. No service in this
 project publishes a host port, uses the Docker socket, joins Forgejo's network,
 or uses Forgejo's database/Redis. Unknown public hostnames return 404.
 
-The earlier separate-host bundle and `zulip-upstream.override.yaml` are
-historical alternatives, not the controller deployment. Do not combine that
+The earlier separate-host bundle and `zulip-upstream.override.yaml` are retained alternatives; this guide uses the controller overlay. Do not combine that
 bundle or its Caddy with this project. Application HTTP stays inside Docker;
 no controller-to-remote-backend firewall rule or public web DNAT is required.
 
@@ -50,7 +49,6 @@ Startup checks require memory/swap headroom and 10 GiB free SD state storage;
 these checks do not prove that the current management workload and Zulip will
 fit under sustained load. Monitor memory, swap and SD latency during acceptance.
 
-Repository tests do not prove real tunnel connectivity, working SMTP, login,
-messages, uploads or recovery. Verify those from LAN and cellular, confirm real
+Live acceptance must check tunnel connectivity, SMTP, login, messages, uploads and recovery. Verify those from LAN and cellular, confirm real
 client IP handling and private Forgejo access, and test an off-device backup.
 Record sanitized pass/fail summaries; keep settings, logs and credentials local.

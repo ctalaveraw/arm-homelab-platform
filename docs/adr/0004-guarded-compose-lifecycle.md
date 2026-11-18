@@ -1,67 +1,34 @@
-# ADR-0004: Fail-Closed Stateful Compose Lifecycle
+# ADR-0004: Guarded stateful Compose lifecycle
 
 Status: Accepted
-Recorded: 2026-10-04 (retrospective)
+Recorded: 2026-10-04
 
 ## Context
 
-The R5C boots from eMMC and stores application state
-on removable ext4 SD storage.
-
-A missing mount can expose an underlying eMMC directory.
-Docker bind mounts must not silently redirect state there.
+If the SD mount is missing, its path can expose an underlying eMMC directory. Docker must not create a new state directory there and start an apparently empty application.
 
 ## Decision
 
-Use Ansible to provision persistent application directories,
-storage guards and systemd units.
+Ansible installs each service's directories, storage guard and systemd unit. Before activation:
 
-For each SD-backed stateful service:
+- Require and inspect the mounted filesystem.
+- Verify ext4 and label `storage_sdcard`.
+- Reject symlink/path redirection.
+- Check the rendered Compose bind sources.
+- Require `create_host_path: false`.
+- Keep the Compose restart policy at `no`.
+- Start through the systemd unit.
 
-- Require the expected mount through systemd.
-- Activate and inspect the actual filesystem.
-- Verify filesystem type and label.
-- Reject unsafe symlink or storage-path redirection.
-- Validate the fully interpolated Compose bind source.
-- Use create_host_path: false for stateful bind mounts.
-- Set the Compose application restart policy to "no".
-- Start the workload through its guarded systemd unit.
+Service-specific guards remain separate until shared behavior warrants a common implementation.
 
-Application-specific guards are temporarily duplicated
-rather than prematurely generalized.
+## Implementation
+
+Current forge units are `forgejo.service` and `forgejo-runner.service`, installed from their matching Compose directories. The runner also requires `/srv/storage/state/services/forgejo-runner/runner.yml` with UID/GID 10001 and mode 0600.
+
+Ansible deployment and service activation passed during the migration. Positive/negative guard behavior is covered by the repository tests. See the [current paths](../runbooks/forgejo-reference-map.md#repository-and-host-paths) and [migration record](../runbooks/gitea-to-forgejo.md).
 
 ## Consequences
 
-Service startup fails closed when required storage
-or the declared Compose binding is invalid.
+Invalid storage or bindings stop activation. The contract covers startup checks; unexpected SD loss during writes still requires application recovery.
 
-Ansible provides repeatable provisioning, artifact
-installation, configuration validation, boot enablement
-and initial service activation for the original five
-management-plane services recorded below.
-
-This design protects startup, not unexpected physical
-SD removal during active writes.
-
-A systemd oneshot reporting active (exited) also does
-not prove continued application availability.
-
-HTTP monitoring, off-device backup/restore and complete
-host reconstruction remain distinct responsibilities.
-
-
-## Implementation update — 2026-10-04
-
-At this checkpoint, the guarded lifecycle covered:
-
-- Gitea
-- Gitea Actions runner
-- Gotify
-- Uptime Kuma
-- APT-Cacher-NG
-
-The runner adds a separate contract: its persisted `.runner` identity must exist on the expected SD-backed path with UID/GID 10001 and mode 0600 before startup.
-
-## Forgejo amendment — 2026-11-17
-
-Current lifecycle units are `forgejo.service` and `forgejo-runner.service`, installed from `compose/forgejo/` and `compose/forgejo-runner/`. Guards and Ansible playbooks use the corresponding Forgejo names. The fresh runner identity is `/srv/storage/state/services/forgejo-runner/runner.yml`, not the dated `.runner` format above; it requires UID/GID 10001 and mode 0600. See [all current paths](../runbooks/forgejo-reference-map.md#repository-and-host-paths). This configuration change does not transfer the earlier host acceptance to the new services.
+An active systemd oneshot does not continuously check container health. Availability monitoring, alert delivery, off-device backup and full-host recovery need their own checks. Full reboot recovery remains unverified.

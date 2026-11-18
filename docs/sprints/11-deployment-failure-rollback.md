@@ -95,8 +95,7 @@ old ReplicaSet: desired=1 ready=1
 new ReplicaSet: desired=1 ready=0
 ```
 
-The old replica remained pending termination rather than being removed before a
-Ready replacement existed.
+The old replica remained available while its replacement was not Ready.
 
 ## Endpoint and availability behavior
 
@@ -140,8 +139,7 @@ Ten post-rollback Service requests also returned HTTP 200.
 
 ## Revision semantics
 
-After rollback, rollout history showed revisions 2 and 3 rather than restoring
-the Deployment to revision number 1.
+After rollback, rollout history showed revisions 2 and 3; the recovered template became a new revision.
 
 The previous good Pod template became the current Deployment revision.
 

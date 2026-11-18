@@ -1,11 +1,11 @@
 # Sprint 14 — PLAT-012 Kubernetes API and Flux Telemetry
 
-Status: Kubernetes/Flux telemetry extension accepted through G4.1; documentation/PR closeout in progress. Broader PLAT-012 requirements remain open.
+Status: Kubernetes/Flux telemetry accepted through G4.1. Broader PLAT-012 requirements remain open.
 Date: October 2026
 
 ## Scope and architecture
 
-Extends [Sprint 13's physical host foundation](13-observability-host-foundation.md) rather than rewriting that historical evidence. The NanoPi R5C continues to host Prometheus/Grafana independently from the three-node kubeadm cluster. It scrapes `10.0.0.5:6443` over authenticated TLS for Kubernetes API server metrics and two Flux controller metrics Services via narrowly authorized API proxy paths. The R5C intentionally does not need access to Pod CIDRs or Kubernetes ClusterIP networking.
+Builds on [Sprint 13's host metrics](13-observability-host-foundation.md). The NanoPi R5C continues to host Prometheus/Grafana independently from the three-node kubeadm cluster. It scrapes `10.0.0.5:6443` over authenticated TLS for Kubernetes API server metrics and two Flux controller metrics Services via narrowly authorized API proxy paths. The R5C intentionally does not need access to Pod CIDRs or Kubernetes ClusterIP networking.
 
 The metrics Services, namespace Role/RoleBinding and ClusterRole/ClusterRoleBinding live under `deploy/kubernetes/observability/` as a separate privileged-bootstrap Kustomization, not an application Flux Kustomization. A dedicated `CN=platform-observer` certificate and guarded Ansible runtime copies provide monitoring identity without copying kubeadm/deployer credentials into Prometheus.
 
@@ -32,7 +32,7 @@ The metrics Services, namespace Role/RoleBinding and ClusterRole/ClusterRoleBind
 - Exporter ports 9100 are unauthenticated within their reachable network boundaries; isolation from untrusted VLANs is not yet independently proven.
 - Two Flux Ready-condition expressions returned *no series*. Treat missing as unknown; the panels do not prove zero unhealthy Flux objects.
 - Workload object-state exporters, management-service dependency metrics, runtime alert delivery and automatic certificate renewal are not included in this extension.
-- The R5C reboot exposed network readiness and source-file permission boot failures. Services were manually recovered, but permanent restart-order recovery is tracked in a **separate PR**; no reboot-resilience claim is made here.
+- The R5C reboot exposed network-readiness and source-permission failures. Services were manually recovered; full reboot recovery remains unverified.
 - High-volume/load tests, sustained resource usage, historical incident recovery and disaster restore remain future exercises.
 
 ## Relevant paths

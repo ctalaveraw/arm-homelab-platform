@@ -40,7 +40,7 @@ The client certificate:
 - is approved explicitly through the Kubernetes CSR API;
 - is stored as host-local security material outside Git.
 
-The R5C uses a dedicated kubeconfig rather than kubeadm `admin.conf`.
+The R5C uses a dedicated scoped kubeconfig.
 
 Authorization is implemented separately through a namespace-scoped Role and
 RoleBinding in `platform-demo`.
@@ -129,8 +129,7 @@ and:
 cluster administrator authorizes that identity
 ```
 
-A certificate has a finite validity period rather than relying on an
-indefinitely valid bearer credential.
+The client certificate has a finite validity period.
 
 ## Why a long-lived ServiceAccount token was not chosen
 

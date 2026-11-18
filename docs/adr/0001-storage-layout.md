@@ -1,66 +1,35 @@
-# ADR-0001: Management Plane Storage Layout
+# ADR-0001: Management plane storage layout
 
-Status: Accepted
+Status: Accepted; the USB archive role was retired by ADR-0002.
 Date: 2026-10-01
 
 ## Context
 
-The NanoPi R5C uses eMMC, removable SD storage,
-and a USB HDD.
-
-We require predictable paths for infrastructure
-configuration, application state, and backups.
+The R5C boots from eMMC and stores application data on removable SD. Its original USB archive proved unreliable. Services need stable paths and explicit checks before writing state.
 
 ## Decision
 
-/srv/platform:
-Infrastructure repository and configuration.
+| Path | Use |
+| --- | --- |
+| `/srv/platform` | Infrastructure checkout and deployment configuration |
+| `/srv/storage/state/services/<service>` | Active SD-backed application state |
+| `/srv/backups` | Local checkpoints; copy recovery material off-device |
+| `/srv/services` | Earlier logical namespace; current service data uses the SD path above |
+| `/srv/storage/archive` | Inactive namespace after USB decommission |
 
-/srv/services:
-Logical namespace for persistent service data.
+Ansible creates service directories. Systemd storage guards verify the actual `storage_sdcard` ext4 mount and rendered bind sources before activation. Docker's data root remains on eMMC.
 
-/srv/storage/state:
-SD-backed additional persistent storage.
-
-/srv/storage/archive:
-HDD-backed archive and backup storage.
-
-/srv/backups:
-Logical backup namespace; physical placement TBD.
-
-## Operational constraints
-
-- Services must verify required mounts before startup.
-- Storage references should use stable mount paths.
-- Physical storage placement is service-dependent.
-- Critical backups must also exist off-device.
-- Secrets must not be committed to Git.
+Forgejo and its runner have separate state from retained Gitea data. Runner registration is `services/forgejo-runner/runner.yml`, UID/GID 10001, mode 0600. See the [path reference](../runbooks/forgejo-reference-map.md#repository-and-host-paths).
 
 ## Consequences
 
-Applications can reference stable logical paths
-without depending directly on block device names.
+Stable mount paths keep application configuration independent of block-device names. A missing or redirected mount must fail startup.
 
-Ansible now enforces the service-state directory arrangement on the existing R5C.
+The USB archive is not a backup destination. Consistent off-device copies and restore tests remain separate responsibilities. Secrets stay outside public Git.
 
-## Implementation Note — 2026-10-03
+## Evidence
 
-Persistent application data now follows:
-
-/srv/storage/state/services/<service-name>
-
-The service directory is created through Ansible and guarded
-against accidental writes to an unmounted backing directory.
-
-The USB archive is decommissioned as recorded in ADR-0002.
-
-
-## Implementation update — 2026-10-04
-
-At this checkpoint, the guarded state namespace included Gitea, the Gitea Actions runner, Gotify, Uptime Kuma, and APT-Cacher-NG.
-
-The runner identity was persisted under `/srv/storage/state/services/gitea-runner` with UID/GID 10001 and restrictive permissions. All five service playbooks installed their systemd units and declaratively enabled/started the service after validation.
-
-## Forgejo amendment — 2026-11-17
-
-Current deployment configuration uses fresh `/srv/storage/state/services/forgejo` and `/srv/storage/state/services/forgejo-runner` directories. The new runner stores its UUID/token in `runner.yml`, owned by UID/GID 10001 with mode 0600. The old paths above describe the 2026-10-04 implementation and remain rollback state; do not rename or reuse them. See the [current path map](../runbooks/forgejo-reference-map.md#repository-and-host-paths).
+- [Initial host snapshot](../architecture/r5c-baseline.md)
+- [USB archive decision](0002-usb-archive-decommission.md)
+- [Guarded lifecycle](0004-guarded-compose-lifecycle.md)
+- [Forgejo migration](../runbooks/gitea-to-forgejo.md)

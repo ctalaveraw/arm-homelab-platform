@@ -1,6 +1,6 @@
 # Sprint 08 — Application Delivery Foundation
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Historical Gitea deployment. Current operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 **Work item:** PLAT-007  
 **Started:** 2026-10-04  
@@ -94,7 +94,7 @@ Ruff immediately found real inconsistencies:
 - intentional `subprocess.run` return-code handling lacked explicit `check=False`;
 - one import block required normalization.
 
-The findings were corrected rather than suppressed.
+The findings were corrected.
 
 CI bootstrap was also changed from “create dependencies once” to “converge required dependencies on every run,” fixing stale-venv behavior when new validators were added.
 
@@ -114,7 +114,7 @@ GitHub `main` was then protected so the “checks first, merge second” rule be
 
 ## Least-privilege promotion design
 
-The operator selected a split-job design rather than granting registry write access to the build/test/scan job.
+The operator selected a separate publisher job with registry write access.
 
 Implemented boundary:
 
@@ -167,7 +167,7 @@ This keeps the promotion architecture reusable when `platform-hello` is eventual
 
 ## Failure-driven corrections
 
-Two post-merge integration issues were useful rather than hidden:
+Two post-merge integration failures required fixes:
 
 ### Hidden artifact directory
 

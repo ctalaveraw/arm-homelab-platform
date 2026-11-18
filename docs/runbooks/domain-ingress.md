@@ -1,7 +1,8 @@
 # Domain and HTTPS ingress
 
-Status: controller tunnel configuration prepared; real hostname, backend and
-live acceptance remain pending. Forgejo stays LAN/WireGuard-only.
+The controller public chat profile uses Cloudflare Tunnel and internal Caddy.
+End-to-end Zulip acceptance is tracked separately. Forgejo is operational on
+LAN/WireGuard HTTP/3000 and SSH/2223.
 
 ## Selected public application path
 
@@ -26,8 +27,7 @@ account/tunnel details stay local or in Cloudflare.
 
 No inbound TCP 80/443 forwarding, residential chat DDNS, router application
 installation or direct chat-to-controller DNS override is needed by this path.
-Leave unrelated DDNS/WireGuard configuration unchanged. Existing direct-ingress
-router examples are superseded, not prerequisites to the tunnel. Do not add a
+Leave unrelated DDNS/WireGuard configuration unchanged. Earlier direct-ingress router examples are superseded by this tunnel profile. Do not add a
 second public path while validating the tunnel.
 
 Cloudflare terminates client HTTPS; the connector link is encrypted, while its
@@ -41,7 +41,7 @@ The existing `compose/caddy` and `11-caddy.yml` files describe a Forgejo proxy
 candidate. They are not the public tunnel target. Do not publish that service
 in Cloudflare or add a Forgejo route to the public Caddy configuration.
 
-Forgejo currently uses its private application port during migration. A future
+Forgejo uses `http://git.lab.home.arpa:3000/` and SSH/2223 after migration. A future
 private HTTPS endpoint can use INNER's private DNS and either DNS-01 with a
 scoped provider credential/module, or a private CA trusted by clients. The
 existing public-ACME Caddyfile does not implement DNS-01 automatically. A private
@@ -57,7 +57,7 @@ metrics, databases or queue endpoints belong in public tunnel routes.
 Test the chat hostname over LAN and cellular, HTTP→HTTPS redirect, certificate,
 authenticated messaging/upload/email and actual client IP. Probe unknown and
 private Git hostnames through the public tunnel; they must not reach a backend.
-Use the tunnel readiness probe as a connectivity signal, not app acceptance.
+Test tunnel readiness and application behavior separately.
 
 Keep real credentials, route inventories, account/tunnel identifiers and runtime
 diagnostics out of commits, issue comments and CI artifacts. The detailed

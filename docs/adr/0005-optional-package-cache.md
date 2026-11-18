@@ -1,52 +1,26 @@
-# ADR-0005: Shared APT Cache as an Optional Dependency
+# ADR-0005: Optional shared APT cache
 
 Status: Accepted
-Recorded: 2026-10-04 (retrospective)
+Recorded: 2026-10-04
 
 ## Context
 
-Repeated ARM64 package downloads may increase CI execution
-time and external network dependencies.
-
-APT-Cacher-NG has demonstrated reusable package caching
-on the R5C.
+The R5C package benchmark demonstrated reusable APT caching. A single-package result does not measure the full dependency-install stage.
 
 ## Decision
 
-- Operate a shared, SD-backed APT-Cacher-NG service.
-- Keep cache data separate from critical application state.
-- Configure future build clients to consume it explicitly.
-- Do not make R5C host recovery depend on its own proxy.
-- Preserve a documented direct-upstream fallback.
-- Retain upstream APT package-signature verification.
-- Restrict TCP/3142 to intended client networks.
-- Monitor cache availability and capacity.
+Run SD-backed APT-Cacher-NG as an optional service. Keep cache data separate from critical application state, retain APT signature verification and restrict TCP/3142 to intended clients.
 
-An initial 5 GiB usage-alert threshold is proposed,
-but is not an enforced quota or a completed alert.
+Configure clients explicitly and document direct-upstream fallback. R5C recovery must work while its own cache is unavailable.
 
-## Consequences
+## Implementation and remaining checks
 
-Repeated package downloads can reuse locally cached data.
+The cache is operational. Source ACL verification and a full pipeline cold/warm benchmark remain open. The proposed 5 GiB usage alert is not an enforced quota or a deployed alert.
 
-Cache failure must not prevent management-host recovery.
+Forgejo validation is operational, but cache integration is not required by the CI profile. Test the complete install stage after wiring a controlled client path. BuildKit and prebuilt runner caches address different downloads.
 
-APT-Cacher-NG is complementary to BuildKit caching,
-prebuilt runners and higher-level artifact repositories.
+## Evidence
 
-Measured individual-package improvements must not be
-represented as whole-pipeline performance improvements.
-
-Source ACL verification and a complete pipeline-level
-benchmark remain outstanding.
-
-
-## Status update — 2026-10-04
-
-At this checkpoint, the Gitea Actions runner was operational, but the cache had not been made a required CI dependency. The next meaningful benchmark should compare complete dependency-install stages only after cache use is explicitly wired into a controlled pipeline path.
-
-The platform's current application-delivery work is intentionally not blocked on the cache.
-
-## Forgejo amendment — 2026-11-17
-
-Future local validation uses the restricted Forgejo runner described in [CI operations](../ci.md) and the [reference map](../runbooks/forgejo-reference-map.md). The Gitea runner status above is a dated baseline; Forgejo runner acceptance and pipeline-level cache measurements remain pending. Cache availability must remain optional.
+- [Package benchmark](../benchmarks/2026-10-04-apt-cacher-ng.md)
+- [CI configuration](../ci.md)
+- [Current backlog](../backlog.md)

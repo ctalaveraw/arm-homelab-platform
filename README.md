@@ -2,65 +2,56 @@
 
 [![ARM Platform CI](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml/badge.svg)](https://github.com/ctalaveraw/arm-homelab-platform/actions/workflows/platform-ci.yml)
 
-A platform engineering lab for reproducible infrastructure, ARM64 application delivery, observability and recovery.
+An ARM64 lab for managing hosts with Ansible, delivering container images through CI and Flux, and testing monitoring and recovery.
 
-**Deployment status — 2026-11-18:** Forgejo is healthy on the independent NanoPi R5C (`gitops-controller-01`) at `http://git.lab.home.arpa:3000/`, with owner `ctalaveraw` and SSH on `2223`. The GitHub mirror and linked `platform-hello` package were transferred and verified during staging; the repository-scoped runner is active. Legacy Gitea units are stopped and disabled, with separate state retained for rollback. Post-cutover source parity, full OCI retrieval, native Actions and Kuma availability now pass. Remaining retirement and permission/metadata review are tracked in the migration checklist. See the [migration record](docs/runbooks/gitea-to-forgejo.md) and [name/path reference](docs/runbooks/forgejo-reference-map.md).
+## Current deployment
 
-| Component | Repository configuration | Last recorded runtime evidence |
+The NanoPi R5C (`gitops-controller-01`, `10.0.0.50`) runs outside the Kubernetes cluster. Forgejo replaced Gitea on 2026-11-18.
+
+| Component | Configuration | Verified behavior |
 | --- | --- | --- |
-| Local forge | Forgejo 15.0.11 LTS; new SD-backed state | LAN HTTP/3000 health passed; mirror parity, SSH read and complete OCI retrieval passed during staging |
-| Local validation | Forgejo Runner 13.1.0; repository scope; UID 10001 | Manual and push-triggered native runs succeeded; service active after cutover |
-| Public app ingress | cloudflared 2026.11.1 → internal Caddy 2.11.9; no host ports | Configuration prepared; tunnel/app acceptance pending |
-| Chat application | Controller Zulip 13.2-0; private database/queue/caches | Placement selected; initialization and live acceptance pending |
-| Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, digest preservation, deployment and rollback verified |
-| Observability | Prometheus, Grafana, native exporters and read-only Kubernetes observer | Eight Prometheus targets and five dashboards |
+| Local Git and OCI registry | Forgejo 15.0.11 LTS at `http://git.lab.home.arpa:3000/`; SSH `2223` | GitHub/local/mirror parity, SSH access, preserved OCI digest and full artifact retrieval |
+| Local validation | Forgejo Runner 13.1.0; repository scope; UID/GID 10001 | Manual and mirrored-push Actions runs succeeded |
+| Availability | Uptime Kuma | Forgejo monitor updated to `/api/healthz`; HTTP health passed |
+| Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, verified image transfer, digest deployment and rollback |
+| Metrics | Prometheus, Grafana, host exporters and Kubernetes/Flux observer | Eight scrape targets and five dashboards in the last acceptance record |
+| Public chat profile | Zulip 13.2-0, cloudflared 2026.11.1 and internal Caddy 2.11.9 | Configuration and CI checks are present; end-to-end public chat acceptance is tracked separately |
 
-## Architecture
+GitHub is the canonical source. Forgejo holds the one-way pull mirror at `ctalaveraw/arm-homelab-platform` and a linked `platform-hello` container package. Routine changes go through GitHub PRs. Flux reads GitHub and deploys the GHCR image by digest.
 
-GitHub remains the canonical source and external recovery copy. Forgejo provides a private one-way pull mirror, local validation and an OCI distribution endpoint. Promoted artifacts retain their tested registry digest; Kubernetes runs the GHCR digest and Flux reconciles application desired state from GitHub.
+Forgejo is limited to LAN/WireGuard access. It has no public Caddy or Cloudflare Tunnel route. The public chat profile uses an outbound tunnel and publishes no host web ports. OUTER and INNER retain routing, firewall, DNS, WireGuard and unrelated DDNS duties.
 
-The R5C remains outside the Kubernetes cluster. Ansible manages the host baseline and guarded systemd/Compose services. Persistent service state lives under `/srv/storage/state/services`; startup guards require the actual `storage_sdcard` ext4 filesystem and reject redirected or incorrect bind sources. Docker's own data root remains on eMMC.
+## Host and storage
 
-The selected profile runs Zulip, its database/queue/caches, cloudflared and internal Caddy in separate controller containers. Cloudflare Tunnel makes outbound connections; this profile needs no inbound web forwarding. Forgejo remains private and has no public Caddy/tunnel route. OUTER/INNER retain routing, firewall, DNS, WireGuard and unrelated DDNS roles. See [Cloudflare Tunnel deployment](docs/runbooks/cloudflared.md) and [domain ingress](docs/runbooks/domain-ingress.md).
+Ansible configures the R5C and installs systemd units. Each stateful Compose service checks the mounted `storage_sdcard` ext4 filesystem and its bind sources before starting. Persistent service data lives under `/srv/storage/state/services`; Docker's data root stays on eMMC.
+
+Systemd owns service startup. Compose restart policies are disabled so Docker cannot bypass the storage checks. Configuration or image changes require an explicit service restart; Ansible `state: started` alone does not recreate running containers.
 
 ## Forgejo migration
 
-Gitea 1.27.3 cannot use Forgejo's supported in-place database upgrade. Forgejo was initialized in a new `/srv/storage/state/services/forgejo` directory beside Gitea on HTTP/3002. The verified mirror and OCI artifact remain in that same new state while Forgejo serves LAN HTTP/3000 and SSH/2223. The old Gitea units are disabled. Existing Gitea state, credentials and runner identity must not be copied into Forgejo.
+Forgejo uses separate state at `/srv/storage/state/services/forgejo`. The former Gitea 1.27.3 database was not converted. The GitHub mirror and published package were transferred, a new runner was registered, and Forgejo took over HTTP/3000 while retaining SSH/2223.
 
-Follow the [migration runbook](docs/runbooks/gitea-to-forgejo.md) to:
-
-1. Capture a consistent backup and inventory local-only data.
-2. Start Forgejo beside the legacy instance.
-3. Recreate the GitHub mirror, transfer required metadata, and replicate OCI artifacts without rebuilding.
-4. Register a new restricted runner and verify native validation.
-5. Stop and disable legacy Gitea, move Forgejo to `http://git.lab.home.arpa:3000/`, and update clients and monitoring using owner `ctalaveraw`.
-6. Retire the old services after acceptance; retain their backup and rollback manifests.
-
-Private HTTPS can follow separately; it is not a prerequisite for this LAN port cutover.
-
-Historical sprint reports, incidents and screenshots retain their original Gitea names. They establish the prior baseline and do not prove Forgejo acceptance.
+The old Gitea services are stopped and disabled. Their state, images, manifests and verified private backups remain available for rollback. See the [migration record and rollback procedure](docs/runbooks/gitea-to-forgejo.md) and [current names, paths and client URLs](docs/runbooks/forgejo-reference-map.md). Dated sprint and incident reports describe the software used at the time.
 
 ## Configuration and lifecycle
 
-Copy the relevant `.env.example` files to local `.env` files. Local credentials, runner configuration and private keys are excluded from Git. Ansible playbooks run from the controller checkout at `/srv/platform`.
+Run playbooks from the controller checkout at `/srv/platform`. Use the service's `.env.example` to prepare its local `.env`; retain existing credentials when updating an installation. Local secrets, runner registration and private keys stay outside Git.
 
-The Forgejo example retains the parallel-migration settings. The live controller's local `.env` instead uses `FORGEJO_FQDN=git.lab.home.arpa`, `FORGEJO_ROOT_URL=http://git.lab.home.arpa:3000/` and `FORGEJO_HTTP_PORT=3000`; SSH remains `2223`.
+The Forgejo example matches the current LAN URL and port. Bind addresses must be supplied explicitly. A new parallel migration must override HTTP to `3002` before starting beside Gitea, as described in the migration runbook.
 
 | Playbook | Responsibility |
 | --- | --- |
-| `00-preflight.yml` | ARM64, SD mount and filesystem baseline |
-| `01-management.yml` | Host tools, Docker, Kubernetes and Flux clients |
+| `00-preflight.yml` | ARM64, SD mount and filesystem checks |
+| `01-management.yml` | Host packages, Docker, Kubernetes and Flux clients |
 | `02-forgejo.yml` | Forgejo storage guard and service |
 | `03-forgejo-runner.yml` | Registered validation runner lifecycle |
 | `04-gotify.yml` | Notifications |
 | `05-uptime-kuma.yml` | Availability monitoring |
 | `06-apt-cacher-ng.yml` | Optional package cache |
-| `07-prometheus.yml`, `08-grafana.yml` | Bounded management observability |
+| `07-prometheus.yml`, `08-grafana.yml` | Prometheus and Grafana |
 | `09-node-exporter.yml`, `10-pi-exporters.yml` | Host and Pi exporters |
-| `11-caddy.yml` | Separate private Forgejo HTTPS candidate; not a public tunnel target |
-| `caddy-public.yml` | Prepare controller Zulip/tunnel/Caddy; explicit activation after local secrets setup |
-
-Systemd owns startup; Compose restart policies cannot bypass storage guards. Apply configuration changes with explicit restarts after reviewing them. Running a playbook with `state: started` does not recreate an already running container automatically.
+| `11-caddy.yml` | Optional private Forgejo HTTPS profile |
+| `caddy-public.yml` | Prepare the controller Zulip/tunnel/Caddy stack; activate after local configuration |
 
 ## Validation
 
@@ -69,22 +60,10 @@ bash scripts/ci/bootstrap.sh
 bash scripts/ci/validate.sh
 ```
 
-GitHub-hosted ARM64 CI also validates the Caddyfile with the pinned Caddy image and builds/smoke-tests the Forgejo runner image. Those checks do not prove home DNS, WAN routing, certificate issuance, data migration or application recovery.
+GitHub-hosted ARM64 CI also validates Caddy, builds the Forgejo runner, and builds, tests and scans the application. The controller ingress workflow tests its proxy and Zulip profile with disposable settings. Home DNS, tunnel connectivity, SMTP and recovery require live checks.
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
-- [Architecture and trust boundaries](docs/architecture/overview.md)
-- [CI, mirroring and OCI distribution](docs/ci.md)
-- [Forgejo migration and rollback](docs/runbooks/gitea-to-forgejo.md)
-- [Forgejo names, paths and consumer URLs](docs/runbooks/forgejo-reference-map.md)
-- [Domain and HTTPS ingress](docs/runbooks/domain-ingress.md)
-- [Cloudflare Tunnel in Docker](docs/runbooks/cloudflared.md)
-- [Controller public application ingress](docs/runbooks/controller-public-ingress.md)
-- [Zulip on the controller](docs/runbooks/zulip-controller.md)
-- [Forgejo and controller ingress decision](docs/adr/0015-forgejo-and-controller-ingress.md)
-- [Engineering evidence ledger](docs/interview/engineering-evidence.md)
-- [Platform charter](docs/vision/platform-charter.md)
-- [Objective register](docs/planning/objectives.md), [roadmap](docs/roadmap.md) and [backlog](docs/backlog.md)
+Start with the [documentation index](docs/README.md), [architecture](docs/architecture/overview.md) and [CI guide](docs/ci.md). Operations guides cover [Forgejo migration](docs/runbooks/gitea-to-forgejo.md), [domain ingress](docs/runbooks/domain-ingress.md), [Cloudflare Tunnel](docs/runbooks/cloudflared.md) and [controller Zulip](docs/runbooks/zulip-controller.md).
 
-Off-device restore, blank-host reconstruction, wider service telemetry, runtime alerting and remaining management HTTPS routes still require acceptance. The recovery targets of four hours RTO and one hour RPO remain goals.
+The [roadmap](docs/roadmap.md), [backlog](docs/backlog.md) and [objective register](docs/planning/objectives.md) track unfinished work. Off-device restore, blank-host reconstruction, runtime alerts and private management HTTPS remain open. The four-hour RTO and one-hour RPO are recovery targets.

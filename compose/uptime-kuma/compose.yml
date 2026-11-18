@@ -7,7 +7,7 @@ services:
     # and application configuration are stored outside the image.
     image: louislam/uptime-kuma:2.5.5
 
-    # systemd will own startup after verifying the SD mount.
+    # uptime-kuma.service owns startup after verifying the SD mount.
     # Do not let Docker independently bypass that prerequisite.
     restart: "no"
 

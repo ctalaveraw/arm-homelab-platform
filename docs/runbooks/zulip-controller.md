@@ -2,8 +2,7 @@
 
 Status: controller placement selected; source validation and live acceptance are
 separate. This profile uses the official Zulip 13.2-0 image and its PostgreSQL 14
-dependency image, both published for ARM64. It creates a new installation and
-does not import, reset or reuse Forgejo/Gitea data.
+dependency image, both published for ARM64. It creates a new installation with state separate from Forgejo.
 
 ## Prepare
 
@@ -92,7 +91,7 @@ Startup waits for the official application's `/health` probe and the tunnel's
 readiness probe. A failed unit start cleans up partial containers and preserves
 SD data. Initialization on ARM may take several minutes. The service is a
 storage-guarded oneshot; container restart policies remain disabled. Monitor
-health and recover through systemd rather than adding automatic Docker restarts.
+health and restart through systemd so storage checks run again.
 
 Generate the initial organization creation link locally:
 

@@ -34,8 +34,7 @@ Kubernetes supports three explicit image pull policies:
 For an image specified by digest, Kubernetes defaults the pull policy to
 `IfNotPresent` when the field is omitted.
 
-The platform nevertheless needs an explicit policy because image retrieval is
-part of the deployment contract rather than an incidental default.
+The deployment declares image retrieval policy explicitly so reviewers can see its runtime behavior.
 
 ## Decision
 
@@ -162,7 +161,7 @@ runtime path and create additional node-bootstrap coupling.
 The current platform instead expects a schedulable node to be able to retrieve
 the qualified artifact when it is absent.
 
-## Why the field is explicit instead of relying on the default
+## Why the field is explicit
 
 Kubernetes currently defaults digest-addressed images to `IfNotPresent`.
 
@@ -177,17 +176,15 @@ The Deployment still declares the value explicitly because:
   automatically reinterpret an existing policy merely because the image
   reference later changes.
 
-The repository should express intentional runtime behavior rather than depend
-on an implicit default for an architecture-relevant choice.
+The declared field also keeps pull behavior stable when the image reference changes.
 
 ## Registry selection for the first deployment
 
-The first PLAT-009 deployment uses the public GHCR artifact by digest.
+The first PLAT-009 deployment used the public GHCR artifact by digest.
 
-Forgejo OCI is now the secondary distribution target under
-`ctalaveraw/platform-hello`. Prior same-digest proof was measured on Gitea;
-repeat parity and retrieval checks after transfer. Local consumption introduces
-two additional runtime concerns:
+Forgejo is the secondary registry at `git.lab.home.arpa:3000/ctalaveraw/platform-hello`.
+Digest preservation, full retrieval and package association passed during migration.
+Kubernetes consumption from that registry would require:
 
 - private registry authentication;
 - LAN HTTP registry configuration.

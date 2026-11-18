@@ -9,7 +9,7 @@ services:
     image: codeberg.org/forgejo/forgejo:15.0.11
 
     # Docker must not restart Forgejo independently of the SD mount check.
-    # A dedicated systemd unit will own startup in PLAT-004.4.
+    # forgejo.service owns startup after its storage guard passes.
     restart: "no"
 
     environment:
@@ -37,8 +37,8 @@ services:
       FORGEJO__security__REVERSE_PROXY_LIMIT: "1"
 
     ports:
-      # Bind to the chosen LAN interface instead of every host interface.
-      - "${FORGEJO_BIND_IP:?Set FORGEJO_BIND_IP}:${FORGEJO_HTTP_PORT:-3002}:3000"
+      # Publish HTTP on the configured LAN address.
+      - "${FORGEJO_BIND_IP:?Set FORGEJO_BIND_IP}:${FORGEJO_HTTP_PORT:-3000}:3000"
 
       # Keep Git-over-SSH separate from the R5C management SSH port.
       - "${FORGEJO_SSH_BIND_IP:?Set FORGEJO_SSH_BIND_IP}:${FORGEJO_SSH_PORT:-2223}:22"
@@ -55,7 +55,7 @@ services:
       # The parent namespace and service directory are Ansible-managed.
       #
       # Do not create a missing bind source automatically.
-      # IMPORTANT: this is not a substitute for actual mount verification.
+      # The systemd guard also verifies the actual mounted filesystem.
       - type: bind
         source: "${STATE_SERVICES_ROOT:?Set STATE_SERVICES_ROOT}/forgejo"
         target: /data

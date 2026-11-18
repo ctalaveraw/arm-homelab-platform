@@ -1,57 +1,61 @@
-# Platform Architecture
+# Platform architecture
 
-Updated 2026-11-18. Forgejo is healthy on LAN HTTP/3000 with SSH/2223 and an active repository-scoped runner. The mirror and linked OCI artifact passed staging and post-cutover checks; manual and push-triggered native Actions runs are green, and Kuma reports Forgejo Up. Private Forgejo HTTPS is separate follow-up work. The [migration runbook](../runbooks/gitea-to-forgejo.md) records the evidence and rollback; the [reference map](../runbooks/forgejo-reference-map.md) lists current names, paths and URLs.
+Current deployment, reviewed 2026-11-18.
 
 ## Source and recovery
 
-GitHub is canonical, with protected `main` and PR-based changes. The local Forgejo pull mirror is populated under `ctalaveraw/arm-homelab-platform`; its intended visibility is private. Controller-local, GitHub and Forgejo `main` matched during staging, and Forgejo SSH read succeeded. Recovery must remain possible without the R5C, its forge, Kubernetes or a future local secret service.
+GitHub owns canonical source and protected `main`. Forgejo holds the one-way pull mirror at `ctalaveraw/arm-homelab-platform`, runs repository-scoped validation and serves a linked OCI package. Routine writes go to GitHub.
 
-The fetch-only `forgejo` remote and `scripts/ops/check-source-parity.sh` compare GitHub, Forgejo and controller-local `main`. A successful check proves commit convergence, not backup completeness. Existing Gitea mirror acceptance remains recorded in the historical sprint reports.
+The fetch-only `forgejo` remote and `scripts/ops/check-source-parity.sh` compare local, GitHub and Forgejo `main`. Parity, SSH access and full OCI retrieval passed after the migration. The [migration record](../runbooks/gitea-to-forgejo.md) contains the accepted revisions and digest.
+
+Recovery source and credentials must be accessible without the R5C, Forgejo, Kubernetes or a future OpenBao service. Consistent checkpoints and an off-device checksum have been verified; a full restore and fresh-host rebuild remain untested.
 
 ## Independent management host
 
-`gitops-controller-01` is the ARM64 NanoPi R5C. Its OS, Docker data root and SD-backed application state are distinct storage responsibilities. Ansible prepares service directories, installs storage guards and systemd units, and validates Compose configuration. Systemd owns guarded startup; application restart policy is `no`.
+`gitops-controller-01` is a NanoPi R5C at `10.0.0.50`. It runs outside the three-node kubeadm cluster. Ansible manages packages, directories, guards and systemd units. Systemd starts Compose services only after their storage checks pass.
 
-| Service | Purpose | Persistent state |
+| Service | Role | State under `/srv/storage/state` |
 | --- | --- | --- |
-| Forgejo | GitHub mirror and local OCI distribution | `services/forgejo` |
-| Forgejo Runner | Repository-scoped trusted ARM64 validation | `services/forgejo-runner` |
-| Caddy | HTTPS termination for the selected Git hostname | `services/caddy/data`, `services/caddy/config` |
-| Gotify and Uptime Kuma | Notifications and availability checks | Separate service directories |
-| APT-Cacher-NG | Optional package cache | Separate bounded cache directory |
-| Prometheus and Grafana | Host and Kubernetes/Flux observability | Existing guarded observability storage |
+| Forgejo | GitHub pull mirror and OCI registry | `services/forgejo` |
+| Forgejo Runner | Trusted main-branch ARM64 validation | `services/forgejo-runner` |
+| Gotify / Uptime Kuma | Notifications and availability | Separate service directories |
+| APT-Cacher-NG | Optional package cache | Separate cache directory |
+| Prometheus / Grafana | Host, Kubernetes API and Flux metrics | Guarded observability directories |
+| Private Caddy profile | Optional Forgejo HTTPS; not deployed for the current LAN URL | `services/caddy/data`, `services/caddy/config` |
 
-All listed state paths are relative to `/srv/storage/state`. The actual ext4 filesystem must have label `storage_sdcard`; directory existence alone is insufficient. USB archive storage remains decommissioned.
+Application data uses the actual ext4 filesystem labeled `storage_sdcard`. Guards reject missing mounts, redirected paths and incorrect bind sources. Docker's data root stays on eMMC. The former USB archive is decommissioned.
 
 ## Ingress placement
 
-Forgejo stays LAN/WireGuard-only at `http://git.lab.home.arpa:3000/`; the legacy units are stopped and disabled. The earlier `http://forgejo.lab.home.arpa:3002/` address was used for parallel migration. Git SSH remains LAN TCP/2223. Registered-domain HTTPS is optional follow-up work; public Zulip ingress is separate.
+| Access | Endpoint or path | Status |
+| --- | --- | --- |
+| Forgejo HTTP / OCI | `http://git.lab.home.arpa:3000/` | LAN/WireGuard; health and OCI retrieval passed |
+| Forgejo SSH | TCP `2223` | LAN-bound; repository read passed |
+| Forgejo HTTPS | Separate `compose/caddy` profile | Optional; private certificate deployment remains open |
+| Public Zulip | Cloudflare edge → cloudflared → internal Caddy → Zulip | Separate controller profile; live application acceptance tracked in its runbook |
 
-| System | Responsibility |
-| --- | --- |
-| OUTER router | WAN firewall, WireGuard, and only the reviewed inbound forwarding rules |
-| INNER router | Transit/LAN routing, LAN DNS and the firewall path to the controller |
-| R5C / Caddy | TLS certificates, HTTP-to-HTTPS redirects and hostname routing |
-| Forgejo | Authentication, Git HTTP, API and OCI registry |
+Both `git.lab.home.arpa` and `forgejo.lab.home.arpa` resolve to the controller. Forgejo HTTP is bound to the controller's LAN address. There is no public Forgejo tunnel route.
 
-Caddy connects to Forgejo through the dedicated `platform_ingress` Docker network. Forgejo trusts only Caddy's configured IPv4 address for forwarded headers and leaves reverse-proxy authentication disabled. Its ordinary Docker network also serves the validation runner. The backend HTTP port is restricted to loopback after HTTPS acceptance. Git SSH uses a separate LAN-bound port and is not handled by Caddy's HTTP proxy.
+OUTER handles the WAN firewall and WireGuard. INNER handles LAN routing and DNS. The public chat profile makes outbound Cloudflare connections and needs no inbound web forwarding. See [domain ingress](../runbooks/domain-ingress.md) and [controller public ingress](../runbooks/controller-public-ingress.md).
 
-The ingress subnet and container addresses in `.env.example` are candidates. Check them against host, LAN, VPN and Docker routes before deployment. A dedicated ingress host can replace this placement later without moving the routers' responsibilities.
+Forgejo's configuration includes a separate `platform_ingress` network for the optional private Caddy profile. Forwarded-header trust is limited to the configured proxy address; proxy authentication is disabled. If private HTTPS is deployed, verify certificates and access first, then restrict the HTTP binding to loopback. Git SSH remains a separate service.
 
 ## Delivery and compute
 
-The compute plane is the existing upstream kubeadm cluster with one Raspberry Pi control plane and two workers. A fourth Pi is reserved for reconstruction tests.
+The kubeadm cluster has one Raspberry Pi control plane and two workers; a fourth Pi is reserved for reconstruction exercises.
 
-GitHub-hosted ARM64 CI validates the repository, builds `platform-hello` once, tests the same image, and applies Trivy vulnerability and secret checks. A separate publisher receives an image archive plus checksum and expected Docker image ID, verifies that handoff, and publishes to GHCR with `packages: write`.
+GitHub ARM64 CI builds `platform-hello`, tests that image and scans it with Trivy. The publisher verifies an image archive, checksum and Docker image ID before publishing to GHCR. Skopeo copies existing OCI content with digest preservation. Full retrieval and package association are checked separately.
 
-Registry replication uses Skopeo with digest preservation. Independent retrieval tests fetch the complete OCI artifact into a fresh layout. Forgejo package association is separate registry metadata. Kubernetes currently pulls the qualified GHCR digest; changing the local forge does not require changing workload image references.
+Flux reads desired state from GitHub and reconciles the application namespace through its scoped ServiceAccount. Kubernetes uses the qualified GHCR digest. A local forge migration does not change those sources.
 
-Flux pulls canonical Git desired state and reconciles only the selected application namespace using scoped authority. The validation runner has no production Docker socket, deployment credentials or Kubernetes authority. A future operations runner must have its own identity and approval boundary; it must not compete with Flux for routine application reconciliation.
+The Forgejo validation runner has no production Docker socket, deployment credential or Kubernetes authority. A future operations runner needs a separate identity and execution boundary. Flux continues to own routine application reconciliation.
 
-## Observability and outstanding acceptance
+## Monitoring and remaining work
 
-Prometheus and Grafana run outside Kubernetes with bounded retention/storage. Native exporters cover the R5C and three physical Pi hosts. A separate read-only TLS observer scrapes the Kubernetes API and Flux metrics through constrained RBAC. Historical evidence records eight healthy targets and five provisioned dashboards.
+The accepted telemetry deployment has eight Prometheus targets and five Grafana dashboards. Host exporters cover the R5C and three Pis. A read-only X.509 observer scrapes the Kubernetes API and Flux metrics through the API endpoint.
 
-Staging acceptance recorded main-branch parity, SSH read, OCI digest parity and complete artifact retrieval, plus deployment and native workflow execution on the new runner. Post-cutover Git source parity and full OCI retrieval passed. Native Actions shows successful manual and push-triggered runs. Kuma reports the final root URL Up; using `/api/healthz` would check application health directly. Notification delivery and remaining retirement/permission/metadata review are not established by the screenshots. Both LAN forge names resolve to `10.0.0.50`; private HTTPS remains pending. No public Forgejo forwarding is needed. Backup restoration, blank-host reconstruction, service-level alerting and Kubernetes object-state coverage remain separate work.
+Forgejo native validation passed for manual and mirrored-push runs. Kuma reports availability, and the operator updated its target to `http://git.lab.home.arpa:3000/api/healthz`. Alert delivery after migration has not been retested.
 
-Historical records: [native CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md), [telemetry](../sprints/14-kubernetes-flux-telemetry.md).
+Remaining work includes private HTTPS, exporter network isolation, an induced scrape outage, wider workload/service metrics, scheduled encrypted backups, restore and blank-host reconstruction. Details are in the [backlog](../backlog.md).
+
+Historical records: [native Gitea CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md) and [telemetry](../sprints/14-kubernetes-flux-telemetry.md).

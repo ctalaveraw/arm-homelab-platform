@@ -14,7 +14,7 @@ Collect actionable R5C and physical Kubernetes-node metrics from an independent 
 - Grafana 13.2.2, non-root, 768 MiB memory and 256-PID limits, guarded SD-backed storage, provisioned Prometheus source, platform/R5C/Pi dashboards and restricted plugin loading; LAN TCP/3300.
 - Pinned Node Exporter v1.12.1 on R5C and Pis with SHA-256-verified archive, dedicated unprivileged identity and native systemd isolation; 96 MiB R5C and 64 MiB Pi caps.
 - R5C filesystem metrics work through minimal `--x` parent/mount ACL grants; native exporter has no access to the Grafana secret.
-- Dedicated Pi inventory uses SSH aliases and verified host identities rather than embedding SSH private keys. Ansible deploys one Pi at a time.
+- Dedicated Pi inventory uses SSH aliases and verified host identities; private keys stay local. Ansible deploys one Pi at a time.
 - Prometheus jobs: `prometheus`, `r5c`, `pi-nodes`. The Pi job supplies stable `node` and `role` labels.
 - Regression coverage and syntax/lint/Compose validation in `scripts/ci/validate.sh`.
 

@@ -5,7 +5,7 @@ Date: 2026-10-10
 
 ## Context
 
-The restricted ARM64 validation runner has no Docker host socket, privileged mode, cluster credentials or deployment credentials. That boundary was measured on Gitea; current configuration targets Forgejo under [ADR-0015](0015-forgejo-and-controller-ingress.md), with new runner acceptance pending. GitHub remains canonical, with a private one-way Forgejo mirror as the destination. Giving that validation runner a privileged Ansible identity would create a path from repository changes into management authority, including risk from untrusted workflows and compromised dependencies.
+The restricted ARM64 validation runner has no Docker host socket, privileged mode, cluster credentials or deployment credentials. Forgejo manual and mirrored-push validation passed under this configuration on 2026-11-18; see [ADR-0015](0015-forgejo-and-controller-ingress.md). GitHub remains canonical, with a private one-way Forgejo mirror as the destination. Giving that validation runner a privileged Ansible identity would create a path from repository changes into management authority, including risk from untrusted workflows and compromised dependencies.
 
 Normal Kubernetes application state is already owned by Flux. A second workflow that directly applies the same manifests would create competing writers.
 
@@ -21,7 +21,7 @@ Create a **separate, restricted local operations execution boundary** when autom
 
 Separate machine/OS identity and filesystem/credential boundary preferred; a second runner registration alone on the same unisolated host does not provide full isolation. Default deny for host daemon socket, direct root, unattended writes and production credentials exposed to PR contexts. Define allowlisted playbooks/arguments, approver and audit event, exclusive execution locks, timeout, bounded rollback and denied-path tests before activation.
 
-Forgejo-dependent jobs are **not** the recovery root for Forgejo or the R5C. Ansible must remain independently runnable using verified off-device source and recovery credentials. Use the [current runner paths and identity](../runbooks/forgejo-reference-map.md#repository-and-host-paths).
+Forgejo and R5C recovery must run independently of Forgejo jobs. Ansible must remain independently runnable using verified off-device source and recovery credentials. Use the [current runner paths and identity](../runbooks/forgejo-reference-map.md#repository-and-host-paths).
 
 ## Consequences
 

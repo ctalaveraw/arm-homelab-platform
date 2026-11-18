@@ -30,13 +30,10 @@ GitHub remains the canonical source repository.
 
 Flux reads the public GitHub repository over HTTPS without Git credentials.
 
-Forgejo is the selected private one-way mirror and is not the Flux source.
-This avoids coupling Kubernetes reconciliation to availability of the
-out-of-cluster R5C management plane.
-
-This naming amendment follows [ADR-0015](0015-forgejo-and-controller-ingress.md).
-Use [current mirror paths](../runbooks/forgejo-reference-map.md); Forgejo mirror
-acceptance remains pending and does not alter the original Flux measurements.
+Forgejo hosts the local one-way pull mirror; Flux continues to read GitHub.
+Its source remains available while the R5C or local forge is down. Forgejo
+parity and native validation passed under [ADR-0015](0015-forgejo-and-controller-ingress.md).
+See the [current mirror paths](../runbooks/forgejo-reference-map.md).
 
 The initial Flux installation includes only:
 
@@ -164,8 +161,8 @@ Git change
   -> scoped Kubernetes reconciliation
 ```
 
-The R5C X.509 deployment path remains available for break-glass operation,
-verification and recovery rather than normal application delivery.
+The R5C X.509 deployment path is retained for verification and emergency recovery.
+Flux owns normal application reconciliation.
 
 ## Consequences
 

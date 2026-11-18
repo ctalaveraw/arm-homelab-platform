@@ -1,6 +1,6 @@
 # Sprint 0 — Brownfield Discovery
 
-> Historical record: Gitea names, paths and results below describe the dated baseline. Use the [Forgejo reference map](../runbooks/forgejo-reference-map.md) for current files, owner `ctalaveraw`, client URLs and cutover instructions.
+> Historical Gitea deployment. Current operation: [Forgejo reference](../runbooks/forgejo-reference-map.md).
 
 Status: Complete — external recovery established.
 
@@ -44,4 +44,4 @@ without depending on the NanoPi's future Gitea instance.
 - SD automount activation observed after subsequent reboot.
 
 The original baseline is retained as a historical
-snapshot rather than rewritten after the change.
+snapshot of the state before automation.
