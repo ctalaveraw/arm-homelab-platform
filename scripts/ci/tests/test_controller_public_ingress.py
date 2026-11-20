@@ -27,6 +27,8 @@ INSTALLER = load_module("token_installer", ROOT / "scripts/cloudflared/install-t
 def rendered_project():
     project = yaml.safe_load((PROFILE / "compose.yaml").read_text())
     service = project["services"]["server"]
+    service["environment"]["ZULIP_FQDN"] = "chat.example.com"
+    service["environment"]["ZULIP_ORG_HOSTS"] = ""
     sources = {"/data": GUARD.STATE / "data", "/config": GUARD.STATE / "config",
                "/etc/caddy/Caddyfile": GUARD.COMPOSE / "Caddyfile"}
     for volume in service["volumes"]:
@@ -43,7 +45,7 @@ class PublicIngressTests(unittest.TestCase):
     def test_public_routes_exclude_forgejo_and_acme(self):
         config = (PROFILE / "Caddyfile").read_text()
         self.assertEqual(config.count("reverse_proxy "), 1)
-        self.assertIn("http://{$ZULIP_FQDN}:8080", config)
+        self.assertIn("@zulip host {$ZULIP_FQDN} {$ZULIP_ORG_HOSTS:}", config)
         self.assertIn("auto_https off", config)
         self.assertNotIn("forgejo", config.lower())
         self.assertNotIn("on_demand", config)
@@ -99,6 +101,30 @@ class PublicIngressTests(unittest.TestCase):
 class ProjectGuardTests(unittest.TestCase):
     def test_accepts_isolated_tunnel_configuration(self):
         GUARD.validate_project(rendered_project())
+
+    def test_accepts_explicit_organization_hosts(self):
+        project = rendered_project()
+        project["services"]["server"]["environment"]["ZULIP_ORG_HOSTS"] = (
+            "openops.chat.example.com projects.chat.example.com")
+        GUARD.validate_project(project)
+
+    def test_rejects_wildcards_external_hosts_nested_hosts_and_duplicates(self):
+        for hosts in ("*.chat.example.com", "projects.example.com", "chat.example.com",
+                      "nested.openops.chat.example.com", "openops.chat.example.com:443",
+                      "openops.chat.example.com openops.chat.example.com",
+                      "openops.chat.example.com\nprojects.chat.example.com"):
+            project = rendered_project()
+            project["services"]["server"]["environment"]["ZULIP_ORG_HOSTS"] = hosts
+            with self.subTest(hosts=hosts), self.assertRaisesRegex(SystemExit, "organization hostnames"):
+                GUARD.validate_project(project)
+
+    def test_rejects_invalid_base_hostname(self):
+        for host in ("https://chat.example.com", "chat.example.com:443", "Chat.example.com",
+                     "chat.example.com/path", "chat.example.com\nrespond bad"):
+            project = rendered_project()
+            project["services"]["server"]["environment"]["ZULIP_FQDN"] = host
+            with self.subTest(host=host), self.assertRaisesRegex(SystemExit, "base hostname"):
+                GUARD.validate_project(project)
 
     def test_rejects_host_port_publication(self):
         project = rendered_project()

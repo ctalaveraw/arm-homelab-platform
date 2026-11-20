@@ -3,6 +3,7 @@
 
 import ipaddress
 import json
+import re
 import shutil
 import stat
 import subprocess
@@ -36,6 +37,25 @@ def guarded_bind(volume):
     return isinstance(options, dict) and options.get("create_host_path", False) is False
 
 
+def validate_hostnames(environment):
+    label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+    base = environment.get("ZULIP_FQDN", "")
+    if (not isinstance(base, str) or len(base) > 253
+            or not re.fullmatch(rf"{label}(?:\.{label})+", base)):
+        fail("Zulip base hostname must be a lowercase DNS name without a scheme, port or path")
+    additional = environment.get("ZULIP_ORG_HOSTS", "")
+    if not isinstance(additional, str) or any(c.isspace() and c != " " for c in additional):
+        fail("Zulip organization hostnames must use spaces between DNS names")
+    hosts = additional.split()
+    if len(hosts) != len(set(hosts)):
+        fail("Zulip organization hostnames must be distinct")
+    for host in hosts:
+        suffix = "." + base
+        if (len(host) > 253 or not host.endswith(suffix)
+                or not re.fullmatch(label, host[:-len(suffix)])):
+            fail("Zulip organization hostnames must be explicit direct subdomains of the base hostname")
+
+
 def validate_secret(path=TOKEN):
     if path.is_symlink() or path.resolve() != path:
         fail("Tunnel token storage is redirected")
@@ -60,6 +80,7 @@ def validate_project(project):
     colocated = set(services) == {"server", "cloudflared"} | ZULIP_SERVICES
     if set(services) != {"server", "cloudflared"} and not colocated:
         fail("Unexpected public ingress services")
+    validate_hostnames(services["server"].get("environment", {}))
     for service in services.values():
         if service.get("ports") or service.get("network_mode"):
             fail("Tunnel profile must not publish host ports or use host networking")

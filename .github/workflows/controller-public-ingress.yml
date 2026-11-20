@@ -11,6 +11,7 @@ on:
       - 'ansible/playbooks/caddy-public.yml'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
       - 'scripts/ci/tests/test_zulip_controller.py'
+      - 'scripts/ci/smoke-zulip-organizations.py'
       - '.github/workflows/controller-public-ingress.yml'
   pull_request:
     paths:
@@ -21,6 +22,7 @@ on:
       - 'ansible/playbooks/caddy-public.yml'
       - 'scripts/ci/tests/test_controller_public_ingress.py'
       - 'scripts/ci/tests/test_zulip_controller.py'
+      - 'scripts/ci/smoke-zulip-organizations.py'
       - '.github/workflows/controller-public-ingress.yml'
 
 permissions:
@@ -33,6 +35,7 @@ jobs:
     env:
       STATE_SERVICES_ROOT: /tmp/caddy-public-ci-state
       ZULIP_FQDN: chat.example.com
+      ZULIP_ORG_HOSTS: openops.chat.example.com projects.chat.example.com
       ZULIP_UPSTREAM: http://192.0.2.10:8080
       PUBLIC_INGRESS_SUBNET: 192.0.2.0/28
       CLOUDFLARED_CONTAINER_IP: 192.0.2.2
@@ -148,6 +151,14 @@ jobs:
           sudo -E docker compose --env-file /dev/null \
             -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml \
             up -d --wait --wait-timeout 900 zulip
+      - name: Exercise organization migration and credential isolation
+        run: |
+          # The runner reads its checkout file; only Docker needs sudo.
+          # shellcheck disable=SC2024
+          sudo -E docker compose --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml -f compose/zulip/compose.yaml \
+            exec -T --user zulip --workdir /home/zulip/deployments/current zulip \
+            ./manage.py shell < scripts/ci/smoke-zulip-organizations.py
       - name: Clean up synthetic application containers
         if: always()
         run: |
