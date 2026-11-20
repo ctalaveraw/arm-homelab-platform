@@ -66,7 +66,7 @@ def main():
         assert response.json()["user_id"] == account.id
         other_host = f"{'projects' if realm.string_id == 'openops' else 'openops'}.{settings.EXTERNAL_HOST}"
         response = Client().get("/api/v1/users/me", secure=True, HTTP_HOST=other_host, **headers)
-        assert response.status_code == 400, "An organization credential authenticated in the other organization"
+        assert response.status_code == 401, f"Wrong-organization request returned HTTP {response.status_code}"
         assert response.json()["msg"] == "Account is not associated with this subdomain"
     assert Message.objects.get(id=message_id).realm_id == original_id
     owner.refresh_from_db()
