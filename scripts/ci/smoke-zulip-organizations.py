@@ -33,6 +33,7 @@ def main():
     client, _ = ZulipClient.objects.get_or_create(name="ci-migration")
     message_id = check_send_private_message(owner, client, owner, "Private migration fixture")
     original_id = root.id
+    original_api_key = owner.api_key
 
     move(original_id, "openops")
     root.refresh_from_db()
@@ -57,14 +58,19 @@ def main():
         host = f"{realm.string_id}.{settings.EXTERNAL_HOST}"
         response = Client().get("/login/", secure=True, HTTP_HOST=host)
         assert response.status_code == 200, f"Organization login failed: {host}"
-        authentication = base64.b64encode(f"{account.email}:{account.api_key}".encode()).decode()
+        # UserProfile.email can be masked; authentication uses delivery_email.
+        authentication = base64.b64encode(f"{account.delivery_email}:{account.api_key}".encode()).decode()
         headers = {"HTTP_AUTHORIZATION": f"Basic {authentication}"}
         response = Client().get("/api/v1/users/me", secure=True, HTTP_HOST=host, **headers)
-        assert response.status_code == 200 and response.json()["user_id"] == account.id
+        assert response.status_code == 200, f"Own-organization authentication failed at {host}: HTTP {response.status_code}"
+        assert response.json()["user_id"] == account.id
         other_host = f"{'projects' if realm.string_id == 'openops' else 'openops'}.{settings.EXTERNAL_HOST}"
         response = Client().get("/api/v1/users/me", secure=True, HTTP_HOST=other_host, **headers)
-        assert response.status_code == 401, "An organization credential authenticated in the other organization"
+        assert response.status_code == 401, f"Wrong-organization request returned HTTP {response.status_code}"
+        assert response.json()["msg"] == "Account is not associated with this subdomain"
     assert Message.objects.get(id=message_id).realm_id == original_id
+    owner.refresh_from_db()
+    assert owner.api_key == original_api_key, "The existing account's API key changed during the move"
     print("Organization smoke passed: rename/rollback, preserved account/message, login and credential isolation.")
 
 
