@@ -89,16 +89,17 @@ nslookup chat.example.com
 nslookup chat.example.com 1.1.1.1
 ```
 
-Cloudflare's Subdomain plus Domain, its DNS record, the published application
-hostname and `ZULIP_FQDN` must agree. After correcting the local value, restart
+For the initial single organization, Cloudflare's Subdomain plus Domain, its
+DNS record, the published application hostname and `ZULIP_FQDN` must agree. After correcting the local value, restart
 the unit so Caddy and Zulip both receive it. Before an organization exists,
 generate a new creation link and open its full path privately. Do not change a
 working organization's domain casually; that is a separate application migration.
 
 For multiple organizations, `ZULIP_FQDN` remains the server base. Add exact
-organization addresses through `ZULIP_ORG_HOSTS` and matching tunnel routes;
-follow the [organization migration runbook](zulip-organizations.md) before
-renaming an existing organization. Each organization request must retain its
+organization addresses through `ZULIP_ORG_HOSTS`, map custom addresses with
+`ZULIP_REALM_HOSTS`, and add matching tunnel routes. Follow the
+[organization migration runbook](zulip-organizations.md) before renaming an
+existing organization. Each organization request must retain its
 own Host header through the proxy.
 
 Use targeted `zulip-compose logs --tail 50 server zulip cloudflared` only for

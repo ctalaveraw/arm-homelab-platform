@@ -25,6 +25,8 @@ def main():
         raise RuntimeError("Organization smoke test requires the empty chat.example.com CI fixture")
     if settings.ROOT_DOMAIN_LANDING_PAGE:
         raise RuntimeError("The fixture must permit the existing root organization")
+    expected_hosts = {"openops": "zulip-openops.example.com", "projects": "zulip-projects.example.com"}
+    assert settings.REALM_HOSTS == expected_hosts, "The image did not apply the configured hostname mapping"
 
     root = do_create_realm("", "CI original organization", invite_required=True)
     owner = do_create_user("operator@example.com", None, root, "CI operator",
@@ -55,7 +57,8 @@ def main():
                                    realm_creation=True, enable_marketing_emails=False)
     for realm, account in ((root, owner), (projects, project_owner)):
         realm.refresh_from_db()
-        host = f"{realm.string_id}.{settings.EXTERNAL_HOST}"
+        host = realm.host
+        assert host == expected_hosts[realm.string_id], "The organization selected the wrong hostname"
         response = Client().get("/login/", secure=True, HTTP_HOST=host)
         assert response.status_code == 200, f"Organization login failed: {host}"
         # UserProfile.email can be masked; authentication uses delivery_email.
@@ -64,7 +67,7 @@ def main():
         response = Client().get("/api/v1/users/me", secure=True, HTTP_HOST=host, **headers)
         assert response.status_code == 200, f"Own-organization authentication failed at {host}: HTTP {response.status_code}"
         assert response.json()["user_id"] == account.id
-        other_host = f"{'projects' if realm.string_id == 'openops' else 'openops'}.{settings.EXTERNAL_HOST}"
+        other_host = projects.host if realm.string_id == "openops" else root.host
         response = Client().get("/api/v1/users/me", secure=True, HTTP_HOST=other_host, **headers)
         assert response.status_code == 401, f"Wrong-organization request returned HTTP {response.status_code}"
         assert response.json()["msg"] == "Account is not associated with this subdomain"

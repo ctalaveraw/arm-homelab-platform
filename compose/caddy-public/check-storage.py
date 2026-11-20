@@ -20,6 +20,7 @@ ZULIP_COMPOSE = Path("/srv/platform/compose/zulip/compose.yaml")
 ZULIP_SERVICES = {"zulip", "database", "memcached", "rabbitmq", "redis"}
 ZULIP_SECRETS = {"postgres_password", "memcached_password", "rabbitmq_password",
                  "redis_password", "secret_key", "email_password"}
+DNS_LABEL = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
 
 
 def fail(message):
@@ -38,10 +39,9 @@ def guarded_bind(volume):
 
 
 def validate_hostnames(environment):
-    label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
     base = environment.get("ZULIP_FQDN", "")
     if (not isinstance(base, str) or len(base) > 253
-            or not re.fullmatch(rf"{label}(?:\.{label})+", base)):
+            or not re.fullmatch(rf"{DNS_LABEL}(?:\.{DNS_LABEL})+", base)):
         fail("Zulip base hostname must be a lowercase DNS name without a scheme, port or path")
     additional = environment.get("ZULIP_ORG_HOSTS", "")
     if not isinstance(additional, str) or any(c.isspace() and c != " " for c in additional):
@@ -49,11 +49,42 @@ def validate_hostnames(environment):
     hosts = additional.split()
     if len(hosts) != len(set(hosts)):
         fail("Zulip organization hostnames must be distinct")
+    suffixes = ["." + base]
+    parent = base.split(".", 1)[1]
+    if "." in parent:
+        suffixes.append("." + parent)
     for host in hosts:
-        suffix = "." + base
-        if (len(host) > 253 or not host.endswith(suffix)
-                or not re.fullmatch(label, host[:-len(suffix)])):
-            fail("Zulip organization hostnames must be explicit direct subdomains of the base hostname")
+        if (host == base or len(host) > 253 or not any(
+                host.endswith(suffix) and re.fullmatch(DNS_LABEL, host[:-len(suffix)])
+                for suffix in suffixes)):
+            fail("Zulip organization hostnames must be explicit subdomains or siblings of the base hostname")
+
+
+def validate_realm_hosts(server, environment):
+    try:
+        mapping = json.loads(environment.get("SETTING_REALM_HOSTS", "") or "{}")
+    except (TypeError, ValueError):
+        fail("Zulip REALM_HOSTS must be a JSON object of organization IDs to hostnames")
+    if not isinstance(mapping, dict):
+        fail("Zulip REALM_HOSTS must be a JSON object of organization IDs to hostnames")
+    base = server["ZULIP_FQDN"]
+    hosts = set(server.get("ZULIP_ORG_HOSTS", "").split())
+    suffix = "." + base
+    for realm, host in mapping.items():
+        if (not isinstance(realm, str) or not re.fullmatch(DNS_LABEL, realm)
+                or len(realm) < 3 or realm == "zulipinternal" or not isinstance(host, str)):
+            fail("Zulip REALM_HOSTS requires organization IDs and explicit hostname strings")
+        if host not in hosts:
+            fail("Every Zulip REALM_HOSTS destination must be listed in Caddy's organization hostnames")
+        if host.endswith(suffix) and host[:-len(suffix)] != realm:
+            fail("Zulip REALM_HOSTS must not shadow another organization's natural subdomain")
+    if len(set(mapping.values())) != len(mapping):
+        fail("Zulip REALM_HOSTS destinations must be distinct")
+    destinations = set(mapping.values())
+    for host in hosts:
+        natural_realm = host[:-len(suffix)] if host.endswith(suffix) else None
+        if host not in destinations and (natural_realm is None or natural_realm in mapping):
+            fail("Each custom organization hostname requires a matching Zulip REALM_HOSTS destination")
 
 
 def validate_secret(path=TOKEN):
@@ -184,6 +215,7 @@ def validate_zulip(project, tunnel_subnet):
         fail("Zulip requires threaded workers and closed organization creation")
     if environment.get("SETTING_EXTERNAL_HOST") != services["server"]["environment"].get("ZULIP_FQDN"):
         fail("Zulip and Caddy must use the same public hostname")
+    validate_realm_hosts(services["server"]["environment"], environment)
 
 
 def validate_zulip_secrets(folder=ZULIP / "secrets"):

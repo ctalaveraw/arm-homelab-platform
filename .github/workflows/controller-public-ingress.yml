@@ -35,7 +35,8 @@ jobs:
     env:
       STATE_SERVICES_ROOT: /tmp/caddy-public-ci-state
       ZULIP_FQDN: chat.example.com
-      ZULIP_ORG_HOSTS: openops.chat.example.com projects.chat.example.com
+      ZULIP_ORG_HOSTS: zulip-openops.example.com zulip-projects.example.com
+      ZULIP_REALM_HOSTS: '{"openops":"zulip-openops.example.com","projects":"zulip-projects.example.com"}'
       ZULIP_UPSTREAM: http://192.0.2.10:8080
       PUBLIC_INGRESS_SUBNET: 192.0.2.0/28
       CLOUDFLARED_CONTAINER_IP: 192.0.2.2
