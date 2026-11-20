@@ -106,6 +106,18 @@ def validate_secret(path=TOKEN):
         fail("Tunnel token is unavailable; use the hidden-input installer")
 
 
+def validate_caddyfile(path):
+    try:
+        info = path.stat()
+    except OSError:
+        fail("Public Caddyfile is unavailable; rerun ansible/playbooks/caddy-public.yml")
+    if not stat.S_ISREG(info.st_mode):
+        fail("Public Caddyfile must be a regular file")
+    if stat.S_IMODE(info.st_mode) != 0o644:
+        fail("Public Caddyfile requires mode 0644; rerun ansible/playbooks/caddy-public.yml "
+             "or chmod 0644 /srv/platform/compose/caddy-public/Caddyfile")
+
+
 def validate_project(project):
     services = project["services"]
     colocated = set(services) == {"server", "cloudflared"} | ZULIP_SERVICES
@@ -245,6 +257,7 @@ def validate_capacity(memory, free_state):
 
 
 def main():
+    validate_caddyfile(COMPOSE / "Caddyfile")
     if run(["/usr/bin/ls", "-A", str(MOUNT)]).returncode:
         fail("SD storage is inaccessible")
     mounted = run([
