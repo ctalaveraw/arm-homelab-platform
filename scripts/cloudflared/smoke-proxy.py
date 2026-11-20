@@ -87,8 +87,10 @@ def exercise(binary, peer, backend, organization_hosts=()):
                     assert headers["x-forwarded-host"] == host, "Forwarded organization Host was lost"
                     status, headers, _ = request(port, host=host, scheme="http")
                     assert status == 308 and headers["Location"] == f"https://{host}/sample?test=1"
-                for host in ("unconfigured.example.com", "other.chat.example.com",
-                             "nested.openops.chat.example.com"):
+                denied = {"unconfigured.example.com", "other.chat.example.com",
+                          "nested.openops.chat.example.com", "openops.chat.example.com",
+                          "zulip-openops.example.com"} - set(organization_hosts)
+                for host in denied:
                     for scheme in ("http", "https"):
                         assert request(port, host=host, scheme=scheme)[0] == 404, "Unknown hostname was routed"
             finally:
@@ -108,7 +110,8 @@ def main():
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        for hosts in ((), ("openops.chat.example.com", "projects.chat.example.com")):
+        for hosts in ((), ("openops.chat.example.com", "projects.chat.example.com"),
+                      ("zulip-openops.example.com", "zulip-projects.example.com")):
             exercise(args.caddy, "127.0.0.1", server.server_port, hosts)
             exercise(args.caddy, "127.0.0.2", server.server_port, hosts)
     finally:

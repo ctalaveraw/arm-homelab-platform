@@ -109,7 +109,7 @@ class ProjectGuardTests(unittest.TestCase):
         GUARD.validate_project(project)
 
     def test_rejects_wildcards_external_hosts_nested_hosts_and_duplicates(self):
-        for hosts in ("*.chat.example.com", "projects.example.com", "chat.example.com",
+        for hosts in ("*.chat.example.com", "projects.unrelated.example.net", "chat.example.com",
                       "nested.openops.chat.example.com", "openops.chat.example.com:443",
                       "openops.chat.example.com openops.chat.example.com",
                       "openops.chat.example.com\nprojects.chat.example.com"):

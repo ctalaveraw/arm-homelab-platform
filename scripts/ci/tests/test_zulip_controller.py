@@ -1,6 +1,7 @@
 """Guard the colocated app's storage, proxy trust and credential preservation."""
 
 import copy
+import json
 import re
 import stat
 import tempfile
@@ -27,6 +28,7 @@ def colocated_project():
     values = {
         "STATE_SERVICES_ROOT": str(GUARD.MOUNT / "services"),
         "ZULIP_FQDN": "chat.example.com", "ZULIP_ADMIN_EMAIL": "admin@example.com",
+        "ZULIP_REALM_HOSTS": "",
         "SMTP_HOST": "smtp.example.com", "SMTP_USER": "test@example.com", "SMTP_FROM": "test@example.com",
         "CADDY_ZULIP_IP": "198.51.100.2", "ZULIP_CONTAINER_IP": "198.51.100.3",
         "ZULIP_PROXY_SUBNET": "198.51.100.0/28",
@@ -49,6 +51,49 @@ def colocated_project():
 
 
 class ColocatedZulipTests(unittest.TestCase):
+    def test_accepts_mapped_sibling_hosts_and_default_nested_hosts(self):
+        project = colocated_project()
+        server = project["services"]["server"]["environment"]
+        environment = project["services"]["zulip"]["environment"]
+        mapping = {"openops": "zulip-openops.example.com", "projects": "zulip-projects.example.com"}
+        server["ZULIP_ORG_HOSTS"] = " ".join(mapping.values())
+        environment["SETTING_REALM_HOSTS"] = json.dumps(mapping)
+        GUARD.validate_project(project)
+        server["ZULIP_ORG_HOSTS"] = "openops.chat.example.com projects.chat.example.com"
+        environment["SETTING_REALM_HOSTS"] = ""
+        GUARD.validate_project(project)
+
+    def test_rejects_missing_mismatched_and_duplicate_realm_destinations(self):
+        for mapping in ({}, {"openops": "zulip-openops.example.com"},
+                        {"openops": "unlisted.example.com", "projects": "zulip-projects.example.com"},
+                        {"openops": "zulip-openops.example.com", "projects": "zulip-openops.example.com"}):
+            project = colocated_project()
+            project["services"]["server"]["environment"]["ZULIP_ORG_HOSTS"] = (
+                "zulip-openops.example.com zulip-projects.example.com")
+            project["services"]["zulip"]["environment"]["SETTING_REALM_HOSTS"] = json.dumps(mapping)
+            with self.subTest(mapping=mapping), self.assertRaisesRegex(SystemExit, "REALM_HOSTS"):
+                GUARD.validate_project(project)
+
+    def test_rejects_invalid_realm_mapping_input(self):
+        for raw in ("not JSON", "[]", '{"": "zulip-openops.example.com"}',
+                    '{"zulipinternal": "zulip-openops.example.com"}', '{"openops": 42}',
+                    '{"OpenOps": "zulip-openops.example.com"}'):
+            project = colocated_project()
+            project["services"]["server"]["environment"]["ZULIP_ORG_HOSTS"] = "zulip-openops.example.com"
+            project["services"]["zulip"]["environment"]["SETTING_REALM_HOSTS"] = raw
+            with self.subTest(raw=raw), self.assertRaisesRegex(SystemExit, "REALM_HOSTS"):
+                GUARD.validate_project(project)
+
+    def test_rejects_a_second_route_or_mapping_that_shadows_a_natural_subdomain(self):
+        for hosts, mapping in (
+                ("openops.chat.example.com zulip-openops.example.com", {"openops": "zulip-openops.example.com"}),
+                ("projects.chat.example.com", {"openops": "projects.chat.example.com"})):
+            project = colocated_project()
+            project["services"]["server"]["environment"]["ZULIP_ORG_HOSTS"] = hosts
+            project["services"]["zulip"]["environment"]["SETTING_REALM_HOSTS"] = json.dumps(mapping)
+            with self.subTest(hosts=hosts), self.assertRaisesRegex(SystemExit, "REALM_HOSTS"):
+                GUARD.validate_project(project)
+
     def test_accepts_compose_v2_omitted_false_in_explicit_bind_object(self):
         project = colocated_project()
         for service in project["services"].values():

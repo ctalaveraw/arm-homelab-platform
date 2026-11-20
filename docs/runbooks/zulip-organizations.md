@@ -6,21 +6,30 @@ after the PR and its ARM64 fixture pass review.
 
 ## Intended layout
 
-Examples below use `chat.example.com`; substitute the existing private
-`ZULIP_FQDN` value locally. Keep real deployment values outside this repository.
+Examples below use `chat.example.com` as the server base and `example.com`
+as its parent domain. Substitute the existing private `ZULIP_FQDN` and the
+corresponding deployment hostnames locally. Keep real values outside this repository.
 
 | Hostname | Organization | Action |
 | --- | --- | --- |
 | `chat.example.com` | Server base (`EXTERNAL_HOST`) | Keep the setting and original tunnel route |
-| `openops.chat.example.com` | Existing collaboration organization | Move the root organization in place |
-| `projects.chat.example.com` | Personal projects | Create a separate invitation-only organization |
+| `zulip-openops.example.com` | Existing collaboration organization (`openops`) | Move the root organization in place |
+| `zulip-projects.example.com` | Personal projects (`projects`) | Create a separate invitation-only organization |
+
+Use **service-organization** for the public names. This groups the Zulip
+addresses together in DNS and service inventories while keeping them one label
+below the parent domain, covered by the existing wildcard certificate.
 
 The seven-container stack, storage paths and credentials stay the same.
-`ZULIP_ORG_HOSTS` adds exact Caddy host matches. Each entry must be a distinct
-direct subdomain of the base; wildcards, deeper names and other domains fail
-preflight. Zulip selects the organization from the forwarded hostname. These
-nested names use Zulip's normal subdomain handling; no `REALM_HOSTS` mapping is
-needed.
+`ZULIP_ORG_HOSTS` lists the exact names Caddy accepts. `ZULIP_REALM_HOSTS` maps
+Zulip's internal organization IDs to those public names through `REALM_HOSTS`.
+The base `ZULIP_FQDN` remains the server's `EXTERNAL_HOST`.
+
+Preflight checks the two settings together: every custom destination must be in
+the Caddy list, destinations must be distinct, and no mapping may shadow
+another organization's natural subdomain. Wildcards, unrelated domains, deeper
+names and inconsistent mappings fail preflight. The previous single-organization
+and default nested-subdomain configurations remain supported.
 
 Organization membership and content are separate. Server administration,
 database, storage and availability are shared.
@@ -47,21 +56,16 @@ sudo /usr/local/sbin/zulip-compose exec --user zulip \
   'from zerver.models import Realm, UserProfile, Message; r=Realm.objects.get(string_id=""); print({"realm_id": r.id, "users": UserProfile.objects.filter(realm=r).count(), "messages": Message.objects.filter(realm=r).count()})'
 ```
 
-## 2. Confirm browser-facing certificate coverage
+## 2. Confirm the existing certificate covers the names
 
 In Cloudflare's SSL/TLS edge certificate settings, require an **active**
-certificate covering both planned hostnames or `*.chat.example.com`. An active
-certificate for `*.example.com` does not cover them.
+Universal certificate covering `*.example.com`. It covers both
+`zulip-openops.example.com` and `zulip-projects.example.com`, as well as the
+existing `chat.example.com` base. The chosen first-level layout uses the
+existing certificate; no additional Cloudflare subscription is required.
 
-On a normal full-zone Cloudflare setup, deeper names require an advanced
-certificate or Total TLS. A partial CNAME setup has different issuance rules.
-Keep any subscription purchase a separate account-owner decision; this PR
-neither orders certificates nor changes billing. An origin certificate on Caddy
-cannot replace missing browser-to-Cloudflare certificate coverage.
-
-Do not rename the live organization while certificate coverage is pending. If
-the account cannot provide the required certificate, keep the working URL and
-revisit the hostname plan before continuing.
+Check the full hostnames and their suffix before publishing them. Keep the
+working base address until the new routes pass external TLS checks below.
 
 ## 3. Take a protected checkpoint
 
@@ -84,11 +88,13 @@ ansible-playbook ansible/playbooks/caddy-public.yml
 sudoedit /srv/platform/compose/caddy-public/.env
 ```
 
-Keep `ZULIP_FQDN` at its existing base value. Add only the organization-host
-setting, using the corresponding deployment names:
+Keep `ZULIP_FQDN` at its existing base value. Add both organization settings,
+using the corresponding deployment names. The mapping is a single-line JSON
+object inside single quotes:
 
 ```dotenv
-ZULIP_ORG_HOSTS='openops.chat.example.com projects.chat.example.com'
+ZULIP_ORG_HOSTS='zulip-openops.example.com zulip-projects.example.com'
+ZULIP_REALM_HOSTS='{"openops":"zulip-openops.example.com","projects":"zulip-projects.example.com"}'
 ```
 
 Preserve every other setting and all six Zulip secrets. Apply through the
@@ -101,8 +107,21 @@ sudo systemctl restart caddy-public
 sudo /usr/local/sbin/zulip-compose ps --all
 ```
 
+Confirm the running image received the mapping:
+
+```bash
+sudo /usr/local/sbin/zulip-compose exec --user zulip \
+  --workdir /home/zulip/deployments/current zulip \
+  ./scripts/get-django-setting REALM_HOSTS
+```
+
+Require the two intended IDs and matching public hostnames. The official image
+generates this setting from `SETTING_REALM_HOSTS` on startup; do not edit the
+generated `settings.py` inside the container.
+
 In Cloudflare, add two exact published-application routes to the existing
-tunnel. Both use Service URL `http://server:8080`. Retain the base route.
+tunnel. Choose subdomains `zulip-openops` and `zulip-projects` under the parent
+domain. Both use Service URL `http://server:8080`. Retain the base route.
 Preserve the incoming Host header: do not override both organization routes to
 the base hostname. Keep the existing proxy trust settings and private-service
 boundaries.
@@ -111,9 +130,9 @@ From an external client, check each new hostname without bypassing TLS:
 
 ```bash
 curl --max-time 20 --silent --show-error --output /dev/null \
-  --write-out 'openops HTTP %{http_code}\n' https://openops.chat.example.com/login/
+  --write-out 'openops HTTP %{http_code}\n' https://zulip-openops.example.com/login/
 curl --max-time 20 --silent --show-error --output /dev/null \
-  --write-out 'projects HTTP %{http_code}\n' https://projects.chat.example.com/login/
+  --write-out 'projects HTTP %{http_code}\n' https://zulip-projects.example.com/login/
 ```
 
 Require exit status zero for each request. A missing-organization response is
@@ -136,9 +155,9 @@ in place. `--skip-redirect` avoids creating a placeholder organization at the
 old root, leaving it available for the rollback below. Existing sessions are
 invalidated by Zulip; accounts, messages and organization ID remain in place.
 
-Clear cookies/site data for the old base hostname, then sign in at
-`https://openops.chat.example.com`. Repeat the inventory command from step 1
-with `string_id="openops"`. Require the same numerical organization ID and the
+Sign in at `https://zulip-openops.example.com` with the existing account.
+The old base session has been invalidated by the move. Repeat the inventory
+command from step 1 with `string_id="openops"`. Require the same numerical organization ID and the
 expected account/message counts before sending new test messages. Verify an
 existing message and upload if present, then send a new message and small upload.
 Do not rerun the rename blindly if a check fails.
@@ -151,10 +170,12 @@ sudo /usr/local/sbin/zulip-compose exec --user zulip \
   ./manage.py generate_realm_creation_link
 ```
 
-Open the full single-use link privately. Choose the **projects** subdomain and
-the intended display name. Do not leave the subdomain blank or create another
-organization at the root. Select invitation-only signup, create its owner
-account and verify `https://projects.chat.example.com`.
+Open the full single-use link privately. When asked for the subdomain, enter
+**projects**, the internal ID used as the mapping key. Zulip maps that ID to
+`zulip-projects.example.com`. Enter the intended display name and select
+invitation-only signup. Create its owner account and verify
+`https://zulip-projects.example.com`. Do not enter the full hostname or
+`zulip-projects` as the internal ID, and do not leave it blank.
 
 Run `list_realms` again. Require separate `openops` and `projects` entries and no
 active root organization. Sign into both in separate browser tabs, then add both
@@ -177,10 +198,10 @@ sudo /usr/local/sbin/zulip-compose exec --user zulip \
   ./manage.py change_realm_subdomain --realm openops --skip-redirect ''
 ```
 
-Clear the new and old hostname cookies, then verify the original address and
-the preserved organization ID. Set `ZULIP_ORG_HOSTS=` and restart the guarded
-unit to withdraw the added Caddy routes. Remove only the two added Cloudflare
-published applications and their corresponding DNS records once rollback is
+Sign in again at the original base address and verify the preserved
+organization ID. Set both `ZULIP_ORG_HOSTS=` and `ZULIP_REALM_HOSTS=`, then
+restart the guarded unit to withdraw the additional mappings and Caddy routes.
+Remove only the two added Cloudflare published applications and their corresponding DNS records once rollback is
 accepted; retain the base route.
 
 If `projects` was already created, its data remains in the database but its
@@ -194,13 +215,14 @@ realm or restore a database merely to free a hostname.
 | --- | --- |
 | Certificate and routing | Both names verify TLS externally and reach the intended application |
 | Existing organization | Same numerical ID, expected accounts/messages and working uploads |
-| Separation | Distinct `openops` and `projects` memberships, content and bot destinations |
+| Separation | Mapped hostnames select distinct `openops` and `projects` memberships, content and bot destinations |
 | Clients | Both sessions work concurrently; native/cellular checks pass |
 | Operations | All seven containers healthy/running as applicable; Forgejo stays available |
 | Recovery | Protected checkpoint and address rollback result recorded separately |
 
-The ARM64 fixture exercises a disposable rename, rollback, preserved account and
-message, both login pages and cross-organization credential rejection. It does
+The ARM64 fixture verifies that the image applies the hostname mapping, then
+exercises a disposable rename, rollback, preserved account/message/API key,
+both mapped login pages and cross-organization credential rejection. It does
 not establish production DNS, edge certificates, live clients or recovery.
 
 ## Sources
@@ -209,4 +231,4 @@ not establish production DNS, edge certificates, live clients or recovery.
 - [Version-matched rename command](https://github.com/zulip/zulip/blob/13.2/zerver/management/commands/change_realm_subdomain.py)
 - [Version-matched rename implementation](https://github.com/zulip/zulip/blob/13.2/zerver/actions/create_realm.py)
 - [Cloudflare Universal SSL coverage](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/)
-- [Cloudflare Tunnel routes and multi-level certificate requirement](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/)
+- [Cloudflare Tunnel published-application routes](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/get-started/create-remote-tunnel/)

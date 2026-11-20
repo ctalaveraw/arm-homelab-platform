@@ -13,7 +13,7 @@ The architecture, CI and runbooks describe current operation. Sprint, incident a
 - [Cloudflare Tunnel](runbooks/cloudflared.md): token setup, DNS, activation and withdrawal.
 - [Controller public ingress](runbooks/controller-public-ingress.md): Caddy, tunnel and application networks.
 - [Controller Zulip](runbooks/zulip-controller.md): accepted/pending checks, routine operations, diagnostics, configuration and recovery.
-- [Separate Zulip organizations](runbooks/zulip-organizations.md): certificate checks, subdomain migration, independent organization creation and address rollback.
+- [Separate Zulip organizations](runbooks/zulip-organizations.md): hostname mappings, certificate checks, organization creation and address rollback.
 - [Host metrics](runbooks/observability-host-metrics.md): exporter and dashboard operations.
 - [Kubernetes and Flux telemetry](runbooks/kubernetes-flux-telemetry.md): observer credentials, API-proxy scraping and failure handling.
 - [Application deployment and rollback](runbooks/kubernetes-deployment-rollback.md): the scoped deployment helper and recovery procedure.
