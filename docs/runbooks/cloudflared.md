@@ -1,8 +1,11 @@
 # Cloudflare Tunnel in Docker
 
-This guide covers setup and maintenance of the controller tunnel profile.
-End-to-end public chat acceptance remains open. Keep credentials, deployment
-addresses, account/tunnel identifiers and raw runtime diagnostics outside Git.
+This guide covers setup and maintenance of the deployed controller tunnel.
+The operator confirmed healthy cloudflared/Zulip containers, public HTTPS,
+organization creation and owner login on 2026-11-18. The
+[Zulip operator runbook](zulip-controller.md#accepted-and-pending-checks) records
+remaining functional and recovery checks. Keep credentials, deployment addresses,
+account/tunnel identifiers and raw runtime diagnostics outside Git.
 
 The base ingress manifest contains two containers. The selected controller
 profile adds Zulip and four dependencies using `compose/zulip/compose.yaml`:
@@ -14,10 +17,11 @@ profile adds Zulip and four dependencies using `compose/zulip/compose.yaml`:
 | Caddy | Internal HTTP listener and exact-host reverse proxy |
 | Controller application containers | Zulip and its own database/cache/queue stack |
 
-Traffic is Cloudflare → cloudflared → Caddy → Zulip. The two containers share a
-private Docker network with fixed, locally selected peer addresses. They have
+Traffic is Cloudflare → cloudflared → Caddy → Zulip. The connector and Caddy share
+a private Docker network with fixed, locally selected peer addresses. They have
 separate outbound networks so Docker DNS selects that shared private path.
-Neither container publishes host ports or joins Forgejo's network. No inbound
+The combined project publishes no host ports and has no network connection to
+Forgejo. No inbound
 TCP 80/443 forwarding or Caddy ACME/DNS-01 credential is required for this path.
 
 Cloudflare terminates browser HTTPS, and its connector transport is encrypted.
@@ -109,7 +113,10 @@ Set the Subdomain field to the intended chat label; leaving it blank selects
 the domain apex. Leave Path empty to include all application paths. Additional
 application settings can remain at their defaults.
 
-The hostname must match `ZULIP_FQDN`. Preserve the public Host header; if an
+The full Subdomain plus Domain must match `ZULIP_FQDN` and its public DNS record.
+A healthy connector does not prove that this application hostname resolves or
+routes correctly. Use the [DNS/404 diagnostics](zulip-controller.md#diagnose-startup-and-routing)
+before changing router policy. Preserve the public Host header; if an
 origin Host override is needed, set it to that same hostname in Cloudflare.
 Keep Forgejo, controller administration, metrics, Docker and database endpoints
 out of the tunnel's published applications. Caddy also returns 404 for unknown
@@ -154,6 +161,9 @@ token in its arguments.
 ## Verification and proxy headers
 
 Use `systemctl status caddy-public` and `sudo /usr/local/sbin/zulip-compose ps` first.
+`active/exited` is the expected successful oneshot state; inspect container health
+separately. Restart progress is available in the unit journal while the calling
+terminal waits. See [routine operations](zulip-controller.md#routine-operations).
 The connector's readiness probe uses its own loopback metrics endpoint; neither
 metrics nor Caddy's administration interface is published. The readiness probe checks tunnel connectivity. Test Zulip initialization and authentication separately.
 

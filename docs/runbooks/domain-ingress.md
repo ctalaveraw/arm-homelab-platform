@@ -1,10 +1,12 @@
 # Domain and HTTPS ingress
 
-The controller public chat profile uses Cloudflare Tunnel and internal Caddy.
-End-to-end Zulip acceptance is tracked separately. Forgejo is operational on
-LAN/WireGuard HTTP/3000 and SSH/2223.
+The controller public chat deployment uses Cloudflare Tunnel and internal Caddy.
+Public HTTPS, organization creation and owner login were confirmed on 2026-11-18;
+remaining functional and recovery checks are in the
+[Zulip operator runbook](zulip-controller.md#accepted-and-pending-checks).
+Forgejo remains on LAN/WireGuard HTTP/3000 and SSH/2223.
 
-## Selected public application path
+## Public application path
 
 Use [Cloudflare Tunnel in Docker](cloudflared.md) and the
 [controller public ingress guide](controller-public-ingress.md):

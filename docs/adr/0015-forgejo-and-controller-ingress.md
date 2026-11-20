@@ -1,7 +1,7 @@
 # ADR-0015: Forgejo and controller ingress
 
 Date: 2026-11-17
-Status: Accepted; Forgejo LAN cutover verified 2026-11-18. Private Forgejo HTTPS and public chat acceptance are separate.
+Status: Accepted; Forgejo LAN cutover and public Zulip organization/owner login verified 2026-11-18. Private Forgejo HTTPS and remaining chat functional/recovery acceptance are separate.
 
 ## Context
 
@@ -20,6 +20,12 @@ Forgejo now serves `http://git.lab.home.arpa:3000/` and SSH/2223. Source parity,
 Public Zulip uses controller containers for the application, PostgreSQL, RabbitMQ, Redis, Memcached, Caddy and cloudflared. The connector initiates outbound tunnel connections. Its token is supplied as a file secret, and the stack publishes no host ports. Cloudflare manages public chat DNS and edge HTTPS. OUTER/INNER keep their existing responsibilities.
 
 Caddy accepts the exact chat hostname on an internal listener. The tunnel and application use separate proxy networks. The public stack shares neither Forgejo's state nor its Docker network. Controller administration, private Git, caches, metrics and dependency ports are excluded from public routing.
+
+The operator confirmed initialization, repeat Ansible convergence, all seven
+containers running, healthy application/connector probes and public organization
+creation/login. Host-side SMTP TLS/authentication passed; invitation delivery,
+messages/uploads, cellular/native clients, sustained capacity and recovery remain
+open in the [operator acceptance table](../runbooks/zulip-controller.md#accepted-and-pending-checks).
 
 The separate `compose/caddy` profile is optional private Forgejo HTTPS configuration. Its reference ACME configuration needs adaptation for private DNS-01 certificates or a locally trusted CA before deployment. It is not a Cloudflare Tunnel target.
 

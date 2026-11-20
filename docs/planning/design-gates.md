@@ -4,6 +4,13 @@ Approved direction: 2026-10-10. Reviewed: 2026-11-18.
 
 Forgejo is deployed under [ADR-0015](../adr/0015-forgejo-and-controller-ingress.md). Source parity, OCI retrieval and native validation passed; the [migration checklist](../runbooks/gitea-to-forgejo.md#9-acceptance-and-retention) tracks retained legacy state and remaining review. Portal adoption is optional.
 
+The same ADR places public Zulip, its dependencies, Caddy and cloudflared on the
+controller, with no new VM or router application install. Startup, public HTTPS
+and organization/owner login passed. [OPS-020](objectives.md#ops--out-of-cluster-host-operations)
+and the [operator runbook](../runbooks/zulip-controller.md) retain the remaining
+site checks. The [deployment standards](../architecture/deployment-standards.md)
+map existing names and lifecycle boundaries to source.
+
 | Gate | Adopted decision | Requirement |
 | --- | --- | --- |
 | DG-01 | ARM-first, with optional secondary targets | Keep target inventory and adapters separate from shared policy |

@@ -1,11 +1,12 @@
 # DevSecOps platform objective register
 
-93 work items across 11 workstreams. Created 2026-10-10; current status is recorded per row.
+94 work items across 11 workstreams. Created 2026-10-10; reviewed 2026-11-18.
+Current status is recorded per row; OPS-020 tracks the deployed public chat closeout.
 
 ## How to read this register
 
 - **ID:** stable future work item; retain existing PLAT-001..018, SEC-001, CI-001, OPS-001..007, AWS and AI records from the main backlog.
-- **Mode:** planned unless marked *Evaluate*. Evaluation tickets may end in a documented no-adopt decision. Introduce one implementation milestone at a time.
+- **Mode:** planned unless marked *Evaluate* or *In progress*. Evaluation tickets may end in a documented no-adopt decision. Introduce one implementation milestone at a time.
 - **Tier:** P = portable CI/off-lab; S = throwaway simulation; H = physical/site evidence. A slash means both tiers matter.
 - **Dependency:** planning predecessor or existing milestone, **not** proof of completion. A proposed item is closed only with code/config, negative cases, operational verification and evidence in its stated tier. Existing historical sprint evidence is not rewritten.
 - **Security scope:** controls are selected according to a threat model, not by maximizing installed products. Maintain exceptions with owner, reason, evidence, expiry, and compensating controls.
@@ -60,6 +61,7 @@ The platform runs on ARM64 with GitHub source, a Forgejo mirror and restricted v
 | **OPS-017 — Cross-service dependency health** | Planned | Monitor Forgejo, OCI, runner, Gotify, Kuma, APT, DNS and storage; broken dependency detected accurately. | PLAT-012, PLAT-013 | H |
 | **OPS-018 — Capacity and wear management** | Planned | ARM CPU/memory, SD health/writes, cache limits and storage growth alert thresholds measured. | PLAT-012 | H |
 | **OPS-019 — Service boot-order failure drills** | Planned | Network/DNS/SD/Docker outage at boot proves systemd startup ownership; documented recovery path. | OPS-010, DR-003 | H |
+| **OPS-020 — Controller public chat operation** | In progress | Combined Zulip/Caddy/cloudflared deployment, initialization, healthy probes and public organization/owner login accepted 2026-11-18. Invitation-only policy, email delivery, messages/uploads, external/native clients, capacity/isolation and off-device restore remain in the [operator runbook](../runbooks/zulip-controller.md#accepted-and-pending-checks). | PLAT-003, ADR-0004, ADR-0015; recovery with PLAT-017/018 | P/H |
 
 ## OBS — Observability and operational reliability
 

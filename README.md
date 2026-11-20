@@ -14,8 +14,8 @@ The NanoPi R5C (`gitops-controller-01`, `10.0.0.50`) runs outside the Kubernetes
 | Local validation | Forgejo Runner 13.1.0; repository scope; UID/GID 10001 | Manual and mirrored-push Actions runs succeeded |
 | Availability | Uptime Kuma | Forgejo monitor updated to `/api/healthz`; HTTP health passed |
 | Application delivery | GitHub ARM64 CI, GHCR and Flux | Build/test/scan, verified image transfer, digest deployment and rollback |
-| Metrics | Prometheus, Grafana, host exporters and Kubernetes/Flux observer | Eight scrape targets and five dashboards in the last acceptance record |
-| Public chat profile | Zulip 13.2-0, cloudflared 2026.11.1 and internal Caddy 2.11.9 | Configuration and CI checks are present; end-to-end public chat acceptance is tracked separately |
+| Metrics | Prometheus, Grafana, host exporters and Kubernetes/Flux observer | Eight targets/five dashboards accepted previously; Prometheus and Grafana were stopped in the latest operator inventory |
+| Public chat | Zulip 13.2-0, cloudflared 2026.11.1 and internal Caddy 2.11.9 | Seven containers running, app/connector healthy, public HTTPS and organization/owner login confirmed on 2026-11-18; functional and recovery closeout pending |
 
 GitHub is the canonical source. Forgejo holds the one-way pull mirror at `ctalaveraw/arm-homelab-platform` and a linked `platform-hello` container package. Routine changes go through GitHub PRs. Flux reads GitHub and deploys the GHCR image by digest.
 
@@ -26,6 +26,10 @@ Forgejo is limited to LAN/WireGuard access. It has no public Caddy or Cloudflare
 Ansible configures the R5C and installs systemd units. Each stateful Compose service checks the mounted `storage_sdcard` ext4 filesystem and its bind sources before starting. Persistent service data lives under `/srv/storage/state/services`; Docker's data root stays on eMMC.
 
 Systemd owns service startup. Compose restart policies are disabled so Docker cannot bypass the storage checks. Configuration or image changes require an explicit service restart; Ansible `state: started` alone does not recreate running containers.
+
+The [deployment standards and service map](docs/architecture/deployment-standards.md)
+define project, service, unit, playbook and overlay names. Public chat is one
+combined lifecycle; observability uses service-scoped units in a shared project.
 
 ## Forgejo migration
 
@@ -66,4 +70,4 @@ GitHub-hosted ARM64 CI also validates Caddy, builds the Forgejo runner, and buil
 
 Start with the [documentation index](docs/README.md), [architecture](docs/architecture/overview.md) and [CI guide](docs/ci.md). Operations guides cover [Forgejo migration](docs/runbooks/gitea-to-forgejo.md), [domain ingress](docs/runbooks/domain-ingress.md), [Cloudflare Tunnel](docs/runbooks/cloudflared.md) and [controller Zulip](docs/runbooks/zulip-controller.md).
 
-The [roadmap](docs/roadmap.md), [backlog](docs/backlog.md) and [objective register](docs/planning/objectives.md) track unfinished work. Off-device restore, blank-host reconstruction, runtime alerts and private management HTTPS remain open. The four-hour RTO and one-hour RPO are recovery targets.
+The [roadmap](docs/roadmap.md), [backlog](docs/backlog.md) and [objective register](docs/planning/objectives.md) track unfinished work. Zulip invitation delivery, messages/uploads, cellular/native clients and recovery remain OPS-020 checks. Monitoring resumption, off-device restore, blank-host reconstruction, runtime alerts and private management HTTPS remain open. The four-hour RTO and one-hour RPO are recovery targets.

@@ -44,6 +44,12 @@ Forgejo uses `actions/checkout@v4` with persisted credentials disabled. `DEFAULT
 
 `bootstrap.sh` installs or updates the repository-local toolchain. `validate.sh` checks shell/Python/YAML syntax, ShellCheck, Ruff, yamllint, GitHub actionlint, regression tests, Ansible syntax and Compose rendering with synthetic values. The local worker needs a Compose client but no Docker daemon.
 
+Compose discovery covers both `compose/*/compose.yml` and
+`compose/*/compose.yaml`. Standalone projects render independently; the Zulip
+overlay renders with the public ingress base. The synthetic environment supplies
+the complete hostname, mail and network contract without reading deployment `.env`
+or credential files. See the [deployment map](architecture/deployment-standards.md).
+
 GitHub separately builds the runner and validates Caddy. Controller ingress CI checks unpublished ports, exact proxy trust, storage and secret handling, then initializes Zulip with disposable credentials and waits for its health check. It does not authenticate a real tunnel or send SMTP mail.
 
 The ingress fixture applies the playbook's file and directory preparation tasks to an
@@ -53,6 +59,12 @@ traversal permissions before the image can initialize as the `zulip` user.
 It also starts with a checkout-owned mode 0600 public `Caddyfile`; preparation
 must make it readable before the pinned Caddy container validates it with all
 capabilities dropped.
+
+Live operator results are recorded in the
+[Zulip runbook](runbooks/zulip-controller.md#accepted-and-pending-checks).
+Healthy CI fixtures do not close pending invitation delivery, external-client,
+capacity or recovery checks. Prometheus/Grafana's earlier telemetry acceptance
+also does not establish current collection after their latest stopped inventory.
 
 ## Build once and publish
 

@@ -494,9 +494,23 @@ export ACNG_BIND_IP=127.0.0.1
 export ACNG_PUID=1000
 export ACNG_PGID=1000
 
+# The public ingress base and Zulip overlay share one configuration contract.
+export ZULIP_FQDN=chat.example.com
+export ZULIP_UPSTREAM=http://zulip:80
+export PUBLIC_INGRESS_SUBNET=192.0.2.0/28
+export CLOUDFLARED_CONTAINER_IP=192.0.2.2
+export CADDY_TUNNEL_IP=192.0.2.3
+export ZULIP_PROXY_SUBNET=198.51.100.0/28
+export CADDY_ZULIP_IP=198.51.100.2
+export ZULIP_CONTAINER_IP=198.51.100.3
+export ZULIP_ADMIN_EMAIL=admin@example.com
+export SMTP_HOST=smtp.example.com
+export SMTP_USER=ci@example.com
+export SMTP_FROM=ci@example.com
+
 
 mapfile -d '' COMPOSE_MANIFESTS < <(
-    git ls-files -z 'compose/*/compose.yml'
+    git ls-files -z 'compose/*/compose.yml' 'compose/*/compose.yaml'
 )
 
 if (( ${#COMPOSE_MANIFESTS[@]} == 0 )); then
@@ -509,10 +523,19 @@ for manifest in "${COMPOSE_MANIFESTS[@]}"; do
     echo
     ci_ui_note "Compose: $manifest"
 
-    "${COMPOSE[@]}" \
-        --env-file /dev/null \
-        -f "$manifest" \
-        config --quiet
+    if [[ "$manifest" == "compose/zulip/compose.yaml" ]]; then
+        # The overlay extends 'server' from the ingress base; never render alone.
+        "${COMPOSE[@]}" \
+            --env-file /dev/null \
+            -f compose/caddy-public/compose.yaml \
+            -f "$manifest" \
+            config --quiet
+    else
+        "${COMPOSE[@]}" \
+            --env-file /dev/null \
+            -f "$manifest" \
+            config --quiet
+    fi
     ci_ui_pass "Compose render" "$manifest"
 done
 

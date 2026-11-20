@@ -22,8 +22,14 @@ Recovery source and credentials must be accessible without the R5C, Forgejo, Kub
 | APT-Cacher-NG | Optional package cache | Separate cache directory |
 | Prometheus / Grafana | Host, Kubernetes API and Flux metrics | Guarded observability directories |
 | Private Caddy profile | Optional Forgejo HTTPS; not deployed for the current LAN URL | `services/caddy/data`, `services/caddy/config` |
+| Public chat and ingress | Zulip/dependencies, outbound cloudflared and internal Caddy | `services/zulip`, `services/cloudflared`, `services/caddy-public` |
 
 Application data uses the actual ext4 filesystem labeled `storage_sdcard`. Guards reject missing mounts, redirected paths and incorrect bind sources. Docker's data root stays on eMMC. The former USB archive is decommissioned.
+
+The [deployment standards and service map](deployment-standards.md) identify the
+matching manifests, playbooks and units. Public chat uses a base plus overlay
+under one unit; Prometheus and Grafana share a manifest with separate lifecycle
+owners. Native exporters and Flux-managed workloads have their own boundaries.
 
 ## Ingress placement
 
@@ -32,7 +38,7 @@ Application data uses the actual ext4 filesystem labeled `storage_sdcard`. Guard
 | Forgejo HTTP / OCI | `http://git.lab.home.arpa:3000/` | LAN/WireGuard; health and OCI retrieval passed |
 | Forgejo SSH | TCP `2223` | LAN-bound; repository read passed |
 | Forgejo HTTPS | Separate `compose/caddy` profile | Optional; private certificate deployment remains open |
-| Public Zulip | Cloudflare edge → cloudflared → internal Caddy → Zulip | Separate controller profile; live application acceptance tracked in its runbook |
+| Public Zulip | Cloudflare edge → cloudflared → internal Caddy → Zulip | Healthy app/connector, public HTTPS, organization creation and owner login confirmed 2026-11-18; functional/recovery checks pending |
 
 Both `git.lab.home.arpa` and `forgejo.lab.home.arpa` resolve to the controller. Forgejo HTTP is bound to the controller's LAN address. There is no public Forgejo tunnel route.
 
@@ -52,10 +58,18 @@ The Forgejo validation runner has no production Docker socket, deployment creden
 
 ## Monitoring and remaining work
 
-The accepted telemetry deployment has eight Prometheus targets and five Grafana dashboards. Host exporters cover the R5C and three Pis. A read-only X.509 observer scrapes the Kubernetes API and Flux metrics through the API endpoint.
+The earlier telemetry acceptance recorded eight Prometheus targets and five
+Grafana dashboards. Host exporters cover the R5C and three Pis, with a read-only
+X.509 observer for Kubernetes API and Flux metrics through the API endpoint.
+The 2026-11-18 operator inventory showed Prometheus and Grafana containers stopped;
+current scrapes, dashboards and capacity monitoring have not been reaccepted.
 
 Forgejo native validation passed for manual and mirrored-push runs. Kuma reports availability, and the operator updated its target to `http://git.lab.home.arpa:3000/api/healthz`. Alert delivery after migration has not been retested.
 
-Remaining work includes private HTTPS, exporter network isolation, an induced scrape outage, wider workload/service metrics, scheduled encrypted backups, restore and blank-host reconstruction. Details are in the [backlog](../backlog.md).
+Remaining work includes Zulip invitation delivery, messaging/uploads, external
+clients and recovery (OPS-020), monitoring resumption with a capacity review,
+private HTTPS, exporter isolation, an induced scrape outage, wider workload/service
+metrics, encrypted off-device backups, restore and blank-host reconstruction.
+Details are in the [backlog](../backlog.md).
 
 Historical records: [native Gitea CI](../sprints/07-native-gitea-ci.md), [OCI distribution](../sprints/09-dual-oci-distribution.md), [Flux](../sprints/12-flux-gitops.md) and [telemetry](../sprints/14-kubernetes-flux-telemetry.md).

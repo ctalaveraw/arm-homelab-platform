@@ -27,6 +27,14 @@ Current forge units are `forgejo.service` and `forgejo-runner.service`, installe
 
 Ansible deployment and service activation passed during the migration. Positive/negative guard behavior is covered by the repository tests. See the [current paths](../runbooks/forgejo-reference-map.md#repository-and-host-paths) and [migration record](../runbooks/gitea-to-forgejo.md).
 
+The public chat implementation uses `caddy-public.service` and `zulip-compose`
+for the combined ingress/application project. Its guard checks both manifests,
+three state namespaces, credential metadata, isolation and cold-start capacity.
+It waits for readiness and removes partial containers after failed startup.
+Prometheus and Grafana instead use separate service-scoped units in one project.
+The [deployment map](../architecture/deployment-standards.md#source-and-lifecycle-map)
+records these lifecycle boundaries without renaming installed units or paths.
+
 ## Consequences
 
 Invalid storage or bindings stop activation. The contract covers startup checks; unexpected SD loss during writes still requires application recovery.

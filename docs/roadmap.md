@@ -2,6 +2,10 @@
 
 Updated 2026-11-18. Forgejo is live on LAN HTTP/3000 and SSH/2223; source parity, OCI retrieval, native CI and availability passed. The old Gitea state is retained for rollback.
 
+Public Zulip is also deployed on the controller: healthy app/connector probes,
+public HTTPS, organization creation and owner login passed. OPS-020 tracks the
+remaining functional, capacity/isolation and recovery checks in its runbook.
+
 ## Current objective
 
 Complete host, Kubernetes and service observability, then test alerts, node reconstruction, secrets and restore. Release policy and privileged operations follow those foundations. See the [charter](vision/platform-charter.md), [design decisions](planning/design-gates.md) and [objective register](planning/objectives.md).
@@ -19,6 +23,11 @@ Implemented on the existing R5C: Ansible inventory, preflight, host packages, Do
 Operational: Forgejo, repository-scoped runner, Gotify, Kuma and APT-Cacher-NG use guarded SD state. GitHub owns source and protected `main`; Forgejo mirrors it and validates trusted main-branch workflows on the physical R5C.
 
 The 2026-11-18 migration passed HTTP health, SSH, source parity, OCI retrieval and manual/mirrored-push CI. Kuma's target is now `/api/healthz`. Review [retained legacy state and remaining checks](runbooks/gitea-to-forgejo.md#9-acceptance-and-retention) before retiring Gitea backups. The original Gitea work remains in its dated sprint records.
+
+Public chat uses a separate guarded controller project with seven containers and
+no published host ports. OUTER/INNER retain their network roles. See the
+[service map](architecture/deployment-standards.md) and
+[Zulip operator runbook](runbooks/zulip-controller.md).
 
 ## M3 — Application delivery
 
@@ -55,11 +64,12 @@ Drift correction, Git changes and suspend/resume behavior were tested. Namespace
 
 | Work | Current status / next check |
 | --- | --- |
-| PLAT-012 — Metrics | Eight targets and five dashboards accepted. Workload-state coverage, service probes, exporter isolation, induced outage and sustained capacity checks remain open. Full-host reboot recovery is unverified. |
+| PLAT-012 — Metrics | Eight targets/five dashboards accepted previously; latest inventory showed Prometheus/Grafana stopped. Capacity review, monitoring resumption, workload-state coverage, service probes, isolation, outage and reboot checks remain open. |
 | PLAT-013 — Gotify runtime alerts | Define thresholds, routing, deduplication, recovery and missing-signal tests. |
 | PLAT-014/015 — Fourth Pi / node join | Implement blank-device bootstrap, host convergence and repeatable kubeadm join; verify APT cache bypass and storage/network failures. |
 | PLAT-016 — OpenBao | Establish independent key/PKI recovery, trusted management HTTPS and short-lived routine credentials. |
 | PLAT-017/018 — Backup / disaster recovery | Capture consistent off-device state, restore in isolation and reconstruct without the local forge or secret service. |
+| OPS-020 — Public chat | Startup, HTTPS and organization/owner login accepted. Invitation policy/delivery, messages/uploads, external/native clients, capacity/isolation and recovery remain pending. |
 
 The recovery targets are four hours RTO and one hour RPO for a defined critical scope. They remain unmeasured. The current Ansible preflight expects a booted ARM64 host and mounted labeled SD; blank-device provisioning is separate work.
 
@@ -85,7 +95,7 @@ Contributors should be able to run portable checks off-lab and hand physical tes
 
 ## Scope discipline and acceptance
 
-The objective register contains 93 work items with individual dependencies and test tiers. Work proceeds one milestone at a time. Record portable, simulated and physical results separately.
+The objective register contains 94 work items with individual dependencies and test tiers. Work proceeds one milestone at a time. Record portable, simulated and physical results separately; a completed runbook does not close unperformed site tests.
 
 ## Sprint cadence
 

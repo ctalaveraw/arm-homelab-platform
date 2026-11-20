@@ -25,7 +25,24 @@ Forgejo is live at `http://git.lab.home.arpa:3000/`, with SSH/2223 and a reposit
   - [ ] Monitor notification delivery and retained-instance rollback checked before retirement
 - [ ] OPS-007: Private management HTTPS, certificate renewal and client trust verified
 
-## COMPLETE — Core delivery
+## Controller public chat — 2026-11-18
+
+- [ ] OPS-020: Complete functional and recovery acceptance
+  - [x] Controller Compose base/overlay, file credentials, exact proxy trust and guarded systemd lifecycle
+  - [x] ARM64 CI initialization/health and positive/negative source contracts
+  - [x] Database initialization, repeat Ansible convergence and seven running containers
+  - [x] Healthy Zulip/cloudflared, public DNS/HTTPS, organization creation and owner login
+  - [x] Host-side Gmail connection, verified TLS and authentication
+  - [ ] Explicit invitation-only policy check and actual invitation email delivery
+  - [ ] Messages, uploads, two-session real-time updates and cellular/native-client access
+  - [ ] Real client IP, negative private-service routing and post-deployment Forgejo checks
+  - [ ] Sustained memory/swap/SD review, protected checkpoint, off-device copy, isolated restore and reboot
+
+The [operator runbook](runbooks/zulip-controller.md) is ready for use. Physical
+checks remain pending until they are performed on the deployment. Deployment
+names and lifecycle boundaries are in the [service map](architecture/deployment-standards.md).
+
+## Core delivery
 
 - [x] PLAT-001: Public GitHub bootstrap/recovery remote
 - [x] PLAT-002: Ansible inventory, preflight and common role
@@ -37,7 +54,6 @@ Forgejo is live at `http://git.lab.home.arpa:3000/`, with SSH/2223 and a reposit
 - [x] GIT-002: One-way GitHub -> Forgejo pull mirror
 - [x] OPS-005: Uptime Kuma monitoring and controlled recovery drill
 - [ ] OPS-006: APT-Cacher-NG — operational; source ACL verification pending
-- [ ] OPS-007: Shared HTTPS for management services
 
 - [x] PLAT-007: First application delivery pipeline
   - [x] ARM64 Hello World application source
@@ -83,6 +99,7 @@ Forgejo is live at `http://git.lab.home.arpa:3000/`, with SSH/2223 and a reposit
 
 - [x] PLAT-011: Flux GitOps reconciliation
 - [ ] PLAT-012: Prometheus and Grafana (host + Kubernetes API + Flux controller monitoring accepted; broader object-state coverage, isolation tests, induced-outage acceptance and closeout still pending)
+  - [ ] Review combined controller capacity, resume monitoring and recheck current scrapes/dashboards; latest 2026-11-18 inventory showed both containers stopped
   - [x] R5C Prometheus/Grafana with guarded SD state, explicit retention and memory budgets
   - [x] R5C and three physical Pi Node Exporters, provisioned dashboards and live acceptance
   - [x] Repeat Ansible convergence with zero changes across Pi and management targets
@@ -120,9 +137,9 @@ Forgejo is live at `http://git.lab.home.arpa:3000/`, with SSH/2223 and a reposit
   - Arguments: --human --add-root-shell
   - Keep optional; do not block platform recovery.
 
-## Tracked future DevSecOps and platform objective register
+## Tracked DevSecOps and platform objective register
 
-The [platform charter](vision/platform-charter.md) and [93-objective register](planning/objectives.md) convert the planning ideas into stable work IDs with acceptance, dependencies and P/S/H evidence tiers. Work is queued, **not implemented**. Approved architecture choices and unresolved implementation gates are in [design gates](planning/design-gates.md). Existing PLAT-012..018 retain priority; only one milestone is active at a time. Evaluation items may legitimately close with a reasoned no-adopt decision.
+The [platform charter](vision/platform-charter.md) and [94-objective register](planning/objectives.md) use stable work IDs with acceptance, dependencies and P/S/H evidence tiers. Rows remain planned unless their status records implementation; OPS-020 is partially accepted above. Approved choices and remaining gates are in [design gates](planning/design-gates.md). Existing PLAT-012..018 remain on the roadmap. Evaluation items may legitimately close with a reasoned no-adopt decision.
 
 ### ENG — Code maintainability and interface design
 
@@ -159,6 +176,7 @@ The [platform charter](vision/platform-charter.md) and [93-objective register](p
 - [ ] OPS-017: Cross-service dependency health ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
 - [ ] OPS-018: Capacity and wear management ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
 - [ ] OPS-019: Service boot-order failure drills ([acceptance](planning/objectives.md#ops--out-of-cluster-host-operations))
+- [ ] OPS-020: Controller public chat operation (deployed; closeout tracked above and in the [operator acceptance table](runbooks/zulip-controller.md#accepted-and-pending-checks))
 
 ### OBS — Observability and operational reliability
 
