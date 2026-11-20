@@ -48,7 +48,7 @@ def request(port, *, host="chat.example.com", scheme="https"):
         connection.close()
 
 
-def exercise(binary, peer, backend):
+def exercise(binary, peer, backend, organization_hosts=()):
     port = unused_port()
     config = PROFILE.read_text().replace("{\n", "{\n\tadmin off\n", 1)
     config = config.replace(":8080 {", f":{port} {{\n\tbind 127.0.0.1")
@@ -57,6 +57,7 @@ def exercise(binary, peer, backend):
         path.write_text(config)
         env = os.environ.copy()
         env.update(ZULIP_FQDN="chat.example.com", ZULIP_UPSTREAM=f"http://127.0.0.1:{backend}",
+                   ZULIP_ORG_HOSTS=" ".join(organization_hosts),
                    CLOUDFLARED_CONTAINER_IP=peer, XDG_DATA_HOME=directory, XDG_CONFIG_HOME=directory)
         with (Path(directory) / "process.log").open("w+") as output:
             process = subprocess.Popen([binary, "run", "--config", str(path), "--adapter", "caddyfile"],
@@ -73,17 +74,23 @@ def exercise(binary, peer, backend):
                         if time.monotonic() >= deadline:
                             raise AssertionError("Caddy did not become ready") from None
                         time.sleep(0.05)
-                if peer != "127.0.0.1":
-                    assert response[0] == 403, "Untrusted peer reached the proxy"
-                    return
-                assert response[0] == 200, "Trusted tunnel request failed"
-                headers = {key.lower(): value for key, value in json.loads(response[2]).items()}
-                assert headers["x-forwarded-proto"] == "https", "HTTPS scheme was lost"
-                assert headers["x-forwarded-for"] == "203.0.113.9", "Client IP was spoofed or lost"
-                assert headers["host"] == "chat.example.com", "Public Host was lost"
-                assert request(port, host="unconfigured.example.com")[0] == 404, "Unknown hostname was routed"
-                status, headers, _ = request(port, scheme="http")
-                assert status == 308 and headers["Location"] == "https://chat.example.com/sample?test=1"
+                for host in ("chat.example.com", *organization_hosts):
+                    response = request(port, host=host)
+                    if peer != "127.0.0.1":
+                        assert response[0] == 403, "Untrusted peer reached the proxy"
+                        continue
+                    assert response[0] == 200, f"Trusted tunnel request failed for {host}"
+                    headers = {key.lower(): value for key, value in json.loads(response[2]).items()}
+                    assert headers["x-forwarded-proto"] == "https", "HTTPS scheme was lost"
+                    assert headers["x-forwarded-for"] == "203.0.113.9", "Client IP was spoofed or lost"
+                    assert headers["host"] == host, "Organization Host was lost"
+                    assert headers["x-forwarded-host"] == host, "Forwarded organization Host was lost"
+                    status, headers, _ = request(port, host=host, scheme="http")
+                    assert status == 308 and headers["Location"] == f"https://{host}/sample?test=1"
+                for host in ("unconfigured.example.com", "other.chat.example.com",
+                             "nested.openops.chat.example.com"):
+                    for scheme in ("http", "https"):
+                        assert request(port, host=host, scheme=scheme)[0] == 404, "Unknown hostname was routed"
             finally:
                 process.terminate()
                 try:
@@ -101,13 +108,14 @@ def main():
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        exercise(args.caddy, "127.0.0.1", server.server_port)
-        exercise(args.caddy, "127.0.0.2", server.server_port)
+        for hosts in ((), ("openops.chat.example.com", "projects.chat.example.com")):
+            exercise(args.caddy, "127.0.0.1", server.server_port, hosts)
+            exercise(args.caddy, "127.0.0.2", server.server_port, hosts)
     finally:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    print("Proxy smoke passed: HTTPS, real client IP, redirects, hostname isolation and peer rejection.")
+    print("Proxy smoke passed: single/multiple organizations, per-host redirects, client IP and peer isolation.")
 
 
 if __name__ == "__main__":

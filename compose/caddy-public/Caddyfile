@@ -9,20 +9,20 @@
 }
 
 :8080 {
-	respond "Not found" 404
-}
-
-http://{$ZULIP_FQDN}:8080 {
-	route {
+	@zulip host {$ZULIP_FQDN} {$ZULIP_ORG_HOSTS:}
+	handle @zulip {
 		@untrusted not remote_ip {$CLOUDFLARED_CONTAINER_IP}
 		respond @untrusted 403
 		@plaintext header X-Forwarded-Proto http
-		redir @plaintext https://{$ZULIP_FQDN}{uri} 308
+		redir @plaintext https://{host}{uri} 308
 		reverse_proxy {$ZULIP_UPSTREAM} {
 			header_up Host {host}
 			header_up X-Forwarded-For {client_ip}
 			header_up X-Forwarded-Proto https
 			header_up X-Forwarded-Host {host}
 		}
+	}
+	handle {
+		respond "Not found" 404
 	}
 }
