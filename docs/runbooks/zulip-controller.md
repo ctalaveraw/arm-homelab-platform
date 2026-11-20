@@ -12,18 +12,18 @@ These are operator-reported results, not a new remote inspection of the host.
 Keep deployment addresses, account identifiers, credentials, creation links and
 screenshots outside the public repository.
 
-| Check | Recorded result on 2026-11-18 |
+| Check | Operator-reported result |
 | --- | --- |
 | Preparation | Repeat Ansible run: `ok=14 changed=0 failed=0` |
 | Initialization | Database migrations completed; `=== End Initial Configuration Phase ===` |
-| Combined lifecycle | `Result=success`, `ActiveState=active`, `SubState=exited`; all seven containers running |
+| Combined lifecycle | All seven containers running again on 2026-11-20 after correcting a mode 0600 Caddyfile to 0644 |
 | Application and connector | Zulip and cloudflared both reported healthy |
 | Public access | Exact hostname corrected; public DNS, HTTPS, organization creation and owner login confirmed |
 | SMTP submission | Gmail connection, verified TLS and authentication passed from the controller; message delivery not yet confirmed |
 | Organization policy | Invitation-only setting still needs explicit verification in Organization permissions |
 | Functional acceptance | Invitation email, user-posted messages, uploads, real-time updates and cellular/native-client access pending |
 | Capacity and isolation | Sustained resource use, actual client-IP forwarding, private-service negative tests and post-deployment Forgejo checks pending |
-| Recovery | First protected checkpoint, off-device copy, isolated restore and full-host reboot test pending |
+| Recovery | Fresh database dump passed `pg_restore --list` on 2026-11-20; protected checkpoint verification, off-device copy, isolated restore and full-host reboot test pending |
 
 The last supplied container inventory showed Prometheus and Grafana stopped.
 Earlier telemetry acceptance does not establish current monitoring or memory
@@ -130,6 +130,11 @@ Preparation sets the checkout's public `Caddyfile` to mode 0644 and preserves it
 owner. Caddy drops all capabilities, so a mode 0600 file owned by the checkout
 user is unreadable inside the container even when Caddy runs as root. This file
 contains the proxy template; credentials remain in their separate protected files.
+Rerun preparation after updating the checkout and before a planned restart or
+checkpoint. A later checkout or editor save can recreate the file with different
+permissions. The guard rejects a missing, nonregular or incorrectly permissioned
+Caddyfile with a repair instruction; it does not change file modes. Explicit
+Ansible modes define the deployment permissions independently of the shell umask.
 
 Keep `compose/caddy-public/.env` mode 0600. If it already exists, add missing
 keys from `.env.example`; do not replace it. Configure these values locally:
@@ -278,8 +283,9 @@ the change. Source and image rollback alone cannot reverse a database migration.
 
 ## Backup and recovery
 
-The following procedure is ready for operator use; successful backup and restore
-have not yet been reported. Before an upgrade, refresh the logical database dump:
+The operator reported a successful database dump and `pg_restore --list` check on
+2026-11-20. Complete checkpoint verification and isolated restore acceptance are
+still pending. Before an upgrade, refresh the logical database dump:
 
 ```bash
 sudo /usr/local/sbin/zulip-compose exec -T zulip /sbin/entrypoint.sh app:backup
@@ -300,9 +306,11 @@ image writes a PostgreSQL custom-format dump despite the `.sql` extension.
 
 For a filesystem checkpoint:
 
-1. Complete the fresh dump, then stop `caddy-public.service` for a consistent
-   application/filesystem copy. This is a chat maintenance window; Forgejo remains
-   separate.
+1. Complete the fresh dump. Run `/usr/local/sbin/caddy-public-check-storage` with
+   sudo while the stack is still running and resolve any permission or
+   configuration errors before stopping it. Then stop `caddy-public.service` for
+   a consistent application/filesystem copy. This is a chat maintenance window;
+   Forgejo remains separate.
 2. Copy the listed material to a private checkpoint directory outside the checkout,
    such as a root-owned 0700 directory under `/srv/backups`. Preserve numeric
    ownership, modes and any ACLs. Copy uploads and credentials as well as SQL.

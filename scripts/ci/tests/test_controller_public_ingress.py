@@ -171,6 +171,41 @@ class ProjectGuardTests(unittest.TestCase):
             GUARD.validate_project(project)
 
 
+class CaddyfileTests(unittest.TestCase):
+    def test_accepts_readable_configuration_without_changing_owner_or_contents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "Caddyfile"
+            path.write_text("test configuration")
+            path.chmod(0o644)
+            before = path.stat()
+            GUARD.validate_caddyfile(path)
+            self.assertEqual(path.read_text(), "test configuration")
+            self.assertEqual((path.stat().st_uid, path.stat().st_gid), (before.st_uid, before.st_gid))
+
+    def test_rejects_permission_drift_before_probing_storage_or_docker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "Caddyfile"
+            path.write_text("test configuration")
+            for mode in (0o600, 0o640, 0o666):
+                path.chmod(mode)
+                with self.subTest(mode=oct(mode)), patch.object(GUARD, "COMPOSE", Path(directory)), \
+                        patch.object(GUARD, "run") as probe, \
+                        self.assertRaisesRegex(SystemExit, "Caddyfile requires mode 0644") as caught:
+                    GUARD.main()
+                probe.assert_not_called()
+                self.assertIn("ansible/playbooks/caddy-public.yml", str(caught.exception))
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode), mode)
+
+    def test_rejects_missing_configuration_or_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "Caddyfile"
+            with self.assertRaisesRegex(SystemExit, "Caddyfile is unavailable"):
+                GUARD.validate_caddyfile(path)
+            path.mkdir()
+            with self.assertRaisesRegex(SystemExit, "Caddyfile must be a regular file"):
+                GUARD.validate_caddyfile(path)
+
+
 class TokenTests(unittest.TestCase):
     def test_installer_preserves_existing_token_and_rotates_only_explicitly(self):
         with tempfile.TemporaryDirectory() as directory:
