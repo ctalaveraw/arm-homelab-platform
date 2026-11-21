@@ -14,6 +14,8 @@ services:
   server:
     environment:
       ZULIP_UPSTREAM: http://zulip:80
+      SETTING_ZULIP_SERVICE_PUSH_NOTIFICATIONS: "True"
+      SETTING_ZULIP_SERVICE_SUBMIT_USAGE_STATISTICS: "False"
     networks:
       zulip_proxy:
         ipv4_address: "${CADDY_ZULIP_IP:?Set CADDY_ZULIP_IP}"
